@@ -25,3 +25,9 @@ SessionLocal = sessionmaker(
     autoflush=False,
     expire_on_commit=False,
 )
+
+
+def create_tables() -> None:
+    import app.models  # noqa: F401
+
+    Base.metadata.create_all(bind=engine)
