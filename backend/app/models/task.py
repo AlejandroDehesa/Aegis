@@ -41,6 +41,13 @@ class Task(Base):
         default="pending",
         server_default="pending",
     )
+    task_type: Mapped[str] = mapped_column(
+        String(50),
+        index=True,
+        nullable=False,
+        default="general",
+        server_default="general",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

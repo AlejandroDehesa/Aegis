@@ -17,5 +17,6 @@ class TaskRead(BaseModel):
     title: str
     description: str | None
     status: str
+    task_type: str
     created_at: datetime
     updated_at: datetime

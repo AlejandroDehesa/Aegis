@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskRead
+from app.services.task_classifier import classify_task
 
 
 router = APIRouter()
@@ -20,10 +21,16 @@ def create_task(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Task:
+    task_type = classify_task(
+        title=task_in.title,
+        description=task_in.description,
+    )
+
     task = Task(
         user_id=current_user.id,
         title=task_in.title,
         description=task_in.description,
+        task_type=task_type,
     )
 
     db.add(task)
