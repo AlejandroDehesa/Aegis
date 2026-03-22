@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
 from app.agents.comparison_agent import run_task as run_comparison_task
@@ -11,6 +13,7 @@ TASK_STATUS_PENDING = "pending"
 TASK_STATUS_PROCESSING = "processing"
 TASK_STATUS_COMPLETED = "completed"
 TASK_STATUS_FAILED = "failed"
+EXECUTABLE_TASK_STATUSES = {TASK_STATUS_PENDING, TASK_STATUS_FAILED}
 
 
 AGENT_RUNNERS = {
@@ -25,36 +28,49 @@ class TaskExecutionError(Exception):
     pass
 
 
+class TaskExecutionStateError(TaskExecutionError):
+    pass
+
+
+def _persist_task(task: Task, db: Session) -> Task:
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    return task
+
+
 def execute_task(task: Task, db: Session) -> Task:
+    if task.status not in EXECUTABLE_TASK_STATUSES:
+        raise TaskExecutionStateError(
+            f"Task cannot be executed from status '{task.status}'."
+        )
+
     runner = AGENT_RUNNERS.get(task.agent_name)
 
     if runner is None:
         task.status = TASK_STATUS_FAILED
-        task.result_text = "Task execution failed."
-        db.add(task)
-        db.commit()
-        db.refresh(task)
+        task.result_text = None
+        task.error_message = "No execution strategy found for the selected agent."
+        task.executed_at = None
+        _persist_task(task, db)
         raise TaskExecutionError("No execution strategy found for the selected agent.")
 
     task.status = TASK_STATUS_PROCESSING
-    db.add(task)
-    db.commit()
-    db.refresh(task)
+    task.error_message = None
+    _persist_task(task, db)
 
     try:
         result_text = runner(task)
         task.result_text = result_text
         task.status = TASK_STATUS_COMPLETED
+        task.error_message = None
+        task.executed_at = datetime.now(timezone.utc)
     except Exception as error:
-        task.result_text = "Task execution failed."
+        task.result_text = None
         task.status = TASK_STATUS_FAILED
-        db.add(task)
-        db.commit()
-        db.refresh(task)
+        task.error_message = str(error)
+        task.executed_at = None
+        _persist_task(task, db)
         raise TaskExecutionError("Task execution failed.") from error
 
-    db.add(task)
-    db.commit()
-    db.refresh(task)
-
-    return task
+    return _persist_task(task, db)

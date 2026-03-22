@@ -20,5 +20,7 @@ class TaskRead(BaseModel):
     task_type: str
     agent_name: str
     result_text: str | None
+    executed_at: datetime | None
+    error_message: str | None
     created_at: datetime
     updated_at: datetime

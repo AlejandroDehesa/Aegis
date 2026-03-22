@@ -11,7 +11,11 @@ from app.models.user import User
 from app.schemas.task import TaskCreate, TaskRead
 from app.services.agent_selector import select_agent
 from app.services.task_classifier import classify_task
-from app.services.task_executor import TaskExecutionError, execute_task
+from app.services.task_executor import (
+    TaskExecutionError,
+    TaskExecutionStateError,
+    execute_task,
+)
 
 
 router = APIRouter()
@@ -101,6 +105,11 @@ def execute_user_task(
 
     try:
         return execute_task(task, db)
+    except TaskExecutionStateError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        ) from error
     except TaskExecutionError as error:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
