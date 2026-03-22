@@ -11,6 +11,7 @@ from app.models.user import User
 from app.schemas.task import TaskCreate, TaskRead
 from app.services.agent_selector import select_agent
 from app.services.task_classifier import classify_task
+from app.services.task_executor import TaskExecutionError, execute_task
 
 
 router = APIRouter()
@@ -77,3 +78,31 @@ def get_task(
         )
 
     return task
+
+
+@router.post("/tasks/{task_id}/execute", response_model=TaskRead)
+def execute_user_task(
+    task_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Task:
+    task = db.execute(
+        select(Task).where(
+            Task.id == task_id,
+            Task.user_id == current_user.id,
+        )
+    ).scalar_one_or_none()
+
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
+        )
+
+    try:
+        return execute_task(task, db)
+    except TaskExecutionError as error:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(error),
+        ) from error
