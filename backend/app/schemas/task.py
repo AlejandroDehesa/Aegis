@@ -18,5 +18,6 @@ class TaskRead(BaseModel):
     description: str | None
     status: str
     task_type: str
+    agent_name: str
     created_at: datetime
     updated_at: datetime

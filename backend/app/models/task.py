@@ -48,6 +48,12 @@ class Task(Base):
         default="general",
         server_default="general",
     )
+    agent_name: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        default="GeneralAssistantAgent",
+        server_default="GeneralAssistantAgent",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

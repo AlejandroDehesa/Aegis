@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.models.task import Task
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskRead
+from app.services.agent_selector import select_agent
 from app.services.task_classifier import classify_task
 
 
@@ -25,12 +26,14 @@ def create_task(
         title=task_in.title,
         description=task_in.description,
     )
+    agent_name = select_agent(task_type)
 
     task = Task(
         user_id=current_user.id,
         title=task_in.title,
         description=task_in.description,
         task_type=task_type,
+        agent_name=agent_name,
     )
 
     db.add(task)
