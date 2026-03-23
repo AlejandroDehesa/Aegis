@@ -1,18 +1,36 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+import uuid
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.v1.auth import get_current_user
 from app.core.database import get_db
+from app.models.document import Document
 from app.models.user import User
 from app.schemas.document import DocumentRead
 from app.services.document_service import (
     DocumentIngestionError,
+    DocumentNotFoundError,
     DocumentValidationError,
     create_document,
+    delete_document_for_user,
+    list_documents_for_user,
 )
 
 
 router = APIRouter()
+
+
+def _serialize_document(document: Document) -> DocumentRead:
+    return DocumentRead(
+        id=document.id,
+        title=document.title,
+        source_type=document.source_type,
+        source_name=document.source_name,
+        chunk_count=len(document.chunks),
+        content_preview=document.content[:200],
+        created_at=document.created_at,
+    )
 
 
 @router.post("/documents", response_model=DocumentRead, status_code=status.HTTP_201_CREATED)
@@ -73,12 +91,42 @@ async def upload_document(
             detail=str(error),
         ) from error
 
-    return DocumentRead(
-        id=document.id,
-        title=document.title,
-        source_type=document.source_type,
-        source_name=document.source_name,
-        chunk_count=len(document.chunks),
-        content_preview=document.content[:200],
-        created_at=document.created_at,
+    return _serialize_document(document)
+
+
+@router.get("/documents", response_model=list[DocumentRead])
+def get_documents(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[DocumentRead]:
+    documents = list_documents_for_user(
+        db=db,
+        user_id=current_user.id,
     )
+    return [_serialize_document(document) for document in documents]
+
+
+@router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_document(
+    document_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    try:
+        delete_document_for_user(
+            db=db,
+            user_id=current_user.id,
+            document_id=document_id,
+        )
+    except DocumentNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        ) from error
+    except DocumentIngestionError as error:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(error),
+        ) from error
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -24,6 +24,8 @@ class Settings(BaseModel):
     RAG_CHUNK_SIZE: int = 500
     RAG_CHUNK_OVERLAP: int = 50
     RAG_TOP_K: int = 3
+    RAG_MIN_SCORE: float = 0.2
+    RAG_MAX_CONTEXT_CHARS: int = 1800
     CHROMA_PERSIST_DIRECTORY: str = str(ROOT_DIR / "backend" / "data" / "chroma")
     RAG_VECTOR_COLLECTION: str = "aegis_documents"
     LOCAL_VECTOR_STORE_PATH: str = str(ROOT_DIR / "backend" / "data" / "vector_store.json")
@@ -46,6 +48,8 @@ def get_settings() -> Settings:
         RAG_CHUNK_SIZE=int(os.getenv("RAG_CHUNK_SIZE", "500")),
         RAG_CHUNK_OVERLAP=int(os.getenv("RAG_CHUNK_OVERLAP", "50")),
         RAG_TOP_K=int(os.getenv("RAG_TOP_K", "3")),
+        RAG_MIN_SCORE=float(os.getenv("RAG_MIN_SCORE", "0.2")),
+        RAG_MAX_CONTEXT_CHARS=int(os.getenv("RAG_MAX_CONTEXT_CHARS", "1800")),
         CHROMA_PERSIST_DIRECTORY=os.getenv(
             "CHROMA_PERSIST_DIRECTORY",
             str(ROOT_DIR / "backend" / "data" / "chroma"),

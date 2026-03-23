@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,17 +8,46 @@ from app.api.v1.auth import get_current_user
 from app.core.database import get_db
 from app.models.task import Task
 from app.models.user import User
-from app.schemas.task import TaskCreate, TaskRead
+from app.schemas.task import TaskCreate, TaskRagChunkRead, TaskRagDebugRead, TaskRead
 from app.services.agent_selector import select_agent
 from app.services.task_classifier import classify_task
 from app.services.task_executor import (
     TaskExecutionError,
+    TaskExecutionResult,
     TaskExecutionStateError,
     execute_task,
 )
 
 
 router = APIRouter()
+
+
+def _serialize_task(task: Task, execution: TaskExecutionResult | None = None) -> TaskRead:
+    payload = TaskRead.model_validate(task).model_dump()
+
+    if execution is not None and execution.rag_debug is not None:
+        payload["rag_debug"] = TaskRagDebugRead(
+            query=execution.rag_debug.query,
+            top_k=execution.rag_debug.top_k,
+            min_score=execution.rag_debug.min_score,
+            retrieved_chunks=[
+                TaskRagChunkRead(
+                    chunk_id=chunk.chunk_id,
+                    document_id=chunk.document_id,
+                    document_title=chunk.document_title,
+                    source_name=chunk.source_name,
+                    chunk_index=chunk.chunk_index,
+                    score=chunk.score,
+                    text=chunk.text,
+                )
+                for chunk in execution.rag_debug.retrieved_chunks
+            ],
+            context_preview=execution.rag_debug.context_preview,
+            context_truncated=execution.rag_debug.context_truncated,
+            retrieval_error=execution.rag_debug.retrieval_error,
+        )
+
+    return TaskRead(**payload)
 
 
 @router.post("/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
@@ -87,9 +116,12 @@ def get_task(
 @router.post("/tasks/{task_id}/execute", response_model=TaskRead)
 def execute_user_task(
     task_id: uuid.UUID,
+    debug: bool = Query(default=False),
+    top_k: int | None = Query(default=None, ge=1, le=10),
+    min_score: float | None = Query(default=None, ge=0.0, le=1.0),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> Task:
+) -> TaskRead:
     task = db.execute(
         select(Task).where(
             Task.id == task_id,
@@ -104,7 +136,14 @@ def execute_user_task(
         )
 
     try:
-        return execute_task(task, db)
+        execution = execute_task(
+            task,
+            db,
+            debug=debug,
+            top_k=top_k,
+            min_score=min_score,
+        )
+        return _serialize_task(execution.task, execution=execution)
     except TaskExecutionStateError as error:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

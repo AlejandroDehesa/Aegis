@@ -1,6 +1,7 @@
 import uuid
 
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
 from app.models.document import Document, DocumentChunk
@@ -13,6 +14,10 @@ class DocumentIngestionError(Exception):
 
 
 class DocumentValidationError(DocumentIngestionError):
+    pass
+
+
+class DocumentNotFoundError(DocumentIngestionError):
     pass
 
 
@@ -109,6 +114,7 @@ def create_document(
                     "user_id": str(user_id),
                     "document_id": str(document.id),
                     "document_title": document.title,
+                    "source_name": document.source_name or "",
                     "chunk_index": str(index),
                 },
             )
@@ -130,3 +136,44 @@ def create_document(
     document.chunks = chunk_models
     db.refresh(document)
     return document
+
+
+def list_documents_for_user(*, db: Session, user_id: uuid.UUID) -> list[Document]:
+    return db.execute(
+        select(Document)
+        .options(selectinload(Document.chunks))
+        .where(Document.user_id == user_id)
+        .order_by(Document.created_at.desc())
+    ).scalars().all()
+
+
+def delete_document_for_user(
+    *,
+    db: Session,
+    user_id: uuid.UUID,
+    document_id: uuid.UUID,
+) -> None:
+    document = db.execute(
+        select(Document).where(
+            Document.id == document_id,
+            Document.user_id == user_id,
+        )
+    ).scalar_one_or_none()
+
+    if document is None:
+        raise DocumentNotFoundError("Document not found.")
+
+    chunk_ids = [
+        str(chunk.id)
+        for chunk in db.execute(
+            select(DocumentChunk).where(DocumentChunk.document_id == document.id)
+        ).scalars().all()
+    ]
+
+    try:
+        delete_records(chunk_ids)
+        db.delete(document)
+        db.commit()
+    except Exception as error:
+        db.rollback()
+        raise DocumentIngestionError("Document deletion failed.") from error
