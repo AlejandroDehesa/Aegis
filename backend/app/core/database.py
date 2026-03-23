@@ -48,6 +48,24 @@ def _ensure_runtime_schema_updates() -> None:
                 "NOT NULL DEFAULT '[]'::jsonb"
             )
         )
+        connection.execute(
+            text(
+                "ALTER TABLE tasks "
+                "ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ"
+            )
+        )
+        connection.execute(
+            text(
+                "ALTER TABLE tasks "
+                "ADD COLUMN IF NOT EXISTS finished_at TIMESTAMPTZ"
+            )
+        )
+        connection.execute(
+            text(
+                "ALTER TABLE tasks "
+                "ADD COLUMN IF NOT EXISTS duration_ms INTEGER"
+            )
+        )
 
 
 def get_db() -> Generator[Session, None, None]:

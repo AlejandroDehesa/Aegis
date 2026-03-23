@@ -8,7 +8,14 @@ from app.api.v1.auth import get_current_user
 from app.core.database import get_db
 from app.models.task import Task
 from app.models.user import User
-from app.schemas.task import TaskCreate, TaskRagChunkRead, TaskRagDebugRead, TaskRead
+from app.schemas.task import (
+    TaskCreate,
+    TaskExecutionStepRead,
+    TaskRagChunkRead,
+    TaskRagDebugRead,
+    TaskRead,
+    TaskTraceRead,
+)
 from app.services.agent_selector import select_agent
 from app.services.task_classifier import classify_task
 from app.services.task_executor import (
@@ -22,8 +29,13 @@ from app.services.task_executor import (
 router = APIRouter()
 
 
+def _serialize_trace_steps(task: Task) -> list[TaskExecutionStepRead]:
+    return [TaskExecutionStepRead.model_validate(step) for step in (task.execution_trace or [])]
+
+
 def _serialize_task(task: Task, execution: TaskExecutionResult | None = None) -> TaskRead:
     payload = TaskRead.model_validate(task).model_dump()
+    payload["execution_trace"] = _serialize_trace_steps(task)
 
     if execution is not None and execution.rag_debug is not None:
         payload["rag_debug"] = TaskRagDebugRead(
@@ -53,6 +65,27 @@ def _serialize_task(task: Task, execution: TaskExecutionResult | None = None) ->
         )
 
     return TaskRead(**payload)
+
+
+def _get_user_task(
+    task_id: uuid.UUID,
+    current_user: User,
+    db: Session,
+) -> Task:
+    task = db.execute(
+        select(Task).where(
+            Task.id == task_id,
+            Task.user_id == current_user.id,
+        )
+    ).scalar_one_or_none()
+
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found",
+        )
+
+    return task
 
 
 @router.post("/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
@@ -102,20 +135,25 @@ def get_task(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Task:
-    task = db.execute(
-        select(Task).where(
-            Task.id == task_id,
-            Task.user_id == current_user.id,
-        )
-    ).scalar_one_or_none()
+    return _get_user_task(task_id, current_user, db)
 
-    if task is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found",
-        )
 
-    return task
+@router.get("/tasks/{task_id}/trace", response_model=TaskTraceRead)
+def get_task_trace(
+    task_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> TaskTraceRead:
+    task = _get_user_task(task_id, current_user, db)
+
+    return TaskTraceRead(
+        task_id=task.id,
+        status=task.status,
+        started_at=task.started_at,
+        finished_at=task.finished_at,
+        duration_ms=task.duration_ms,
+        execution_trace=_serialize_trace_steps(task),
+    )
 
 
 @router.post("/tasks/{task_id}/execute", response_model=TaskRead)
@@ -127,18 +165,7 @@ def execute_user_task(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> TaskRead:
-    task = db.execute(
-        select(Task).where(
-            Task.id == task_id,
-            Task.user_id == current_user.id,
-        )
-    ).scalar_one_or_none()
-
-    if task is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found",
-        )
+    task = _get_user_task(task_id, current_user, db)
 
     try:
         execution = execute_task(

@@ -35,12 +35,17 @@ class TaskRagDebugRead(BaseModel):
 
 
 class TaskExecutionStepRead(BaseModel):
-    step_number: int
+    step_index: int | None = None
+    step_number: int | None = None
     step_name: str
     agent_name: str
     status: str
-    used_previous_output: bool = False
+    short_summary: str | None = None
     result_preview: str | None = None
+    used_previous_output: bool = False
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    duration_ms: int | None = None
     error_message: str | None = None
 
 
@@ -56,8 +61,20 @@ class TaskRead(BaseModel):
     agent_name: str
     result_text: str | None = None
     execution_trace: list[TaskExecutionStepRead] = Field(default_factory=list)
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    duration_ms: int | None = None
     executed_at: datetime | None = None
     error_message: str | None = None
     created_at: datetime
     updated_at: datetime
     rag_debug: TaskRagDebugRead | None = None
+
+
+class TaskTraceRead(BaseModel):
+    task_id: uuid.UUID
+    status: str
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    duration_ms: int | None = None
+    execution_trace: list[TaskExecutionStepRead] = Field(default_factory=list)

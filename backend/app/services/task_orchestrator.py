@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -85,6 +86,21 @@ class TaskOrchestrationError(Exception):
         super().__init__(message)
         self.execution_trace = execution_trace
         self.rag_debug = rag_debug
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _calculate_duration_ms(
+    started_at: datetime | None,
+    finished_at: datetime | None,
+) -> int | None:
+    if started_at is None or finished_at is None:
+        return None
+
+    duration = finished_at - started_at
+    return max(int(duration.total_seconds() * 1000), 0)
 
 
 def _build_retrieval_query(task: Task) -> str:
@@ -289,6 +305,36 @@ def _get_pipeline(task_type: str) -> list[tuple[str, str]]:
     )
 
 
+def _build_trace_step(
+    *,
+    step_index: int,
+    step_name: str,
+    agent_name: str,
+    status: str,
+    used_previous_output: bool,
+    short_summary: str | None,
+    error_message: str | None,
+    started_at: datetime | None,
+    finished_at: datetime | None,
+) -> dict[str, object]:
+    duration_ms = _calculate_duration_ms(started_at, finished_at)
+
+    return {
+        "step_index": step_index,
+        "step_number": step_index,
+        "step_name": step_name,
+        "agent_name": agent_name,
+        "status": status,
+        "short_summary": short_summary,
+        "result_preview": short_summary,
+        "used_previous_output": used_previous_output,
+        "started_at": started_at.isoformat() if started_at is not None else None,
+        "finished_at": finished_at.isoformat() if finished_at is not None else None,
+        "duration_ms": duration_ms,
+        "error_message": error_message,
+    }
+
+
 def orchestrate_task(
     task: Task,
     db: Session,
@@ -306,20 +352,25 @@ def orchestrate_task(
     execution_trace: list[dict[str, object]] = []
     previous_output: str | None = None
 
-    for step_number, (step_name, agent_name) in enumerate(pipeline, start=1):
+    for step_index, (step_name, agent_name) in enumerate(pipeline, start=1):
         runner = AGENT_RUNNERS.get(agent_name)
+        step_started_at = _utc_now()
+        used_previous_output = previous_output is not None
 
         if runner is None:
+            step_finished_at = _utc_now()
             execution_trace.append(
-                {
-                    "step_number": step_number,
-                    "step_name": step_name,
-                    "agent_name": agent_name,
-                    "status": "failed",
-                    "used_previous_output": previous_output is not None,
-                    "result_preview": None,
-                    "error_message": "No execution strategy found for the configured agent.",
-                }
+                _build_trace_step(
+                    step_index=step_index,
+                    step_name=step_name,
+                    agent_name=agent_name,
+                    status="failed",
+                    used_previous_output=used_previous_output,
+                    short_summary=None,
+                    error_message="No execution strategy found for the configured agent.",
+                    started_at=step_started_at,
+                    finished_at=step_finished_at,
+                )
             )
             raise TaskOrchestrationError(
                 f"No execution strategy found for agent '{agent_name}'.",
@@ -334,17 +385,21 @@ def orchestrate_task(
 
         try:
             step_output = runner(task, retrieved_context=step_context)
+            step_finished_at = _utc_now()
         except Exception as error:
+            step_finished_at = _utc_now()
             execution_trace.append(
-                {
-                    "step_number": step_number,
-                    "step_name": step_name,
-                    "agent_name": agent_name,
-                    "status": "failed",
-                    "used_previous_output": previous_output is not None,
-                    "result_preview": None,
-                    "error_message": str(error),
-                }
+                _build_trace_step(
+                    step_index=step_index,
+                    step_name=step_name,
+                    agent_name=agent_name,
+                    status="failed",
+                    used_previous_output=used_previous_output,
+                    short_summary=None,
+                    error_message=str(error),
+                    started_at=step_started_at,
+                    finished_at=step_finished_at,
+                )
             )
             raise TaskOrchestrationError(
                 (
@@ -355,16 +410,19 @@ def orchestrate_task(
                 rag_debug=rag_debug,
             ) from error
 
+        short_summary = _build_output_preview(step_output)
         execution_trace.append(
-            {
-                "step_number": step_number,
-                "step_name": step_name,
-                "agent_name": agent_name,
-                "status": "completed",
-                "used_previous_output": previous_output is not None,
-                "result_preview": _build_output_preview(step_output),
-                "error_message": None,
-            }
+            _build_trace_step(
+                step_index=step_index,
+                step_name=step_name,
+                agent_name=agent_name,
+                status="completed",
+                used_previous_output=used_previous_output,
+                short_summary=short_summary,
+                error_message=None,
+                started_at=step_started_at,
+                finished_at=step_finished_at,
+            )
         )
         previous_output = step_output
 
