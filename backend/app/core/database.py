@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import settings
@@ -33,6 +33,21 @@ def create_tables() -> None:
     import app.models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    _ensure_runtime_schema_updates()
+
+
+def _ensure_runtime_schema_updates() -> None:
+    if engine.dialect.name != "postgresql":
+        return
+
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "ALTER TABLE tasks "
+                "ADD COLUMN IF NOT EXISTS execution_trace JSONB "
+                "NOT NULL DEFAULT '[]'::jsonb"
+            )
+        )
 
 
 def get_db() -> Generator[Session, None, None]:
