@@ -26,6 +26,9 @@ class Settings(BaseModel):
     RAG_TOP_K: int = 3
     RAG_MIN_SCORE: float = 0.2
     RAG_MAX_CONTEXT_CHARS: int = 1800
+    MEMORY_RECENT_TASK_LIMIT: int = 3
+    MEMORY_MAX_CONTEXT_CHARS: int = 1200
+    FULL_CONTEXT_MAX_CHARS: int = 2600
     CHROMA_PERSIST_DIRECTORY: str = str(ROOT_DIR / "backend" / "data" / "chroma")
     RAG_VECTOR_COLLECTION: str = "aegis_documents"
     LOCAL_VECTOR_STORE_PATH: str = str(ROOT_DIR / "backend" / "data" / "vector_store.json")
@@ -50,6 +53,9 @@ def get_settings() -> Settings:
         RAG_TOP_K=int(os.getenv("RAG_TOP_K", "3")),
         RAG_MIN_SCORE=float(os.getenv("RAG_MIN_SCORE", "0.2")),
         RAG_MAX_CONTEXT_CHARS=int(os.getenv("RAG_MAX_CONTEXT_CHARS", "1800")),
+        MEMORY_RECENT_TASK_LIMIT=int(os.getenv("MEMORY_RECENT_TASK_LIMIT", "3")),
+        MEMORY_MAX_CONTEXT_CHARS=int(os.getenv("MEMORY_MAX_CONTEXT_CHARS", "1200")),
+        FULL_CONTEXT_MAX_CHARS=int(os.getenv("FULL_CONTEXT_MAX_CHARS", "2600")),
         CHROMA_PERSIST_DIRECTORY=os.getenv(
             "CHROMA_PERSIST_DIRECTORY",
             str(ROOT_DIR / "backend" / "data" / "chroma"),

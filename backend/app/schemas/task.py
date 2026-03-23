@@ -24,8 +24,13 @@ class TaskRagDebugRead(BaseModel):
     top_k: int
     min_score: float
     retrieved_chunks: list[TaskRagChunkRead]
+    memory_task_count: int = 0
     context_preview: str | None = None
+    memory_context_preview: str | None = None
+    full_context_preview: str | None = None
     context_truncated: bool = False
+    memory_context_truncated: bool = False
+    full_context_truncated: bool = False
     retrieval_error: str | None = None
 
 

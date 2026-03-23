@@ -1,16 +1,22 @@
 from dataclasses import dataclass
 
+from sqlalchemy.orm import Session
+
 from app.agents.comparison_agent import run_task as run_comparison_task
 from app.agents.general_assistant_agent import run_task as run_general_task
 from app.agents.research_agent import run_task as run_research_task
 from app.agents.summary_agent import run_task as run_summary_task
 from app.core.config import settings
 from app.models.task import Task
+from app.services.memory_service import get_recent_task_context_result
 from app.services.retrieval_service import RetrievedChunk, build_context, retrieve_relevant_chunks
 
 
 MAX_TRACE_PREVIEW_CHARS = 200
 MAX_PREVIOUS_OUTPUT_CONTEXT_CHARS = 1200
+FULL_CONTEXT_START_DELIMITER = "=== FULL EXECUTION CONTEXT START ==="
+FULL_CONTEXT_END_DELIMITER = "=== FULL EXECUTION CONTEXT END ==="
+FULL_CONTEXT_SECTION_DELIMITER = "\n\n====\n\n"
 
 
 AGENT_RUNNERS = {
@@ -45,9 +51,20 @@ class OrchestrationRagDebugInfo:
     top_k: int
     min_score: float
     retrieved_chunks: list[RetrievedChunk]
+    memory_task_count: int
     context_preview: str | None
+    memory_context_preview: str | None
+    full_context_preview: str | None
     context_truncated: bool
+    memory_context_truncated: bool
+    full_context_truncated: bool
     retrieval_error: str | None = None
+
+
+@dataclass
+class FullContextBuildResult:
+    text: str | None
+    truncated: bool
 
 
 @dataclass
@@ -102,6 +119,78 @@ def _build_previous_output_block(previous_output: str | None) -> str | None:
     )
 
 
+def _truncate_full_context_block(label: str, text: str, available_chars: int) -> str | None:
+    header = f"[{label}]\n"
+    ellipsis = "\n..."
+
+    if available_chars <= len(header) + len(ellipsis) + 40:
+        return None
+
+    remaining_chars = available_chars - len(header) - len(ellipsis)
+    truncated_text = text[:remaining_chars].rstrip()
+
+    if not truncated_text:
+        return None
+
+    return f"{header}{truncated_text}{ellipsis}"
+
+
+def build_full_context(
+    rag_context: str | None,
+    memory_context: str | None,
+    *,
+    max_chars: int | None = None,
+) -> FullContextBuildResult:
+    sections_to_include = []
+
+    if rag_context:
+        sections_to_include.append(("RAG CONTEXT", rag_context))
+
+    if memory_context:
+        sections_to_include.append(("MEMORY CONTEXT", memory_context))
+
+    if not sections_to_include:
+        return FullContextBuildResult(text=None, truncated=False)
+
+    max_full_context_chars = max_chars or settings.FULL_CONTEXT_MAX_CHARS
+    sections: list[str] = []
+    current_length = len(FULL_CONTEXT_START_DELIMITER) + len(FULL_CONTEXT_END_DELIMITER) + 2
+    truncated = False
+
+    for label, text in sections_to_include:
+        section = f"[{label}]\n{text}"
+        separator_length = len(FULL_CONTEXT_SECTION_DELIMITER) if sections else 0
+        projected_length = current_length + separator_length + len(section)
+
+        if projected_length <= max_full_context_chars:
+            if sections:
+                current_length += len(FULL_CONTEXT_SECTION_DELIMITER)
+            sections.append(section)
+            current_length += len(section)
+            continue
+
+        remaining_chars = max_full_context_chars - current_length - separator_length
+        truncated_section = _truncate_full_context_block(label, text, remaining_chars)
+
+        if truncated_section:
+            if sections:
+                current_length += len(FULL_CONTEXT_SECTION_DELIMITER)
+            sections.append(truncated_section)
+            current_length += len(truncated_section)
+
+        truncated = True
+        break
+
+    if not sections:
+        return FullContextBuildResult(text=None, truncated=truncated)
+
+    context_body = FULL_CONTEXT_SECTION_DELIMITER.join(sections)
+    return FullContextBuildResult(
+        text=f"{FULL_CONTEXT_START_DELIMITER}\n{context_body}\n{FULL_CONTEXT_END_DELIMITER}",
+        truncated=truncated,
+    )
+
+
 def _build_step_context(
     *,
     base_context: str | None,
@@ -122,8 +211,9 @@ def _build_step_context(
     return "\n\n".join(context_sections)
 
 
-def _prepare_rag_context(
+def _prepare_combined_context(
     task: Task,
+    db: Session,
     *,
     top_k: int | None = None,
     min_score: float | None = None,
@@ -137,34 +227,58 @@ def _prepare_rag_context(
         top_k=effective_top_k,
         min_score=effective_min_score,
         retrieved_chunks=[],
+        memory_task_count=0,
         context_preview=None,
+        memory_context_preview=None,
+        full_context_preview=None,
         context_truncated=False,
+        memory_context_truncated=False,
+        full_context_truncated=False,
         retrieval_error=None,
     )
 
-    if not query:
-        return None, empty_debug
+    rag_context = None
+    rag_chunks: list[RetrievedChunk] = []
+    rag_truncated = False
 
-    try:
-        chunks = retrieve_relevant_chunks(
-            query=query,
-            user_id=task.user_id,
-            top_k=effective_top_k,
-            min_score=effective_min_score,
-        )
-        context_result = build_context(chunks)
-    except Exception as error:
-        empty_debug.retrieval_error = str(error)
-        return None, empty_debug
+    if query:
+        try:
+            rag_chunks = retrieve_relevant_chunks(
+                query=query,
+                user_id=task.user_id,
+                top_k=effective_top_k,
+                min_score=effective_min_score,
+            )
+            rag_result = build_context(rag_chunks)
+            rag_context = rag_result.text
+            rag_chunks = rag_result.used_chunks
+            rag_truncated = rag_result.truncated
+        except Exception as error:
+            empty_debug.retrieval_error = str(error)
 
-    return context_result.text, OrchestrationRagDebugInfo(
+    memory_result = get_recent_task_context_result(
+        db,
+        task.user_id,
+        current_task_id=task.id,
+    )
+    full_context_result = build_full_context(
+        rag_context,
+        memory_result.text,
+    )
+
+    return full_context_result.text, OrchestrationRagDebugInfo(
         query=query,
         top_k=effective_top_k,
         min_score=effective_min_score,
-        retrieved_chunks=context_result.used_chunks,
-        context_preview=context_result.text,
-        context_truncated=context_result.truncated,
-        retrieval_error=None,
+        retrieved_chunks=rag_chunks,
+        memory_task_count=memory_result.task_count,
+        context_preview=rag_context,
+        memory_context_preview=memory_result.text,
+        full_context_preview=full_context_result.text,
+        context_truncated=rag_truncated,
+        memory_context_truncated=memory_result.truncated,
+        full_context_truncated=full_context_result.truncated,
+        retrieval_error=empty_debug.retrieval_error,
     )
 
 
@@ -177,12 +291,14 @@ def _get_pipeline(task_type: str) -> list[tuple[str, str]]:
 
 def orchestrate_task(
     task: Task,
+    db: Session,
     *,
     top_k: int | None = None,
     min_score: float | None = None,
 ) -> TaskOrchestrationResult:
-    base_context, rag_debug = _prepare_rag_context(
+    base_context, rag_debug = _prepare_combined_context(
         task,
+        db,
         top_k=top_k,
         min_score=min_score,
     )

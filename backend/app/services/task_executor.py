@@ -60,6 +60,7 @@ def execute_task(
     try:
         orchestration_result = orchestrate_task(
             task,
+            db,
             top_k=top_k,
             min_score=min_score,
         )

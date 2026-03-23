@@ -42,8 +42,13 @@ def _serialize_task(task: Task, execution: TaskExecutionResult | None = None) ->
                 )
                 for chunk in execution.rag_debug.retrieved_chunks
             ],
+            memory_task_count=execution.rag_debug.memory_task_count,
             context_preview=execution.rag_debug.context_preview,
+            memory_context_preview=execution.rag_debug.memory_context_preview,
+            full_context_preview=execution.rag_debug.full_context_preview,
             context_truncated=execution.rag_debug.context_truncated,
+            memory_context_truncated=execution.rag_debug.memory_context_truncated,
+            full_context_truncated=execution.rag_debug.full_context_truncated,
             retrieval_error=execution.rag_debug.retrieval_error,
         )
 
