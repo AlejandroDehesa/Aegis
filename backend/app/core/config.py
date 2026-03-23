@@ -20,6 +20,13 @@ class Settings(BaseModel):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     OPENAI_API_KEY: str | None = None
     OPENAI_MODEL: str = "gpt-5-mini"
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    RAG_CHUNK_SIZE: int = 500
+    RAG_CHUNK_OVERLAP: int = 50
+    RAG_TOP_K: int = 3
+    CHROMA_PERSIST_DIRECTORY: str = str(ROOT_DIR / "backend" / "data" / "chroma")
+    RAG_VECTOR_COLLECTION: str = "aegis_documents"
+    LOCAL_VECTOR_STORE_PATH: str = str(ROOT_DIR / "backend" / "data" / "vector_store.json")
 
 
 @lru_cache
@@ -32,6 +39,22 @@ def get_settings() -> Settings:
         ACCESS_TOKEN_EXPIRE_MINUTES=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")),
         OPENAI_API_KEY=os.getenv("OPENAI_API_KEY") or None,
         OPENAI_MODEL=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
+        OPENAI_EMBEDDING_MODEL=os.getenv(
+            "OPENAI_EMBEDDING_MODEL",
+            "text-embedding-3-small",
+        ),
+        RAG_CHUNK_SIZE=int(os.getenv("RAG_CHUNK_SIZE", "500")),
+        RAG_CHUNK_OVERLAP=int(os.getenv("RAG_CHUNK_OVERLAP", "50")),
+        RAG_TOP_K=int(os.getenv("RAG_TOP_K", "3")),
+        CHROMA_PERSIST_DIRECTORY=os.getenv(
+            "CHROMA_PERSIST_DIRECTORY",
+            str(ROOT_DIR / "backend" / "data" / "chroma"),
+        ),
+        RAG_VECTOR_COLLECTION=os.getenv("RAG_VECTOR_COLLECTION", "aegis_documents"),
+        LOCAL_VECTOR_STORE_PATH=os.getenv(
+            "LOCAL_VECTOR_STORE_PATH",
+            str(ROOT_DIR / "backend" / "data" / "vector_store.json"),
+        ),
     )
 
 

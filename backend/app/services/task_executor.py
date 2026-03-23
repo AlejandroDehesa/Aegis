@@ -7,6 +7,10 @@ from app.agents.general_assistant_agent import run_task as run_general_task
 from app.agents.research_agent import run_task as run_research_task
 from app.agents.summary_agent import run_task as run_summary_task
 from app.models.task import Task
+from app.services.retrieval_service import (
+    format_retrieved_context,
+    retrieve_relevant_chunks,
+)
 
 
 TASK_STATUS_PENDING = "pending"
@@ -39,6 +43,23 @@ def _persist_task(task: Task, db: Session) -> Task:
     return task
 
 
+def _build_retrieved_context(task: Task) -> str | None:
+    query = (task.description or "").strip() or task.title.strip()
+
+    if not query:
+        return None
+
+    try:
+        chunks = retrieve_relevant_chunks(
+            query=query,
+            user_id=task.user_id,
+        )
+    except Exception:
+        return None
+
+    return format_retrieved_context(chunks)
+
+
 def execute_task(task: Task, db: Session) -> Task:
     if task.status not in EXECUTABLE_TASK_STATUSES:
         raise TaskExecutionStateError(
@@ -60,7 +81,8 @@ def execute_task(task: Task, db: Session) -> Task:
     _persist_task(task, db)
 
     try:
-        result_text = runner(task)
+        retrieved_context = _build_retrieved_context(task)
+        result_text = runner(task, retrieved_context=retrieved_context)
         task.result_text = result_text
         task.status = TASK_STATUS_COMPLETED
         task.error_message = None

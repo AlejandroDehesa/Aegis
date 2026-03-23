@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.document import Document
     from app.models.task import Task
 
 
@@ -37,3 +38,4 @@ class User(Base):
     )
 
     tasks: Mapped[list["Task"]] = relationship(back_populates="user")
+    documents: Mapped[list["Document"]] = relationship(back_populates="user")
