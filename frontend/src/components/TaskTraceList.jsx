@@ -1,9 +1,15 @@
+import { EmptyState } from "./EmptyState";
 import { formatDateTime, formatDuration } from "../utils/formatters";
 import { StatusBadge } from "./StatusBadge";
 
 export function TaskTraceList({ trace }) {
   if (!trace?.length) {
-    return null;
+    return (
+      <EmptyState
+        title="No execution trace yet"
+        description="Run the task to capture step-by-step visibility for the orchestration pipeline."
+      />
+    );
   }
 
   return (
@@ -24,7 +30,9 @@ export function TaskTraceList({ trace }) {
           <dl className="trace-grid">
             <div>
               <dt>Summary</dt>
-              <dd>{step.short_summary || step.result_preview || "No summary available"}</dd>
+              <dd className="trace-item-summary">
+                {step.short_summary || step.result_preview || "No summary available"}
+              </dd>
             </div>
             <div>
               <dt>Duration</dt>

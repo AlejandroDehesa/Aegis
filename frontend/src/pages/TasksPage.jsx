@@ -3,10 +3,17 @@ import { Link } from "react-router-dom";
 
 import { createTask, executeTask, listTasks } from "../api/tasksApi";
 import { EmptyState } from "../components/EmptyState";
+import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
-import { formatDateTime, truncateText } from "../utils/formatters";
-
+import { usePolling } from "../hooks/usePolling";
+import {
+  formatDateTime,
+  formatDuration,
+  getTaskActivityLabel,
+  sortTasksByRecent,
+  truncateText,
+} from "../utils/formatters";
 
 export function TasksPage() {
   const [tasks, setTasks] = useState([]);
@@ -18,22 +25,40 @@ export function TasksPage() {
   const [saving, setSaving] = useState(false);
   const [executingId, setExecutingId] = useState(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    loadTasks();
+    void loadTasks();
   }, []);
 
-  async function loadTasks() {
-    setLoading(true);
+  usePolling(
+    () => {
+      void loadTasks({ silent: true });
+    },
+    {
+      enabled: tasks.some((task) =>
+        ["pending", "processing"].includes(task.status),
+      ),
+      intervalMs: 3000,
+    },
+  );
+
+  async function loadTasks({ silent = false } = {}) {
+    if (!silent) {
+      setLoading(true);
+    }
+
     setError("");
 
     try {
       const taskList = await listTasks();
-      setTasks(taskList);
+      setTasks(sortTasksByRecent(taskList));
     } catch (loadError) {
       setError(loadError.message);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }
 
@@ -48,10 +73,12 @@ export function TasksPage() {
     event.preventDefault();
     setSaving(true);
     setError("");
+    setNotice("");
 
     try {
       await createTask(form);
       setForm({ title: "", description: "" });
+      setNotice("Task created successfully. You can execute it from the list below.");
       await loadTasks();
     } catch (saveError) {
       setError(saveError.message);
@@ -63,18 +90,31 @@ export function TasksPage() {
   async function handleExecuteTask(taskId) {
     setExecutingId(taskId);
     setError("");
+    setNotice("");
 
     try {
       const updatedTask = await executeTask(taskId, { debug: true });
       setTasks((current) =>
-        current.map((task) => (task.id === taskId ? updatedTask : task)),
+        sortTasksByRecent(
+          current.map((task) => (task.id === taskId ? updatedTask : task)),
+        ),
       );
+      setNotice(
+        updatedTask.status === "processing"
+          ? "Execution started. The list will refresh automatically while the task is running."
+          : "Task execution completed and the list has been updated.",
+      );
+      await loadTasks({ silent: true });
     } catch (executeError) {
       setError(executeError.message);
     } finally {
       setExecutingId(null);
     }
   }
+
+  const runningCount = tasks.filter((task) =>
+    ["pending", "processing"].includes(task.status),
+  ).length;
 
   return (
     <div className="page-grid">
@@ -84,6 +124,9 @@ export function TasksPage() {
           <h2>Create, execute and inspect task runs</h2>
         </div>
       </header>
+
+      <FeedbackMessage tone="success">{notice}</FeedbackMessage>
+      <FeedbackMessage tone="error">{error}</FeedbackMessage>
 
       <SectionCard
         title="Create Task"
@@ -112,8 +155,6 @@ export function TasksPage() {
             />
           </label>
 
-          {error ? <p className="form-error">{error}</p> : null}
-
           <button className="button button-primary" disabled={saving} type="submit">
             {saving ? "Creating..." : "Create task"}
           </button>
@@ -123,7 +164,29 @@ export function TasksPage() {
       <SectionCard
         title="Task List"
         subtitle="Current tasks with status, summary and quick execution control."
+        actions={
+          <>
+            <span className="meta-pill">{tasks.length} total</span>
+            <span className="meta-pill meta-pill-accent">{runningCount} active</span>
+            <button
+              className="button button-secondary"
+              disabled={loading}
+              onClick={() => {
+                void loadTasks();
+              }}
+              type="button"
+            >
+              Refresh
+            </button>
+          </>
+        }
       >
+        <FeedbackMessage tone="info">
+          {runningCount
+            ? "Aegis refreshes active tasks automatically while they are pending or processing."
+            : ""}
+        </FeedbackMessage>
+
         {loading ? <p>Loading tasks...</p> : null}
 
         {!loading && !tasks.length ? (
@@ -138,28 +201,45 @@ export function TasksPage() {
             {tasks.map((task) => (
               <article className="list-item" key={task.id}>
                 <div>
-                  <Link className="list-item-title" to={`/tasks/${task.id}`}>
+                  <Link className="list-item-title task-list-title" to={`/tasks/${task.id}`}>
                     {task.title}
                   </Link>
                   <p className="list-item-subtitle">
-                    {task.task_type} · {task.agent_name}
+                    {task.task_type} / {task.agent_name}
                   </p>
-                  <p className="list-item-copy">
+                  <p className="list-item-copy task-list-copy">
                     {truncateText(task.result_text || task.description)}
                   </p>
+                  <div className="task-kpi-row">
+                    <span className="meta-pill">{getTaskActivityLabel(task)}</span>
+                    <span className="meta-pill">
+                      Duration: {formatDuration(task.duration_ms)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="list-item-meta">
                   <StatusBadge status={task.status} />
                   <span>{formatDateTime(task.created_at)}</span>
-                  <button
-                    className="button button-secondary"
-                    disabled={executingId === task.id}
-                    onClick={() => handleExecuteTask(task.id)}
-                    type="button"
-                  >
-                    {executingId === task.id ? "Executing..." : "Execute"}
-                  </button>
+                  <div className="list-item-actions">
+                    <Link className="button button-secondary" to={`/tasks/${task.id}`}>
+                      View detail
+                    </Link>
+                    <button
+                      className="button button-primary"
+                      disabled={
+                        executingId === task.id || task.status === "processing"
+                      }
+                      onClick={() => handleExecuteTask(task.id)}
+                      type="button"
+                    >
+                      {executingId === task.id
+                        ? "Executing..."
+                        : task.status === "processing"
+                          ? "Processing..."
+                          : "Execute"}
+                    </button>
+                  </div>
                 </div>
               </article>
             ))}

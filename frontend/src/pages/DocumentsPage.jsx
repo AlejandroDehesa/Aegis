@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { deleteDocument, listDocuments, uploadDocument } from "../api/documentsApi";
 import { EmptyState } from "../components/EmptyState";
+import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
 import { formatDateTime, truncateText } from "../utils/formatters";
-
 
 export function DocumentsPage() {
   const [documents, setDocuments] = useState([]);
@@ -17,9 +17,11 @@ export function DocumentsPage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    loadDocuments();
+    void loadDocuments();
   }, []);
 
   async function loadDocuments() {
@@ -48,11 +50,26 @@ export function DocumentsPage() {
     event.preventDefault();
     setSaving(true);
     setError("");
+    setNotice("");
+
+    if (!form.content && !form.file) {
+      setSaving(false);
+      setError("Provide text content or upload a file before submitting the document.");
+      return;
+    }
 
     try {
-      await uploadDocument(form);
+      const document = await uploadDocument(form);
       setForm({ title: "", content: "", file: null });
       event.currentTarget.reset();
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      setNotice(
+        `Document "${document.title || "Untitled document"}" uploaded successfully.`,
+      );
       await loadDocuments();
     } catch (uploadError) {
       setError(uploadError.message);
@@ -64,11 +81,16 @@ export function DocumentsPage() {
   async function handleDelete(documentId) {
     setDeletingId(documentId);
     setError("");
+    setNotice("");
 
     try {
+      const deletedDocument = documents.find((document) => document.id === documentId);
       await deleteDocument(documentId);
       setDocuments((current) =>
         current.filter((document) => document.id !== documentId),
+      );
+      setNotice(
+        `Document "${deletedDocument?.title || "Untitled document"}" removed from the library.`,
       );
     } catch (deleteError) {
       setError(deleteError.message);
@@ -86,11 +108,19 @@ export function DocumentsPage() {
         </div>
       </header>
 
+      <FeedbackMessage tone="success">{notice}</FeedbackMessage>
+      <FeedbackMessage tone="error">{error}</FeedbackMessage>
+
       <SectionCard title="Upload Document" subtitle="Provide raw text or a simple UTF-8 file.">
         <form className="form-grid" onSubmit={handleUpload}>
           <label className="form-field">
             <span>Title</span>
-            <input name="title" onChange={updateField} placeholder="Architecture notes" />
+            <input
+              name="title"
+              onChange={updateField}
+              placeholder="Architecture notes"
+              value={form.title}
+            />
           </label>
 
           <label className="form-field">
@@ -106,10 +136,14 @@ export function DocumentsPage() {
 
           <label className="form-field">
             <span>File</span>
-            <input accept=".txt,.md,.csv,.json" name="file" onChange={updateField} type="file" />
+            <input
+              accept=".txt,.md,.csv,.json"
+              name="file"
+              onChange={updateField}
+              ref={fileInputRef}
+              type="file"
+            />
           </label>
-
-          {error ? <p className="form-error">{error}</p> : null}
 
           <button className="button button-primary" disabled={saving} type="submit">
             {saving ? "Uploading..." : "Upload document"}
@@ -120,6 +154,18 @@ export function DocumentsPage() {
       <SectionCard
         title="Document Library"
         subtitle="Stored documents available for retrieval augmentation."
+        actions={
+          <button
+            className="button button-secondary"
+            disabled={loading}
+            onClick={() => {
+              void loadDocuments();
+            }}
+            type="button"
+          >
+            Refresh
+          </button>
+        }
       >
         {loading ? <p>Loading documents...</p> : null}
 
@@ -135,16 +181,16 @@ export function DocumentsPage() {
             {documents.map((document) => (
               <article className="list-item" key={document.id}>
                 <div>
-                  <strong>{document.title}</strong>
+                  <strong>{document.title || "Untitled document"}</strong>
                   <p className="list-item-subtitle">
-                    {document.source_type} · {document.chunk_count} chunks
+                    {document.source_type} / {document.chunk_count} chunks
                   </p>
                   <p className="list-item-copy">{truncateText(document.content_preview)}</p>
                 </div>
                 <div className="list-item-meta">
                   <span>{formatDateTime(document.created_at)}</span>
                   <button
-                    className="button button-secondary"
+                    className="button button-danger"
                     disabled={deletingId === document.id}
                     onClick={() => handleDelete(document.id)}
                     type="button"

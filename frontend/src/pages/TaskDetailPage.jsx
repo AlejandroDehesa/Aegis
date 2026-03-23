@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { executeTask, getTask, getTaskTrace } from "../api/tasksApi";
+import { FeedbackMessage } from "../components/FeedbackMessage";
 import { RagDebugPanel } from "../components/RagDebugPanel";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { TaskTraceList } from "../components/TaskTraceList";
+import { usePolling } from "../hooks/usePolling";
 import { formatDateTime, formatDuration } from "../utils/formatters";
-
 
 export function TaskDetailPage() {
   const { taskId } = useParams();
@@ -16,13 +17,27 @@ export function TaskDetailPage() {
   const [loading, setLoading] = useState(true);
   const [executing, setExecuting] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    loadTaskDetail();
+    void loadTaskDetail();
   }, [taskId]);
 
-  async function loadTaskDetail() {
-    setLoading(true);
+  usePolling(
+    () => {
+      void loadTaskDetail({ silent: true });
+    },
+    {
+      enabled: Boolean(task && ["pending", "processing"].includes(task.status)),
+      intervalMs: 2500,
+    },
+  );
+
+  async function loadTaskDetail({ silent = false } = {}) {
+    if (!silent) {
+      setLoading(true);
+    }
+
     setError("");
 
     try {
@@ -35,19 +50,27 @@ export function TaskDetailPage() {
     } catch (loadError) {
       setError(loadError.message);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }
 
   async function handleExecute() {
     setExecuting(true);
     setError("");
+    setNotice("");
 
     try {
       const taskData = await executeTask(taskId, { debug: true });
       const traceData = await getTaskTrace(taskId);
       setTask(taskData);
       setTrace(traceData);
+      setNotice(
+        taskData.status === "processing"
+          ? "Execution started. This view will refresh automatically until the task finishes."
+          : "Execution completed. The latest task detail is now visible.",
+      );
     } catch (executeError) {
       setError(executeError.message);
     } finally {
@@ -66,7 +89,7 @@ export function TaskDetailPage() {
   if (!task) {
     return (
       <div className="page-grid">
-        <p className="form-error">{error || "Task not found."}</p>
+        <FeedbackMessage tone="error">{error || "Task not found."}</FeedbackMessage>
       </div>
     );
   }
@@ -80,15 +103,24 @@ export function TaskDetailPage() {
         </div>
         <button
           className="button button-primary"
-          disabled={executing}
+          disabled={executing || task.status === "processing"}
           onClick={handleExecute}
           type="button"
         >
-          {executing ? "Executing..." : "Execute with debug"}
+          {executing
+            ? "Executing..."
+            : task.status === "processing"
+              ? "Processing..."
+              : "Execute with debug"}
         </button>
       </header>
 
-      {error ? <p className="form-error">{error}</p> : null}
+      <FeedbackMessage tone="info">
+        {task.status === "processing"
+          ? "Task is still running. Aegis is refreshing this page automatically."
+          : notice}
+      </FeedbackMessage>
+      <FeedbackMessage tone="error">{error}</FeedbackMessage>
 
       <SectionCard
         title="Task Overview"
@@ -110,6 +142,10 @@ export function TaskDetailPage() {
             <dd>{task.agent_name}</dd>
           </div>
           <div>
+            <dt>Created</dt>
+            <dd>{formatDateTime(task.created_at)}</dd>
+          </div>
+          <div>
             <dt>Started</dt>
             <dd>{formatDateTime(task.started_at)}</dd>
           </div>
@@ -124,12 +160,17 @@ export function TaskDetailPage() {
         </dl>
 
         <div className="content-block">
-          <h3>Description</h3>
-          <p>{task.description || "No description provided."}</p>
+          <h3>Task input</h3>
+          <pre>{task.description || "No description provided."}</pre>
         </div>
+      </SectionCard>
 
+      <SectionCard
+        title="Result"
+        subtitle="Final consolidated output returned by the orchestration pipeline."
+      >
         <div className="content-block">
-          <h3>Result</h3>
+          <h3>Result text</h3>
           <pre>{task.result_text || "No result available yet."}</pre>
         </div>
 
@@ -145,12 +186,17 @@ export function TaskDetailPage() {
         <TaskTraceList trace={trace?.execution_trace || task.execution_trace} />
       </SectionCard>
 
-      <SectionCard
-        title="Debug Context"
-        subtitle="RAG, memory and combined context visibility from the latest execution response."
-      >
-        <RagDebugPanel debug={task.rag_debug} />
-      </SectionCard>
+      {task.rag_debug ? (
+        <SectionCard
+          title="Debug Context"
+          subtitle="Collapsed by default to keep the main product view focused on outcomes."
+        >
+          <details className="debug-details">
+            <summary className="debug-summary">Open RAG and memory debug context</summary>
+            <RagDebugPanel debug={task.rag_debug} />
+          </details>
+        </SectionCard>
+      ) : null}
     </div>
   );
 }
