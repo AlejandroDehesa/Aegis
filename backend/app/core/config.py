@@ -29,6 +29,10 @@ class Settings(BaseModel):
     MEMORY_RECENT_TASK_LIMIT: int = 3
     MEMORY_MAX_CONTEXT_CHARS: int = 1200
     FULL_CONTEXT_MAX_CHARS: int = 2600
+    FRONTEND_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
     CHROMA_PERSIST_DIRECTORY: str = str(ROOT_DIR / "backend" / "data" / "chroma")
     RAG_VECTOR_COLLECTION: str = "aegis_documents"
     LOCAL_VECTOR_STORE_PATH: str = str(ROOT_DIR / "backend" / "data" / "vector_store.json")
@@ -56,6 +60,14 @@ def get_settings() -> Settings:
         MEMORY_RECENT_TASK_LIMIT=int(os.getenv("MEMORY_RECENT_TASK_LIMIT", "3")),
         MEMORY_MAX_CONTEXT_CHARS=int(os.getenv("MEMORY_MAX_CONTEXT_CHARS", "1200")),
         FULL_CONTEXT_MAX_CHARS=int(os.getenv("FULL_CONTEXT_MAX_CHARS", "2600")),
+        FRONTEND_ORIGINS=[
+            origin.strip()
+            for origin in os.getenv(
+                "FRONTEND_ORIGINS",
+                "http://localhost:5173,http://127.0.0.1:5173",
+            ).split(",")
+            if origin.strip()
+        ],
         CHROMA_PERSIST_DIRECTORY=os.getenv(
             "CHROMA_PERSIST_DIRECTORY",
             str(ROOT_DIR / "backend" / "data" / "chroma"),
