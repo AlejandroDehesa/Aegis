@@ -4,6 +4,7 @@ import { deleteDocument, listDocuments, uploadDocument } from "../api/documentsA
 import { AsyncContent } from "../components/AsyncContent";
 import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
+import { getErrorMessage } from "../utils/errors";
 import { formatDateTime, truncateText } from "../utils/formatters";
 
 export function DocumentsPage() {
@@ -33,7 +34,7 @@ export function DocumentsPage() {
       const items = await listDocuments();
       setDocuments(items);
     } catch (loadError) {
-      setListError(loadError.message);
+      setListError(getErrorMessage(loadError, "Unable to load documents."));
     } finally {
       setLoading(false);
     }
@@ -73,7 +74,7 @@ export function DocumentsPage() {
       );
       await loadDocuments();
     } catch (uploadError) {
-      setActionError(uploadError.message);
+      setActionError(getErrorMessage(uploadError, "Unable to upload document."));
     } finally {
       setSaving(false);
     }
@@ -94,7 +95,7 @@ export function DocumentsPage() {
         `Document "${deletedDocument?.title || "Untitled document"}" removed from the library.`,
       );
     } catch (deleteError) {
-      setActionError(deleteError.message);
+      setActionError(getErrorMessage(deleteError, "Unable to delete document."));
     } finally {
       setDeletingId(null);
     }

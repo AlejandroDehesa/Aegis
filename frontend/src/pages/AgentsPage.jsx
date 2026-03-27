@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { listAgents } from "../api/agentsApi";
 import { AsyncContent } from "../components/AsyncContent";
 import { SectionCard } from "../components/SectionCard";
+import { getErrorMessage } from "../utils/errors";
 
 
 export function AgentsPage() {
@@ -19,7 +20,7 @@ export function AgentsPage() {
         const catalog = await listAgents();
         setAgents(catalog);
       } catch (loadError) {
-        setError(loadError.message);
+        setError(getErrorMessage(loadError, "Unable to load agents catalog."));
       } finally {
         setLoading(false);
       }

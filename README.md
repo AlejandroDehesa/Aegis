@@ -1,74 +1,88 @@
 # Aegis
 
-Aegis es una plataforma backend-first para orquestar tareas con agentes de IA:
+Aegis es una plataforma backend-first para orquestacion de tareas con agentes de IA.
 
-`tarea -> clasificacion -> seleccion de agente -> ejecucion -> resultado -> historial/traza`
+Flujo principal del producto:
 
-No es un chatbot. El backend es el nucleo y el frontend expone un flujo serio de ejecucion.
+`task -> classification -> agent selection -> execution -> structured result -> trace/history`
+
+Aegis no es un chatbot. El foco es ejecucion de tareas con trazabilidad.
 
 ## Stack
 
-- Backend: Python + FastAPI + SQLAlchemy 2.0 + Pydantic
-- Base de datos: PostgreSQL
+- Backend: Python + FastAPI + Pydantic + SQLAlchemy 2.0
+- DB: PostgreSQL
 - Auth: JWT
-- IA: OpenAI API
+- IA: OpenAI API (con RAG + memoria en la implementacion actual)
 - Frontend: React + Vite (JavaScript)
-- Infra: Docker + Docker Compose
+- Infra: Docker + Docker Compose + Nginx
 
 ## Estructura
 
-- `backend/app/` API, dominio, servicios, agentes, modelos y esquemas
-- `frontend/src/` api, pages, components, hooks, context, router y estilos
+- `backend/app/`
+- `frontend/src/`
+- `backend/scripts/` (utilidades de soporte, por ejemplo semilla demo)
 
-## Configuracion por entorno
+## Variables de entorno
 
-1. Copia variables base:
+### Archivo raiz `.env`
+
+- `PROJECT_NAME`: nombre del backend
+- `DATABASE_URL`: conexion PostgreSQL
+- `JWT_SECRET_KEY`: secreto de firma JWT
+- `JWT_ALGORITHM`: algoritmo JWT
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: expiracion de token
+- `OPENAI_API_KEY`: clave OpenAI
+- `OPENAI_MODEL`: modelo de chat
+- `OPENAI_EMBEDDING_MODEL`: modelo de embeddings
+- `FRONTEND_ORIGINS`: CORS permitidos (coma-separado)
+- `VITE_API_URL`: base URL para build del frontend (`/api/v1` recomendado)
+
+### Archivo `frontend/.env`
+
+- `VITE_API_URL`: base URL del API para el frontend
+- `VITE_DEV_PROXY_TARGET`: target del proxy en `vite dev` (default `http://localhost:8000`)
+
+## Arranque rapido (Docker)
+
+1. Copiar variables:
 
 ```bash
 cp .env.example .env
 cp frontend/.env.example frontend/.env
 ```
 
-2. Revisa variables clave:
-
-- `DATABASE_URL`
-- `JWT_SECRET_KEY`
-- `OPENAI_API_KEY`
-- `FRONTEND_ORIGINS`
-- `VITE_API_URL` (debe apuntar al backend con prefijo `/api/v1`)
-
-## Arranque rapido con Docker
-
-Desde la raiz:
+2. Levantar servicios:
 
 ```bash
 docker compose up --build
 ```
 
-Servicios:
+3. Endpoints:
 
-- Backend: `http://localhost:8000`
 - Frontend: `http://localhost:5173`
-- PostgreSQL: `localhost:5432`
+- Backend: `http://localhost:8000`
+- Health: `http://localhost:8000/api/v1/health`
 
-Health check:
+## Arranque local (dev)
 
-- `GET http://localhost:8000/api/v1/health`
-
-## Arranque local (sin docker para frontend)
-
-### 1) Backend (con DB en Docker)
+### 1) Base de datos
 
 ```bash
 docker compose up -d db
+```
+
+### 2) Backend
+
+```bash
 cd backend
 python -m venv .venv
-.venv\\Scripts\\activate
+.venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2) Frontend
+### 3) Frontend
 
 ```bash
 cd frontend
@@ -76,28 +90,42 @@ npm install
 npm run dev
 ```
 
+Con la configuracion actual, el frontend usa `VITE_API_URL=/api/v1` y Vite hace proxy a `VITE_DEV_PROXY_TARGET`.
+
 ## Flujo de demo recomendado
 
-1. Login/registro.
-2. Crear una tarea en `/tasks`.
-3. Ejecutar la tarea (boton `Execute`) y observar estados (`pending/processing/completed`).
-4. Abrir detalle de tarea para revisar resultado y `Execution Trace`.
-5. Ir a `/documents`, subir uno o varios documentos.
-6. Ejecutar una tarea con contexto documental para ver enriquecimiento RAG.
-7. Revisar `Debug Context` en detalle de tarea (si se ejecuto con debug).
+1. Login o registro.
+2. Crear tarea en `/tasks`.
+3. Ejecutar tarea y observar estados (`pending`, `processing`, `completed`, `failed`).
+4. Abrir detalle para ver resultado y `Execution Trace`.
+5. Ir a `/documents` y cargar contenido.
+6. Ejecutar nueva tarea para usar contexto RAG.
+7. Revisar `Debug Context` (ejecucion con debug).
 
-## Notas de despliegue base
+## Semilla demo (opcional)
 
-- El frontend usa `VITE_API_URL` para resolver backend sin URLs hardcodeadas.
-- El backend aplica CORS via `FRONTEND_ORIGINS`.
-- El contenedor frontend sirve build estatico via Nginx con fallback SPA (`/index.html`).
+Script simple para crear usuario demo y tareas de ejemplo (idempotente):
 
-## Estado del proyecto
+```bash
+cd backend
+python scripts/seed_demo_data.py
+```
 
-Base funcional para portfolio:
+Credenciales demo generadas por el script:
 
-- auth + usuarios
-- tareas + ejecucion multi-agente
-- resultados persistidos + trazabilidad
-- documentos + RAG/memoria
-- frontend integrado con feedback operativo
+- `demo@aegis.local`
+- `Demo12345!`
+
+## Hardening aplicado en frontend
+
+- Manejo consistente de token invalido/expirado
+- Limpieza automatica de sesion
+- Sincronizacion de sesion entre pestanas
+- Manejo global de errores API
+- Estados UI consistentes (`loading`, `empty`, `error`, `success`)
+
+## Notas de despliegue
+
+- Nginx sirve frontend y hace proxy de `/api/*` a backend (`backend:8000`) en Compose.
+- CORS backend se controla con `FRONTEND_ORIGINS`.
+- Mantener `VITE_API_URL=/api/v1` simplifica local, demo y despliegue.

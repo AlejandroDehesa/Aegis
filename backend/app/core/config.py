@@ -32,6 +32,7 @@ class Settings(BaseModel):
     FRONTEND_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:4173",
     ]
     CHROMA_PERSIST_DIRECTORY: str = str(ROOT_DIR / "backend" / "data" / "chroma")
     RAG_VECTOR_COLLECTION: str = "aegis_documents"
@@ -64,7 +65,7 @@ def get_settings() -> Settings:
             origin.strip()
             for origin in os.getenv(
                 "FRONTEND_ORIGINS",
-                "http://localhost:5173,http://127.0.0.1:5173",
+                "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173",
             ).split(",")
             if origin.strip()
         ],

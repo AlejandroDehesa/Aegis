@@ -7,6 +7,7 @@ import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { usePolling } from "../hooks/usePolling";
+import { getErrorMessage } from "../utils/errors";
 import {
   formatDateTime,
   formatDuration,
@@ -55,7 +56,7 @@ export function TasksPage() {
       const taskList = await listTasks();
       setTasks(sortTasksByRecent(taskList));
     } catch (loadError) {
-      setListError(loadError.message);
+      setListError(getErrorMessage(loadError, "Unable to load tasks."));
     } finally {
       if (!silent) {
         setLoading(false);
@@ -82,7 +83,7 @@ export function TasksPage() {
       setNotice("Task created successfully. You can execute it from the list below.");
       await loadTasks();
     } catch (saveError) {
-      setActionError(saveError.message);
+      setActionError(getErrorMessage(saveError, "Unable to create task."));
     } finally {
       setSaving(false);
     }
@@ -107,7 +108,7 @@ export function TasksPage() {
       );
       await loadTasks({ silent: true });
     } catch (executeError) {
-      setActionError(executeError.message);
+      setActionError(getErrorMessage(executeError, "Unable to execute task."));
     } finally {
       setExecutingId(null);
     }

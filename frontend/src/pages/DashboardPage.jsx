@@ -7,6 +7,7 @@ import { listTasks } from "../api/tasksApi";
 import { AsyncContent } from "../components/AsyncContent";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
+import { getErrorMessage } from "../utils/errors";
 import { formatDateTime } from "../utils/formatters";
 
 
@@ -32,7 +33,7 @@ export function DashboardPage() {
         ]);
         setSummary({ tasks, documents, agents });
       } catch (loadError) {
-        setError(loadError.message);
+        setError(getErrorMessage(loadError, "Unable to load dashboard summary."));
       } finally {
         setLoading(false);
       }

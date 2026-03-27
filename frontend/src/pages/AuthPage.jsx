@@ -1,14 +1,22 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { FeedbackMessage } from "../components/FeedbackMessage";
 import { ROUTES } from "../constants/routes";
 import { useAuth } from "../hooks/useAuth";
+import { getErrorMessage } from "../utils/errors";
 
 export function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, register, authNotice, clearAuthNotice } = useAuth();
+  const {
+    login,
+    register,
+    authNotice,
+    clearAuthNotice,
+    isAuthenticated,
+    isBootstrapping,
+  } = useAuth();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
     email: "",
@@ -18,6 +26,14 @@ export function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   const redirectTo = location.state?.from?.pathname || ROUTES.DASHBOARD;
+
+  if (isBootstrapping) {
+    return <div className="screen-center">Validating session...</div>;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to={redirectTo} replace />;
+  }
 
   function updateField(event) {
     setForm((current) => ({
@@ -41,7 +57,7 @@ export function AuthPage() {
 
       navigate(redirectTo, { replace: true });
     } catch (submitError) {
-      setError(submitError.message);
+      setError(getErrorMessage(submitError, "Unable to complete authentication."));
     } finally {
       setLoading(false);
     }

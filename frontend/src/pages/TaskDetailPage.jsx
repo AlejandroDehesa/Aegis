@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { executeTask, getTask, getTaskTrace } from "../api/tasksApi";
+import { AsyncContent } from "../components/AsyncContent";
 import { FeedbackMessage } from "../components/FeedbackMessage";
 import { RagDebugPanel } from "../components/RagDebugPanel";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { TaskTraceList } from "../components/TaskTraceList";
 import { usePolling } from "../hooks/usePolling";
+import { getErrorMessage } from "../utils/errors";
 import { formatDateTime, formatDuration } from "../utils/formatters";
 
 export function TaskDetailPage() {
@@ -16,7 +18,8 @@ export function TaskDetailPage() {
   const [trace, setTrace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [executing, setExecuting] = useState(false);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -36,9 +39,8 @@ export function TaskDetailPage() {
   async function loadTaskDetail({ silent = false } = {}) {
     if (!silent) {
       setLoading(true);
+      setLoadError("");
     }
-
-    setError("");
 
     try {
       const [taskData, traceData] = await Promise.all([
@@ -47,8 +49,9 @@ export function TaskDetailPage() {
       ]);
       setTask(taskData);
       setTrace(traceData);
-    } catch (loadError) {
-      setError(loadError.message);
+      setLoadError("");
+    } catch (error) {
+      setLoadError(getErrorMessage(error, "Unable to load task detail."));
     } finally {
       if (!silent) {
         setLoading(false);
@@ -58,7 +61,7 @@ export function TaskDetailPage() {
 
   async function handleExecute() {
     setExecuting(true);
-    setError("");
+    setActionError("");
     setNotice("");
 
     try {
@@ -71,25 +74,26 @@ export function TaskDetailPage() {
           ? "Execution started. This view will refresh automatically until the task finishes."
           : "Execution completed. The latest task detail is now visible.",
       );
-    } catch (executeError) {
-      setError(executeError.message);
+    } catch (error) {
+      setActionError(getErrorMessage(error, "Unable to execute this task."));
     } finally {
       setExecuting(false);
     }
   }
 
-  if (loading) {
-    return (
-      <div className="page-grid">
-        <p>Loading task detail...</p>
-      </div>
-    );
-  }
-
   if (!task) {
     return (
       <div className="page-grid">
-        <FeedbackMessage tone="error">{error || "Task not found."}</FeedbackMessage>
+        <AsyncContent
+          loading={loading}
+          error={loadError}
+          isEmpty={!loading && !loadError}
+          loadingText="Loading task detail..."
+          emptyTitle="Task not found"
+          emptyDescription="The requested task is not available for this user."
+        >
+          <div />
+        </AsyncContent>
       </div>
     );
   }
@@ -120,7 +124,8 @@ export function TaskDetailPage() {
           ? "Task is still running. Aegis is refreshing this page automatically."
           : notice}
       </FeedbackMessage>
-      <FeedbackMessage tone="error">{error}</FeedbackMessage>
+      <FeedbackMessage tone="error">{loadError}</FeedbackMessage>
+      <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
 
       <SectionCard
         title="Task Overview"
