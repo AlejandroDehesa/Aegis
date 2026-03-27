@@ -5,6 +5,7 @@ import { listAgents } from "../api/agentsApi";
 import { listDocuments } from "../api/documentsApi";
 import { listTasks } from "../api/tasksApi";
 import { AsyncContent } from "../components/AsyncContent";
+import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { ROUTES } from "../constants/routes";
@@ -56,9 +57,13 @@ export function DashboardPage() {
       <header className="page-header">
         <div>
           <p className="eyebrow">Overview</p>
-          <h2>Execution visibility at a glance</h2>
+          <h2>Execution visibility and demo control center</h2>
         </div>
       </header>
+
+      <FeedbackMessage tone="info">
+        Demo seed (optional): `demo@aegis.local` / `Demo12345!`
+      </FeedbackMessage>
 
       <div className="stats-grid">
         <StatCard label="Tasks" value={summary.tasks.length} />
@@ -71,6 +76,16 @@ export function DashboardPage() {
       <SectionCard
         title="Demo Flow"
         subtitle="Recommended walkthrough for interviews and portfolio demos."
+        actions={
+          <div className="quick-link-row">
+            <Link className="button button-secondary" to={ROUTES.TASKS}>
+              Open Tasks
+            </Link>
+            <Link className="button button-secondary" to={ROUTES.DOCUMENTS}>
+              Open Documents
+            </Link>
+          </div>
+        }
       >
         <div className="demo-flow-grid">
           <Link className="list-item" to={ROUTES.TASKS}>

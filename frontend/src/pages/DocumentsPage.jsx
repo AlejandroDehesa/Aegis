@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { deleteDocument, listDocuments, uploadDocument } from "../api/documentsApi";
 import { AsyncContent } from "../components/AsyncContent";
 import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
+import { ROUTES } from "../constants/routes";
 import { getErrorMessage } from "../utils/errors";
 import { formatDateTime, truncateText } from "../utils/formatters";
 
@@ -106,14 +108,19 @@ export function DocumentsPage() {
       <header className="page-header">
         <div>
           <p className="eyebrow">Documents</p>
-          <h2>Context ingestion for retrieval</h2>
+          <h2>Context ingestion for retrieval and better outputs</h2>
         </div>
       </header>
+
+      <FeedbackMessage tone="info">
+        Upload context here, then run a new task to demonstrate RAG-assisted execution.
+        <Link className="inline-link" to={ROUTES.TASKS}> Go to Tasks</Link>
+      </FeedbackMessage>
 
       <FeedbackMessage tone="success">{notice}</FeedbackMessage>
       <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
 
-      <SectionCard title="Upload Document" subtitle="Provide raw text or a simple UTF-8 file.">
+      <SectionCard title="Upload Document" subtitle="Provide raw text or upload a UTF-8 file.">
         <form className="form-grid" onSubmit={handleUpload}>
           <label className="form-field">
             <span>Title</span>
@@ -148,7 +155,7 @@ export function DocumentsPage() {
           </label>
 
           <button className="button button-primary" disabled={saving} type="submit">
-            {saving ? "Uploading..." : "Upload document"}
+            {saving ? "Uploading document..." : "Upload document"}
           </button>
         </form>
       </SectionCard>

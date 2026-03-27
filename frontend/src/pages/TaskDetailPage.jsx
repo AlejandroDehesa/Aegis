@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import { executeTask, getTask, getTaskTrace, submitTaskFeedback } from "../api/tasksApi";
 import { AsyncContent } from "../components/AsyncContent";
@@ -8,6 +8,7 @@ import { RagDebugPanel } from "../components/RagDebugPanel";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { TaskTraceList } from "../components/TaskTraceList";
+import { ROUTES } from "../constants/routes";
 import { usePolling } from "../hooks/usePolling";
 import { getErrorMessage } from "../utils/errors";
 import { formatDateTime, formatDuration } from "../utils/formatters";
@@ -178,18 +179,23 @@ export function TaskDetailPage() {
           <p className="eyebrow">Task Detail</p>
           <h2>{task.title}</h2>
         </div>
-        <button
-          className="button button-primary"
-          disabled={executing || task.status === "processing"}
-          onClick={handleExecute}
-          type="button"
-        >
-          {executing
-            ? "Executing..."
-            : task.status === "processing"
-              ? "Processing..."
-              : "Execute with debug"}
-        </button>
+        <div className="header-action-row">
+          <Link className="button button-secondary" to={ROUTES.TASKS}>
+            Back to tasks
+          </Link>
+          <button
+            className="button button-primary"
+            disabled={executing || task.status === "processing"}
+            onClick={handleExecute}
+            type="button"
+          >
+            {executing
+              ? "Executing task..."
+              : task.status === "processing"
+                ? "Task running..."
+                : "Execute task"}
+          </button>
+        </div>
       </header>
 
       <FeedbackMessage tone="info">
@@ -200,6 +206,9 @@ export function TaskDetailPage() {
       <FeedbackMessage tone="success">{feedbackNotice}</FeedbackMessage>
       <FeedbackMessage tone="error">{loadError}</FeedbackMessage>
       <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
+      <FeedbackMessage tone="info">
+        {"Demo checklist: execute -> inspect result and trace -> submit rating -> upload docs -> rerun task."}
+      </FeedbackMessage>
 
       <SectionCard
         title="Task Overview"

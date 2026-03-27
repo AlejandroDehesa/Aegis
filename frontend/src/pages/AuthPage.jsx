@@ -67,10 +67,13 @@ export function AuthPage() {
     <div className="auth-shell">
       <section className="auth-panel auth-panel-highlight">
         <p className="eyebrow">Aegis</p>
-        <h1>Task orchestration with visibility built in.</h1>
+        <h1>AI task orchestration with visibility built in.</h1>
         <p className="auth-copy">
           Sign in to inspect tasks, execute pipelines, upload documents and
           review execution traces from a real interface.
+        </p>
+        <p className="auth-copy">
+          Demo seed credentials (optional): demo@aegis.local / Demo12345!
         </p>
       </section>
 
@@ -122,9 +125,9 @@ export function AuthPage() {
 
           <button className="button button-primary" disabled={loading} type="submit">
             {loading
-              ? "Working..."
+              ? "Processing..."
               : mode === "login"
-                ? "Login to Aegis"
+                ? "Enter Aegis"
                 : "Create account"}
           </button>
         </form>

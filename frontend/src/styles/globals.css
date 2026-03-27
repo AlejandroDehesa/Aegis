@@ -198,6 +198,13 @@ pre {
   align-items: center;
 }
 
+.header-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+}
+
 .app-shell {
   min-height: 100vh;
   display: grid;
@@ -299,6 +306,12 @@ pre {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.65rem;
+}
+
+.quick-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
 }
 
 .section-card-body {
@@ -521,6 +534,21 @@ pre {
   margin: 0;
 }
 
+.inline-helper {
+  margin: 1rem 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.inline-link {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.inline-link:hover {
+  text-decoration: underline;
+}
+
 .feedback-rating-group {
   display: flex;
   gap: 0.5rem;
@@ -694,6 +722,11 @@ pre {
   .list-item-meta {
     justify-items: start;
     text-align: left;
+  }
+
+  .header-action-row,
+  .quick-link-row {
+    justify-content: flex-start;
   }
 
   .list-item-actions {

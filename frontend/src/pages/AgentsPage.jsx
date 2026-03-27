@@ -34,7 +34,7 @@ export function AgentsPage() {
       <header className="page-header">
         <div>
           <p className="eyebrow">Agents</p>
-          <h2>Catalog of execution capabilities</h2>
+          <h2>Catalog of execution capabilities and routing targets</h2>
         </div>
       </header>
 

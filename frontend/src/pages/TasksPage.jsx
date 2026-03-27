@@ -6,6 +6,7 @@ import { AsyncContent } from "../components/AsyncContent";
 import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
+import { ROUTES } from "../constants/routes";
 import { usePolling } from "../hooks/usePolling";
 import { getErrorMessage } from "../utils/errors";
 import {
@@ -17,6 +18,11 @@ import {
 } from "../utils/formatters";
 
 export function TasksPage() {
+  const demoTaskTemplate = {
+    title: "Compare FastAPI and Django for an internal AI platform",
+    description:
+      "Provide a practical comparison for an AI orchestration product: architecture, maintainability, performance, and implementation speed.",
+  };
   const [tasks, setTasks] = useState([]);
   const [form, setForm] = useState({
     title: "",
@@ -69,6 +75,12 @@ export function TasksPage() {
       ...current,
       [event.target.name]: event.target.value,
     }));
+  }
+
+  function applyDemoTaskTemplate() {
+    setForm(demoTaskTemplate);
+    setNotice("Demo task template loaded. Review it and create the task.");
+    setActionError("");
   }
 
   async function handleCreateTask(event) {
@@ -133,6 +145,15 @@ export function TasksPage() {
       <SectionCard
         title="Create Task"
         subtitle="A compact form to push work into the backend orchestration flow."
+        actions={
+          <button
+            className="button button-secondary"
+            onClick={applyDemoTaskTemplate}
+            type="button"
+          >
+            Use demo template
+          </button>
+        }
       >
         <form className="form-grid" onSubmit={handleCreateTask}>
           <label className="form-field">
@@ -158,9 +179,13 @@ export function TasksPage() {
           </label>
 
           <button className="button button-primary" disabled={saving} type="submit">
-            {saving ? "Creating..." : "Create task"}
+            {saving ? "Creating task..." : "Create task"}
           </button>
         </form>
+        <p className="inline-helper">
+          {"Demo path: create a task -> execute -> open detail -> review trace -> submit rating."}
+          <Link className="inline-link" to={ROUTES.DOCUMENTS}> Add documents</Link> to enrich the next run.
+        </p>
       </SectionCard>
 
       <SectionCard
@@ -226,7 +251,7 @@ export function TasksPage() {
                   <span>{formatDateTime(task.created_at)}</span>
                   <div className="list-item-actions">
                     <Link className="button button-secondary" to={`/tasks/${task.id}`}>
-                      View detail
+                      Open detail
                     </Link>
                     <button
                       className="button button-primary"
