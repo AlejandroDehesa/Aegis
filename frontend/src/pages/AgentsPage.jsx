@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { listAgents } from "../api/agentsApi";
-import { EmptyState } from "../components/EmptyState";
+import { AsyncContent } from "../components/AsyncContent";
 import { SectionCard } from "../components/SectionCard";
 
 
@@ -38,17 +38,14 @@ export function AgentsPage() {
       </header>
 
       <SectionCard title="Agent Catalog" subtitle="Static catalog exposed by the backend.">
-        {loading ? <p>Loading agents...</p> : null}
-        {error ? <p className="form-error">{error}</p> : null}
-
-        {!loading && !error && !agents.length ? (
-          <EmptyState
-            title="No agents available"
-            description="The backend did not return any configured agents."
-          />
-        ) : null}
-
-        {!loading && !error && agents.length ? (
+        <AsyncContent
+          loading={loading}
+          error={error}
+          isEmpty={!agents.length}
+          loadingText="Loading agents..."
+          emptyTitle="No agents available"
+          emptyDescription="The backend did not return any configured agents."
+        >
           <div className="agent-grid">
             {agents.map((agent) => (
               <article className="agent-card" key={agent.name}>
@@ -64,7 +61,7 @@ export function AgentsPage() {
               </article>
             ))}
           </div>
-        ) : null}
+        </AsyncContent>
       </SectionCard>
     </div>
   );

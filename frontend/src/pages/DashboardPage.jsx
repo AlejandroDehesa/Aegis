@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { listAgents } from "../api/agentsApi";
 import { listDocuments } from "../api/documentsApi";
 import { listTasks } from "../api/tasksApi";
-import { EmptyState } from "../components/EmptyState";
+import { AsyncContent } from "../components/AsyncContent";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatDateTime } from "../utils/formatters";
@@ -62,17 +62,14 @@ export function DashboardPage() {
         title="Recent Tasks"
         subtitle="Latest task activity from the authenticated user."
       >
-        {loading ? <p>Loading dashboard...</p> : null}
-        {error ? <p className="form-error">{error}</p> : null}
-
-        {!loading && !error && !recentTasks.length ? (
-          <EmptyState
-            title="No tasks yet"
-            description="Create your first task from the Tasks view to start using Aegis."
-          />
-        ) : null}
-
-        {!loading && !error && recentTasks.length ? (
+        <AsyncContent
+          loading={loading}
+          error={error}
+          isEmpty={!recentTasks.length}
+          loadingText="Loading dashboard..."
+          emptyTitle="No tasks yet"
+          emptyDescription="Create your first task from the Tasks view to start using Aegis."
+        >
           <div className="list-stack">
             {recentTasks.map((task) => (
               <Link className="list-item" key={task.id} to={`/tasks/${task.id}`}>
@@ -87,7 +84,7 @@ export function DashboardPage() {
               </Link>
             ))}
           </div>
-        ) : null}
+        </AsyncContent>
       </SectionCard>
     </div>
   );

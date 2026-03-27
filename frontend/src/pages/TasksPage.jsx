@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { createTask, executeTask, listTasks } from "../api/tasksApi";
-import { EmptyState } from "../components/EmptyState";
+import { AsyncContent } from "../components/AsyncContent";
 import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
@@ -24,7 +24,8 @@ export function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [executingId, setExecutingId] = useState(null);
-  const [error, setError] = useState("");
+  const [listError, setListError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -48,13 +49,13 @@ export function TasksPage() {
       setLoading(true);
     }
 
-    setError("");
+    setListError("");
 
     try {
       const taskList = await listTasks();
       setTasks(sortTasksByRecent(taskList));
     } catch (loadError) {
-      setError(loadError.message);
+      setListError(loadError.message);
     } finally {
       if (!silent) {
         setLoading(false);
@@ -72,7 +73,7 @@ export function TasksPage() {
   async function handleCreateTask(event) {
     event.preventDefault();
     setSaving(true);
-    setError("");
+    setActionError("");
     setNotice("");
 
     try {
@@ -81,7 +82,7 @@ export function TasksPage() {
       setNotice("Task created successfully. You can execute it from the list below.");
       await loadTasks();
     } catch (saveError) {
-      setError(saveError.message);
+      setActionError(saveError.message);
     } finally {
       setSaving(false);
     }
@@ -89,7 +90,7 @@ export function TasksPage() {
 
   async function handleExecuteTask(taskId) {
     setExecutingId(taskId);
-    setError("");
+    setActionError("");
     setNotice("");
 
     try {
@@ -106,7 +107,7 @@ export function TasksPage() {
       );
       await loadTasks({ silent: true });
     } catch (executeError) {
-      setError(executeError.message);
+      setActionError(executeError.message);
     } finally {
       setExecutingId(null);
     }
@@ -126,7 +127,7 @@ export function TasksPage() {
       </header>
 
       <FeedbackMessage tone="success">{notice}</FeedbackMessage>
-      <FeedbackMessage tone="error">{error}</FeedbackMessage>
+      <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
 
       <SectionCard
         title="Create Task"
@@ -187,16 +188,14 @@ export function TasksPage() {
             : ""}
         </FeedbackMessage>
 
-        {loading ? <p>Loading tasks...</p> : null}
-
-        {!loading && !tasks.length ? (
-          <EmptyState
-            title="No tasks available"
-            description="Create a task to start interacting with the execution system."
-          />
-        ) : null}
-
-        {!loading && tasks.length ? (
+        <AsyncContent
+          loading={loading}
+          error={listError}
+          isEmpty={!tasks.length}
+          loadingText="Loading tasks..."
+          emptyTitle="No tasks available"
+          emptyDescription="Create a task to start interacting with the execution system."
+        >
           <div className="list-stack">
             {tasks.map((task) => (
               <article className="list-item" key={task.id}>
@@ -244,7 +243,7 @@ export function TasksPage() {
               </article>
             ))}
           </div>
-        ) : null}
+        </AsyncContent>
       </SectionCard>
     </div>
   );

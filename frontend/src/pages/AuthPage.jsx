@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import { FeedbackMessage } from "../components/FeedbackMessage";
 import { ROUTES } from "../constants/routes";
 import { useAuth } from "../hooks/useAuth";
-
 
 export function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, register } = useAuth();
+  const { login, register, authNotice, clearAuthNotice } = useAuth();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
     email: "",
@@ -30,6 +30,7 @@ export function AuthPage() {
     event.preventDefault();
     setError("");
     setLoading(true);
+    clearAuthNotice();
 
     try {
       if (mode === "login") {
@@ -93,13 +94,14 @@ export function AuthPage() {
             <input
               name="password"
               onChange={updateField}
-              placeholder="••••••••"
+              placeholder="********"
               required
               type="password"
               value={form.password}
             />
           </label>
 
+          <FeedbackMessage tone="info">{authNotice}</FeedbackMessage>
           {error ? <p className="form-error">{error}</p> : null}
 
           <button className="button button-primary" disabled={loading} type="submit">

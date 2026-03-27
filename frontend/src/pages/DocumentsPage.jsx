@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { deleteDocument, listDocuments, uploadDocument } from "../api/documentsApi";
-import { EmptyState } from "../components/EmptyState";
+import { AsyncContent } from "../components/AsyncContent";
 import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
 import { formatDateTime, truncateText } from "../utils/formatters";
@@ -16,7 +16,8 @@ export function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  const [error, setError] = useState("");
+  const [listError, setListError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
   const fileInputRef = useRef(null);
 
@@ -26,13 +27,13 @@ export function DocumentsPage() {
 
   async function loadDocuments() {
     setLoading(true);
-    setError("");
+    setListError("");
 
     try {
       const items = await listDocuments();
       setDocuments(items);
     } catch (loadError) {
-      setError(loadError.message);
+      setListError(loadError.message);
     } finally {
       setLoading(false);
     }
@@ -49,12 +50,12 @@ export function DocumentsPage() {
   async function handleUpload(event) {
     event.preventDefault();
     setSaving(true);
-    setError("");
+    setActionError("");
     setNotice("");
 
     if (!form.content && !form.file) {
       setSaving(false);
-      setError("Provide text content or upload a file before submitting the document.");
+      setActionError("Provide text content or upload a file before submitting the document.");
       return;
     }
 
@@ -72,7 +73,7 @@ export function DocumentsPage() {
       );
       await loadDocuments();
     } catch (uploadError) {
-      setError(uploadError.message);
+      setActionError(uploadError.message);
     } finally {
       setSaving(false);
     }
@@ -80,7 +81,7 @@ export function DocumentsPage() {
 
   async function handleDelete(documentId) {
     setDeletingId(documentId);
-    setError("");
+    setActionError("");
     setNotice("");
 
     try {
@@ -93,7 +94,7 @@ export function DocumentsPage() {
         `Document "${deletedDocument?.title || "Untitled document"}" removed from the library.`,
       );
     } catch (deleteError) {
-      setError(deleteError.message);
+      setActionError(deleteError.message);
     } finally {
       setDeletingId(null);
     }
@@ -109,7 +110,7 @@ export function DocumentsPage() {
       </header>
 
       <FeedbackMessage tone="success">{notice}</FeedbackMessage>
-      <FeedbackMessage tone="error">{error}</FeedbackMessage>
+      <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
 
       <SectionCard title="Upload Document" subtitle="Provide raw text or a simple UTF-8 file.">
         <form className="form-grid" onSubmit={handleUpload}>
@@ -167,16 +168,14 @@ export function DocumentsPage() {
           </button>
         }
       >
-        {loading ? <p>Loading documents...</p> : null}
-
-        {!loading && !documents.length ? (
-          <EmptyState
-            title="No documents uploaded"
-            description="Upload a document to enrich retrieval and execution context."
-          />
-        ) : null}
-
-        {!loading && documents.length ? (
+        <AsyncContent
+          loading={loading}
+          error={listError}
+          isEmpty={!documents.length}
+          loadingText="Loading documents..."
+          emptyTitle="No documents uploaded"
+          emptyDescription="Upload a document to enrich retrieval and execution context."
+        >
           <div className="list-stack">
             {documents.map((document) => (
               <article className="list-item" key={document.id}>
@@ -201,7 +200,7 @@ export function DocumentsPage() {
               </article>
             ))}
           </div>
-        ) : null}
+        </AsyncContent>
       </SectionCard>
     </div>
   );

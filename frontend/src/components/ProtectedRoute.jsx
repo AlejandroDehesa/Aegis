@@ -8,7 +8,7 @@ export function ProtectedRoute({ children }) {
   const location = useLocation();
 
   if (isBootstrapping) {
-    return <div className="screen-center">Validando sesión...</div>;
+    return <div className="screen-center">Validating session...</div>;
   }
 
   if (!isAuthenticated) {
