@@ -145,6 +145,55 @@ Credenciales seed:
 - email: `demo@aegis.local`
 - password: `Demo12345!`
 
+## Testing y release confidence
+
+### Backend tests (unit)
+
+```bash
+cd backend
+python -m unittest discover -s tests -p "test_*.py"
+```
+
+Cobertura objetivo del bloque de estabilidad:
+
+- auth (signup/login/me)
+- tasks (create/list con filtros)
+- execute (happy path y errores de estado)
+- feedback (persistencia y validaciones)
+- insights (agregaciones por usuario)
+- flujo critico encadenado (create -> execute -> trace -> feedback -> insights)
+
+### Frontend checks minimos
+
+```bash
+cd frontend
+npm run check:smoke
+npm run build
+```
+
+`check:smoke` valida presencia de flujo critico en UI:
+
+- login
+- carga de tareas
+- detalle de tarea
+- feedback
+- ruta insights y navegacion
+
+### Docker health/release check
+
+```bash
+docker compose config
+docker compose up --build
+```
+
+Validar luego:
+
+- `GET /api/v1/health`
+- login con seed demo
+- create/execute task
+- task detail + trace + feedback
+- insights overview y quality queue
+
 ## Highlights tecnicos para entrevista
 
 - Arquitectura backend-first con responsabilidades separadas
