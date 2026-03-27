@@ -119,13 +119,29 @@ def create_task(
 
 @router.get("/tasks", response_model=list[TaskRead])
 def list_tasks(
+    task_status: str | None = Query(default=None, alias="status"),
+    task_type: str | None = Query(default=None),
+    agent_name: str | None = Query(default=None),
+    feedback_rating: int | None = Query(default=None, ge=1, le=5),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[Task]:
+    query = select(Task).where(Task.user_id == current_user.id)
+
+    if task_status:
+        query = query.where(Task.status == task_status)
+
+    if task_type:
+        query = query.where(Task.task_type == task_type)
+
+    if agent_name:
+        query = query.where(Task.agent_name == agent_name)
+
+    if feedback_rating is not None:
+        query = query.where(Task.feedback_rating == feedback_rating)
+
     tasks = db.execute(
-        select(Task)
-        .where(Task.user_id == current_user.id)
-        .order_by(Task.created_at.desc())
+        query.order_by(Task.created_at.desc())
     ).scalars().all()
 
     return tasks

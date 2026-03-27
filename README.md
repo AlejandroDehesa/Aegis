@@ -4,7 +4,7 @@ Aegis es una plataforma backend-first para orquestacion de tareas con agentes de
 
 No es un chatbot. El foco del producto es ejecutar trabajo real con trazabilidad:
 
-`task -> classification -> agent selection -> execution -> result -> trace -> quality feedback`
+`task -> classification -> agent selection -> execution -> result -> trace -> quality feedback -> operational insights`
 
 ## Problema que resuelve
 
@@ -22,7 +22,7 @@ Esto permite demostrar criterio de producto, arquitectura y operacion, no solo i
 
 ### Backend (`backend/app/`)
 
-- `api/`: endpoints REST (auth, tasks, documents, agents, health)
+- `api/`: endpoints REST (auth, tasks, documents, agents, insights, health)
 - `core/`: config, seguridad, base de datos
 - `models/`: entidades SQLAlchemy
 - `schemas/`: contratos Pydantic
@@ -31,7 +31,7 @@ Esto permite demostrar criterio de producto, arquitectura y operacion, no solo i
 
 ### Frontend (`frontend/src/`)
 
-- `pages/`: dashboard, tasks, task detail, documents, agents, auth
+- `pages/`: dashboard, insights, tasks, task detail, documents, agents, auth
 - `api/`: cliente HTTP centralizado + wrappers por recurso
 - `context/` y `hooks/`: auth, polling, estado compartido
 - `components/`: layout, estados async, badges, cards, feedback
@@ -55,19 +55,31 @@ Esto permite demostrar criterio de producto, arquitectura y operacion, no solo i
 5. Se persiste traza de ejecucion por pasos.
 6. Usuario revisa resultado y traza.
 7. Usuario envia evaluacion de calidad (rating + comentario).
+8. Usuario revisa distribuciones y quality queue en Insights.
 
 ## Demo flow recomendado (5-7 min)
 
 1. Login (o usar usuario demo seed).
 2. Ir a `Tasks` y crear tarea con el template de demo.
 3. Ejecutar tarea y mostrar cambio de estados con polling.
-4. Abrir `Task Detail` y revisar:
-   - resultado
-   - execution trace
-   - debug context (si aplica)
+4. Abrir `Task Detail` y revisar resultado + execution trace + feedback.
 5. Enviar evaluacion de resultado (rating + comentario opcional).
-6. Ir a `Documents`, subir contexto y volver a ejecutar una tarea.
-7. Mostrar en `Dashboard` metricas, rated tasks y avg rating.
+6. Ir a `Insights` para revisar quality queue (failed o low-rated).
+7. Ir a `Documents`, subir contexto y volver a ejecutar una tarea.
+8. Mostrar en `Dashboard` el estado global del flujo.
+
+## Operational insights y quality review
+
+Aegis ahora incluye una capa ligera de analisis operativo por usuario autenticado:
+
+- metricas base por usuario (`total`, distribucion por status, task_type, agent_name, feedback_rating)
+- quality queue para detectar tareas fallidas o mal valoradas rapidamente
+- filtros de revision en `Tasks` por `status`, `task_type`, `agent_name`, `feedback_rating`
+
+Endpoints relevantes:
+
+- `GET /api/v1/insights/overview`
+- `GET /api/v1/tasks?status=&task_type=&agent_name=&feedback_rating=`
 
 ## Arranque rapido
 
@@ -140,6 +152,7 @@ Credenciales seed:
 - Persistencia de historial y trazas estructuradas
 - RAG + memoria para enriquecer contexto de ejecucion
 - Evaluacion ligera de calidad para cerrar loop de producto
+- Insights operativos y quality review por usuario
 - UX consistente de estados (`loading`, `empty`, `error`, `success`)
 - Packaging de demo reproducible con Docker/Nginx
 

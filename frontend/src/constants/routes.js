@@ -5,4 +5,5 @@ export const ROUTES = {
   TASK_DETAIL: "/tasks/:taskId",
   DOCUMENTS: "/documents",
   AGENTS: "/agents",
+  INSIGHTS: "/insights",
 };

@@ -1,7 +1,27 @@
 import { apiRequest } from "./http";
 
-export function listTasks() {
-  return apiRequest("/tasks");
+export function listTasks(filters = {}) {
+  const params = new URLSearchParams();
+
+  if (filters.status) {
+    params.set("status", filters.status);
+  }
+
+  if (filters.taskType) {
+    params.set("task_type", filters.taskType);
+  }
+
+  if (filters.agentName) {
+    params.set("agent_name", filters.agentName);
+  }
+
+  if (filters.feedbackRating) {
+    params.set("feedback_rating", String(filters.feedbackRating));
+  }
+
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+
+  return apiRequest(`/tasks${suffix}`);
 }
 
 export function getTask(taskId) {

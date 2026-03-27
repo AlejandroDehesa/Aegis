@@ -38,12 +38,14 @@ a {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   padding: 0.85rem 0.95rem;
   border: 1px solid var(--color-border);
@@ -332,6 +334,20 @@ pre {
   font-weight: 600;
 }
 
+.filter-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 0 0 1rem;
+}
+
+.filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
 .form-error,
 .trace-error {
   margin: 0;
@@ -581,6 +597,31 @@ pre {
 .demo-flow-grid {
   display: grid;
   gap: 0.85rem;
+}
+
+.insights-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.insight-block {
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.62);
+  padding: 0.9rem;
+}
+
+.insight-list {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+
+.insight-list-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
 }
 
 .trace-list {

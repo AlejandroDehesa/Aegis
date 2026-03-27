@@ -78,6 +78,9 @@ export function DashboardPage() {
         subtitle="Recommended walkthrough for interviews and portfolio demos."
         actions={
           <div className="quick-link-row">
+            <Link className="button button-secondary" to={ROUTES.INSIGHTS}>
+              Open Insights
+            </Link>
             <Link className="button button-secondary" to={ROUTES.TASKS}>
               Open Tasks
             </Link>
@@ -110,6 +113,12 @@ export function DashboardPage() {
             <div>
               <strong>4) Review and rate output</strong>
               <p className="list-item-subtitle">Open task detail, inspect traces and submit quality feedback.</p>
+            </div>
+          </Link>
+          <Link className="list-item" to={ROUTES.INSIGHTS}>
+            <div>
+              <strong>5) Inspect operational quality</strong>
+              <p className="list-item-subtitle">Use Insights to review failed and low-rated tasks quickly.</p>
             </div>
           </Link>
         </div>

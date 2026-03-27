@@ -17,6 +17,13 @@ import {
   truncateText,
 } from "../utils/formatters";
 
+const EMPTY_FILTERS = {
+  status: "",
+  taskType: "",
+  agentName: "",
+  feedbackRating: "",
+};
+
 export function TasksPage() {
   const demoTaskTemplate = {
     title: "Compare FastAPI and Django for an internal AI platform",
@@ -34,6 +41,7 @@ export function TasksPage() {
   const [listError, setListError] = useState("");
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   useEffect(() => {
     void loadTasks();
@@ -51,7 +59,7 @@ export function TasksPage() {
     },
   );
 
-  async function loadTasks({ silent = false } = {}) {
+  async function loadTasks({ silent = false, activeFilters = filters } = {}) {
     if (!silent) {
       setLoading(true);
     }
@@ -59,7 +67,7 @@ export function TasksPage() {
     setListError("");
 
     try {
-      const taskList = await listTasks();
+      const taskList = await listTasks(activeFilters);
       setTasks(sortTasksByRecent(taskList));
     } catch (loadError) {
       setListError(getErrorMessage(loadError, "Unable to load tasks."));
@@ -81,6 +89,23 @@ export function TasksPage() {
     setForm(demoTaskTemplate);
     setNotice("Demo task template loaded. Review it and create the task.");
     setActionError("");
+  }
+
+  function updateFilterField(event) {
+    const { name, value } = event.target;
+    setFilters((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  }
+
+  function applyFilters() {
+    void loadTasks({ activeFilters: filters });
+  }
+
+  function resetFilters() {
+    setFilters(EMPTY_FILTERS);
+    void loadTasks({ activeFilters: EMPTY_FILTERS });
   }
 
   async function handleCreateTask(event) {
@@ -213,6 +238,64 @@ export function TasksPage() {
             ? "Aegis refreshes active tasks automatically while they are pending or processing."
             : ""}
         </FeedbackMessage>
+        <div className="filter-grid">
+          <label className="form-field">
+            <span>Status</span>
+            <select name="status" onChange={updateFilterField} value={filters.status}>
+              <option value="">All</option>
+              <option value="pending">pending</option>
+              <option value="processing">processing</option>
+              <option value="completed">completed</option>
+              <option value="failed">failed</option>
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Task type</span>
+            <select name="taskType" onChange={updateFilterField} value={filters.taskType}>
+              <option value="">All</option>
+              <option value="general">general</option>
+              <option value="research">research</option>
+              <option value="summary">summary</option>
+              <option value="comparison">comparison</option>
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Agent</span>
+            <select name="agentName" onChange={updateFilterField} value={filters.agentName}>
+              <option value="">All</option>
+              <option value="GeneralAssistantAgent">GeneralAssistantAgent</option>
+              <option value="ResearchAgent">ResearchAgent</option>
+              <option value="SummaryAgent">SummaryAgent</option>
+              <option value="ComparisonAgent">ComparisonAgent</option>
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>Feedback rating</span>
+            <select
+              name="feedbackRating"
+              onChange={updateFilterField}
+              value={filters.feedbackRating}
+            >
+              <option value="">All</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </label>
+        </div>
+        <div className="filter-actions">
+          <button className="button button-secondary" onClick={applyFilters} type="button">
+            Apply filters
+          </button>
+          <button className="button button-secondary" onClick={resetFilters} type="button">
+            Reset
+          </button>
+        </div>
 
         <AsyncContent
           loading={loading}

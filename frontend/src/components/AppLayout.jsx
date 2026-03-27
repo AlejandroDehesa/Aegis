@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 
 const NAV_ITEMS = [
   { label: "Dashboard", to: ROUTES.DASHBOARD, end: true },
+  { label: "Insights", to: ROUTES.INSIGHTS },
   { label: "Tasks", to: ROUTES.TASKS },
   { label: "Documents", to: ROUTES.DOCUMENTS },
   { label: "Agents", to: ROUTES.AGENTS },
@@ -27,7 +28,7 @@ export function AppLayout() {
         <div className="sidebar-callout">
           <p className="sidebar-label">Demo path</p>
           <p className="sidebar-callout-copy">
-            {"Tasks -> Execute -> Detail + Trace -> Rate output -> Documents + RAG."}
+            {"Tasks -> Execute -> Detail + Trace -> Rate output -> Insights review -> Documents + RAG."}
           </p>
         </div>
 
