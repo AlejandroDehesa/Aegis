@@ -9,11 +9,13 @@ import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { ROUTES } from "../constants/routes";
+import { useI18n } from "../hooks/useI18n";
 import { getErrorMessage } from "../utils/errors";
 import { formatDateTime } from "../utils/formatters";
 
 
 export function DashboardPage() {
+  const { t, locale } = useI18n();
   const [summary, setSummary] = useState({
     tasks: [],
     documents: [],
@@ -35,14 +37,14 @@ export function DashboardPage() {
         ]);
         setSummary({ tasks, documents, agents });
       } catch (loadError) {
-        setError(getErrorMessage(loadError, "Unable to load dashboard summary."));
+        setError(getErrorMessage(loadError, t("dashboard.loading")));
       } finally {
         setLoading(false);
       }
     }
 
     loadDashboard();
-  }, []);
+  }, [t]);
 
   const recentTasks = summary.tasks.slice(0, 5);
   const ratedTasks = summary.tasks.filter((task) => task.feedback_rating !== null);
@@ -56,36 +58,34 @@ export function DashboardPage() {
     <div className="page-grid">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Overview</p>
-          <h2>Execution visibility and demo control center</h2>
+          <p className="eyebrow">{t("dashboard.eyebrow")}</p>
+          <h2>{t("dashboard.title")}</h2>
         </div>
       </header>
 
-      <FeedbackMessage tone="info">
-        Demo seed (optional): `demo@aegis.local` / `Demo12345!`
-      </FeedbackMessage>
+      <FeedbackMessage tone="info">{t("dashboard.demoSeed")}</FeedbackMessage>
 
       <div className="stats-grid">
-        <StatCard label="Tasks" value={summary.tasks.length} />
-        <StatCard label="Documents" value={summary.documents.length} />
-        <StatCard label="Agents" value={summary.agents.length} />
-        <StatCard label="Rated Tasks" value={ratedTasks.length} />
-        <StatCard label="Avg Rating" value={averageRating} />
+        <StatCard label={t("dashboard.stats.tasks")} value={summary.tasks.length} />
+        <StatCard label={t("dashboard.stats.documents")} value={summary.documents.length} />
+        <StatCard label={t("dashboard.stats.agents")} value={summary.agents.length} />
+        <StatCard label={t("dashboard.stats.ratedTasks")} value={ratedTasks.length} />
+        <StatCard label={t("dashboard.stats.avgRating")} value={averageRating} />
       </div>
 
       <SectionCard
-        title="Demo Flow"
-        subtitle="Recommended walkthrough for interviews and portfolio demos."
+        title={t("dashboard.demoFlowTitle")}
+        subtitle={t("dashboard.demoFlowSubtitle")}
         actions={
           <div className="quick-link-row">
             <Link className="button button-secondary" to={ROUTES.INSIGHTS}>
-              Open Insights
+              {t("dashboard.openInsights")}
             </Link>
             <Link className="button button-secondary" to={ROUTES.TASKS}>
-              Open Tasks
+              {t("dashboard.openTasks")}
             </Link>
             <Link className="button button-secondary" to={ROUTES.DOCUMENTS}>
-              Open Documents
+              {t("dashboard.openDocuments")}
             </Link>
           </div>
         }
@@ -93,48 +93,48 @@ export function DashboardPage() {
         <div className="demo-flow-grid">
           <Link className="list-item" to={ROUTES.TASKS}>
             <div>
-              <strong>1) Create task</strong>
-              <p className="list-item-subtitle">Open Tasks and create a realistic orchestration request.</p>
+              <strong>{t("dashboard.step1Title")}</strong>
+              <p className="list-item-subtitle">{t("dashboard.step1Desc")}</p>
             </div>
           </Link>
           <Link className="list-item" to={ROUTES.TASKS}>
             <div>
-              <strong>2) Execute task</strong>
-              <p className="list-item-subtitle">Run it and watch status transitions with polling.</p>
+              <strong>{t("dashboard.step2Title")}</strong>
+              <p className="list-item-subtitle">{t("dashboard.step2Desc")}</p>
             </div>
           </Link>
           <Link className="list-item" to={ROUTES.DOCUMENTS}>
             <div>
-              <strong>3) Upload documents</strong>
-              <p className="list-item-subtitle">Inject context to showcase retrieval-augmented execution.</p>
+              <strong>{t("dashboard.step3Title")}</strong>
+              <p className="list-item-subtitle">{t("dashboard.step3Desc")}</p>
             </div>
           </Link>
           <Link className="list-item" to={ROUTES.TASKS}>
             <div>
-              <strong>4) Review and rate output</strong>
-              <p className="list-item-subtitle">Open task detail, inspect traces and submit quality feedback.</p>
+              <strong>{t("dashboard.step4Title")}</strong>
+              <p className="list-item-subtitle">{t("dashboard.step4Desc")}</p>
             </div>
           </Link>
           <Link className="list-item" to={ROUTES.INSIGHTS}>
             <div>
-              <strong>5) Inspect operational quality</strong>
-              <p className="list-item-subtitle">Use Insights to review failed and low-rated tasks quickly.</p>
+              <strong>{t("dashboard.step5Title")}</strong>
+              <p className="list-item-subtitle">{t("dashboard.step5Desc")}</p>
             </div>
           </Link>
         </div>
       </SectionCard>
 
       <SectionCard
-        title="Recent Tasks"
-        subtitle="Latest task activity from the authenticated user."
+        title={t("dashboard.recentTasksTitle")}
+        subtitle={t("dashboard.recentTasksSubtitle")}
       >
         <AsyncContent
           loading={loading}
           error={error}
           isEmpty={!recentTasks.length}
-          loadingText="Loading dashboard..."
-          emptyTitle="No tasks yet"
-          emptyDescription="Create your first task from the Tasks view to start using Aegis."
+          loadingText={t("dashboard.loading")}
+          emptyTitle={t("dashboard.emptyTitle")}
+          emptyDescription={t("dashboard.emptyDescription")}
         >
           <div className="list-stack">
             {recentTasks.map((task) => (
@@ -146,9 +146,9 @@ export function DashboardPage() {
                 <div className="list-item-meta">
                   <StatusBadge status={task.status} />
                   <span className="meta-pill">
-                    {task.feedback_rating ? `${task.feedback_rating}/5` : "Not rated"}
+                    {task.feedback_rating ? `${task.feedback_rating}/5` : t("dashboard.notRated")}
                   </span>
-                  <span>{formatDateTime(task.created_at)}</span>
+                  <span>{formatDateTime(task.created_at, locale, t("common.notAvailable"))}</span>
                 </div>
               </Link>
             ))}

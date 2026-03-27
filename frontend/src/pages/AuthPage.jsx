@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { FeedbackMessage } from "../components/FeedbackMessage";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { ROUTES } from "../constants/routes";
 import { useAuth } from "../hooks/useAuth";
+import { useI18n } from "../hooks/useI18n";
 import { getErrorMessage } from "../utils/errors";
 
 export function AuthPage() {
@@ -17,6 +19,7 @@ export function AuthPage() {
     isAuthenticated,
     isBootstrapping,
   } = useAuth();
+  const { t } = useI18n();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
     email: "",
@@ -28,7 +31,7 @@ export function AuthPage() {
   const redirectTo = location.state?.from?.pathname || ROUTES.DASHBOARD;
 
   if (isBootstrapping) {
-    return <div className="screen-center">Validating session...</div>;
+    return <div className="screen-center">{t("auth.validatingSession")}</div>;
   }
 
   if (isAuthenticated) {
@@ -57,7 +60,7 @@ export function AuthPage() {
 
       navigate(redirectTo, { replace: true });
     } catch (submitError) {
-      setError(getErrorMessage(submitError, "Unable to complete authentication."));
+      setError(getErrorMessage(submitError, t("auth.authFallbackError")));
     } finally {
       setLoading(false);
     }
@@ -67,41 +70,38 @@ export function AuthPage() {
     <div className="auth-shell">
       <section className="auth-panel auth-panel-highlight">
         <p className="eyebrow">Aegis</p>
-        <h1>AI task orchestration with visibility built in.</h1>
-        <p className="auth-copy">
-          Sign in to inspect tasks, execute pipelines, upload documents and
-          review execution traces from a real interface.
-        </p>
-        <p className="auth-copy">
-          Demo seed credentials (optional): demo@aegis.local / Demo12345!
-        </p>
+        <h1>{t("auth.heroTitle")}</h1>
+        <p className="auth-copy">{t("auth.heroCopy")}</p>
+        <p className="auth-copy">{t("auth.heroDemoCredentials")}</p>
       </section>
 
       <section className="auth-panel">
+        <LanguageSwitcher />
+
         <div className="auth-tabs">
           <button
             className={mode === "login" ? "auth-tab auth-tab-active" : "auth-tab"}
             onClick={() => setMode("login")}
             type="button"
           >
-            Login
+            {t("auth.tabLogin")}
           </button>
           <button
             className={mode === "register" ? "auth-tab auth-tab-active" : "auth-tab"}
             onClick={() => setMode("register")}
             type="button"
           >
-            Register
+            {t("auth.tabRegister")}
           </button>
         </div>
 
         <form className="form-grid" onSubmit={handleSubmit}>
           <label className="form-field">
-            <span>Email</span>
+            <span>{t("auth.email")}</span>
             <input
               name="email"
               onChange={updateField}
-              placeholder="you@example.com"
+              placeholder={t("auth.emailPlaceholder")}
               required
               type="email"
               value={form.email}
@@ -109,11 +109,11 @@ export function AuthPage() {
           </label>
 
           <label className="form-field">
-            <span>Password</span>
+            <span>{t("auth.password")}</span>
             <input
               name="password"
               onChange={updateField}
-              placeholder="********"
+              placeholder={t("auth.passwordPlaceholder")}
               required
               type="password"
               value={form.password}
@@ -125,10 +125,10 @@ export function AuthPage() {
 
           <button className="button button-primary" disabled={loading} type="submit">
             {loading
-              ? "Processing..."
+              ? t("auth.processing")
               : mode === "login"
-                ? "Enter Aegis"
-                : "Create account"}
+                ? t("auth.enterAegis")
+                : t("auth.createAccount")}
           </button>
         </form>
       </section>

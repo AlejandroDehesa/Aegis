@@ -1,13 +1,16 @@
 import { EmptyState } from "./EmptyState";
 import { formatDateTime, formatDuration } from "../utils/formatters";
 import { StatusBadge } from "./StatusBadge";
+import { useI18n } from "../hooks/useI18n";
 
 export function TaskTraceList({ trace }) {
+  const { t, locale } = useI18n();
+
   if (!trace?.length) {
     return (
       <EmptyState
-        title="No execution trace yet"
-        description="Run the task to capture step-by-step visibility for the orchestration pipeline."
+        title={t("trace.emptyTitle")}
+        description={t("trace.emptyDescription")}
       />
     );
   }
@@ -19,7 +22,9 @@ export function TaskTraceList({ trace }) {
           <div className="trace-item-header">
             <div>
               <p className="trace-step-label">
-                Step {step.step_index || step.step_number || index + 1}
+                {t("trace.step", {
+                  index: step.step_index || step.step_number || index + 1,
+                })}
               </p>
               <h3>{step.agent_name}</h3>
               <p className="trace-step-meta">{step.step_name}</p>
@@ -29,27 +34,27 @@ export function TaskTraceList({ trace }) {
 
           <dl className="trace-grid">
             <div>
-              <dt>Summary</dt>
+              <dt>{t("trace.summary")}</dt>
               <dd className="trace-item-summary">
-                {step.short_summary || step.result_preview || "No summary available"}
+                {step.short_summary || step.result_preview || t("trace.noSummary")}
               </dd>
             </div>
             <div>
-              <dt>Duration</dt>
-              <dd>{formatDuration(step.duration_ms)}</dd>
+              <dt>{t("trace.duration")}</dt>
+              <dd>{formatDuration(step.duration_ms, t("common.notAvailable"))}</dd>
             </div>
             <div>
-              <dt>Started</dt>
-              <dd>{formatDateTime(step.started_at)}</dd>
+              <dt>{t("trace.started")}</dt>
+              <dd>{formatDateTime(step.started_at, locale, t("common.notAvailable"))}</dd>
             </div>
             <div>
-              <dt>Finished</dt>
-              <dd>{formatDateTime(step.finished_at)}</dd>
+              <dt>{t("trace.finished")}</dt>
+              <dd>{formatDateTime(step.finished_at, locale, t("common.notAvailable"))}</dd>
             </div>
           </dl>
 
           {step.error_message ? (
-            <p className="trace-error">Error: {step.error_message}</p>
+            <p className="trace-error">{t("taskDetail.errorPrefix", { message: step.error_message })}</p>
           ) : null}
         </article>
       ))}

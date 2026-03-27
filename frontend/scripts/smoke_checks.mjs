@@ -20,23 +20,25 @@ function run() {
   const taskDetailPage = read("src/pages/TaskDetailPage.jsx");
   const appRouter = read("src/router/AppRouter.jsx");
   const appLayout = read("src/components/AppLayout.jsx");
+  const languageContext = read("src/context/LanguageContext.jsx");
 
-  expectIncludes(authPage, "Enter Aegis", "AuthPage.jsx");
+  expectIncludes(authPage, "LanguageSwitcher", "AuthPage.jsx");
   expectIncludes(authPage, "handleSubmit", "AuthPage.jsx");
 
-  expectIncludes(tasksPage, "Apply filters", "TasksPage.jsx");
+  expectIncludes(tasksPage, "common.applyFilters", "TasksPage.jsx");
   expectIncludes(tasksPage, "createTask(", "TasksPage.jsx");
   expectIncludes(tasksPage, "executeTask(", "TasksPage.jsx");
 
   expectIncludes(taskDetailPage, "submitTaskFeedback", "TaskDetailPage.jsx");
-  expectIncludes(taskDetailPage, "Save evaluation", "TaskDetailPage.jsx");
+  expectIncludes(taskDetailPage, "taskDetail.saveEvaluation", "TaskDetailPage.jsx");
   expectIncludes(taskDetailPage, "TaskTraceList", "TaskDetailPage.jsx");
 
   expectIncludes(appRouter, 'path="tasks"', "AppRouter.jsx");
   expectIncludes(appRouter, 'path="tasks/:taskId"', "AppRouter.jsx");
   expectIncludes(appRouter, 'path="insights"', "AppRouter.jsx");
 
-  expectIncludes(appLayout, "Insights", "AppLayout.jsx");
+  expectIncludes(appLayout, "LanguageSwitcher", "AppLayout.jsx");
+  expectIncludes(languageContext, "SUPPORTED_LANGUAGES", "LanguageContext.jsx");
 
   console.log("Frontend smoke checks passed.");
 }

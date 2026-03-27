@@ -6,10 +6,12 @@ import { AsyncContent } from "../components/AsyncContent";
 import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
 import { ROUTES } from "../constants/routes";
+import { useI18n } from "../hooks/useI18n";
 import { getErrorMessage } from "../utils/errors";
 import { formatDateTime, truncateText } from "../utils/formatters";
 
 export function DocumentsPage() {
+  const { t, locale } = useI18n();
   const [documents, setDocuments] = useState([]);
   const [form, setForm] = useState({
     title: "",
@@ -36,7 +38,7 @@ export function DocumentsPage() {
       const items = await listDocuments();
       setDocuments(items);
     } catch (loadError) {
-      setListError(getErrorMessage(loadError, "Unable to load documents."));
+      setListError(getErrorMessage(loadError, t("documents.loading")));
     } finally {
       setLoading(false);
     }
@@ -58,7 +60,7 @@ export function DocumentsPage() {
 
     if (!form.content && !form.file) {
       setSaving(false);
-      setActionError("Provide text content or upload a file before submitting the document.");
+      setActionError(t("documents.missingContent"));
       return;
     }
 
@@ -72,11 +74,13 @@ export function DocumentsPage() {
       }
 
       setNotice(
-        `Document "${document.title || "Untitled document"}" uploaded successfully.`,
+        t("documents.uploadSuccess", {
+          title: document.title || t("documents.untitled"),
+        }),
       );
       await loadDocuments();
     } catch (uploadError) {
-      setActionError(getErrorMessage(uploadError, "Unable to upload document."));
+      setActionError(getErrorMessage(uploadError, t("documents.upload")));
     } finally {
       setSaving(false);
     }
@@ -94,10 +98,12 @@ export function DocumentsPage() {
         current.filter((document) => document.id !== documentId),
       );
       setNotice(
-        `Document "${deletedDocument?.title || "Untitled document"}" removed from the library.`,
+        t("documents.deleteSuccess", {
+          title: deletedDocument?.title || t("documents.untitled"),
+        }),
       );
     } catch (deleteError) {
-      setActionError(getErrorMessage(deleteError, "Unable to delete document."));
+      setActionError(getErrorMessage(deleteError, t("documents.delete")));
     } finally {
       setDeletingId(null);
     }
@@ -107,44 +113,44 @@ export function DocumentsPage() {
     <div className="page-grid">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Documents</p>
-          <h2>Context ingestion for retrieval and better outputs</h2>
+          <p className="eyebrow">{t("documents.eyebrow")}</p>
+          <h2>{t("documents.title")}</h2>
         </div>
       </header>
 
       <FeedbackMessage tone="info">
-        Upload context here, then run a new task to demonstrate RAG-assisted execution.
-        <Link className="inline-link" to={ROUTES.TASKS}> Go to Tasks</Link>
+        {t("documents.helper")}
+        <Link className="inline-link" to={ROUTES.TASKS}>{t("documents.goToTasks")}</Link>
       </FeedbackMessage>
 
       <FeedbackMessage tone="success">{notice}</FeedbackMessage>
       <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
 
-      <SectionCard title="Upload Document" subtitle="Provide raw text or upload a UTF-8 file.">
+      <SectionCard title={t("documents.uploadTitle")} subtitle={t("documents.uploadSubtitle")}>
         <form className="form-grid" onSubmit={handleUpload}>
           <label className="form-field">
-            <span>Title</span>
+            <span>{t("documents.fieldTitle")}</span>
             <input
               name="title"
               onChange={updateField}
-              placeholder="Architecture notes"
+              placeholder={t("documents.titlePlaceholder")}
               value={form.title}
             />
           </label>
 
           <label className="form-field">
-            <span>Text content</span>
+            <span>{t("documents.fieldText")}</span>
             <textarea
               name="content"
               onChange={updateField}
-              placeholder="Paste document text here when not uploading a file."
+              placeholder={t("documents.textPlaceholder")}
               rows="6"
               value={form.content}
             />
           </label>
 
           <label className="form-field">
-            <span>File</span>
+            <span>{t("documents.fieldFile")}</span>
             <input
               accept=".txt,.md,.csv,.json"
               name="file"
@@ -155,54 +161,59 @@ export function DocumentsPage() {
           </label>
 
           <button className="button button-primary" disabled={saving} type="submit">
-            {saving ? "Uploading document..." : "Upload document"}
+            {saving ? t("documents.uploading") : t("documents.upload")}
           </button>
         </form>
       </SectionCard>
 
       <SectionCard
-        title="Document Library"
-        subtitle="Stored documents available for retrieval augmentation."
+        title={t("documents.libraryTitle")}
+        subtitle={t("documents.librarySubtitle")}
         actions={
           <button
             className="button button-secondary"
             disabled={loading}
             onClick={() => {
               void loadDocuments();
-            }}
-            type="button"
-          >
-            Refresh
-          </button>
+              }}
+              type="button"
+            >
+              {t("common.refresh")}
+            </button>
         }
       >
         <AsyncContent
           loading={loading}
           error={listError}
           isEmpty={!documents.length}
-          loadingText="Loading documents..."
-          emptyTitle="No documents uploaded"
-          emptyDescription="Upload a document to enrich retrieval and execution context."
+          loadingText={t("documents.loading")}
+          emptyTitle={t("documents.emptyTitle")}
+          emptyDescription={t("documents.emptyDescription")}
         >
           <div className="list-stack">
             {documents.map((document) => (
               <article className="list-item" key={document.id}>
                 <div>
-                  <strong>{document.title || "Untitled document"}</strong>
+                  <strong>{document.title || t("documents.untitled")}</strong>
                   <p className="list-item-subtitle">
-                    {document.source_type} / {document.chunk_count} chunks
+                    {t("documents.sourceChunks", {
+                      source: document.source_type,
+                      chunks: document.chunk_count,
+                    })}
                   </p>
-                  <p className="list-item-copy">{truncateText(document.content_preview)}</p>
+                  <p className="list-item-copy">
+                    {truncateText(document.content_preview, 180, t("common.noData"))}
+                  </p>
                 </div>
                 <div className="list-item-meta">
-                  <span>{formatDateTime(document.created_at)}</span>
+                  <span>{formatDateTime(document.created_at, locale, t("common.notAvailable"))}</span>
                   <button
                     className="button button-danger"
                     disabled={deletingId === document.id}
                     onClick={() => handleDelete(document.id)}
                     type="button"
                   >
-                    {deletingId === document.id ? "Deleting..." : "Delete"}
+                    {deletingId === document.id ? t("documents.deleting") : t("documents.delete")}
                   </button>
                 </div>
               </article>

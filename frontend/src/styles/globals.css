@@ -157,6 +157,60 @@ pre {
   padding: 0.3rem;
 }
 
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+}
+
+.language-switch-compact {
+  margin: 0.45rem 0 0;
+}
+
+.language-switch-label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.sidebar .language-switch-label {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.language-switch-buttons {
+  display: inline-flex;
+  gap: 0.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.22rem;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.sidebar .language-switch-buttons {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.language-btn {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 0.42rem 0.72rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.sidebar .language-btn {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.language-btn-active {
+  background: var(--color-text);
+  color: #fff;
+}
+
 .auth-tab {
   border: 0;
   background: transparent;

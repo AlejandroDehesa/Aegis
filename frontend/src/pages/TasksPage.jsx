@@ -7,6 +7,7 @@ import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { ROUTES } from "../constants/routes";
+import { useI18n } from "../hooks/useI18n";
 import { usePolling } from "../hooks/usePolling";
 import { getErrorMessage } from "../utils/errors";
 import {
@@ -25,6 +26,7 @@ const EMPTY_FILTERS = {
 };
 
 export function TasksPage() {
+  const { t, language, locale } = useI18n();
   const demoTaskTemplate = {
     title: "Compare FastAPI and Django for an internal AI platform",
     description:
@@ -70,7 +72,7 @@ export function TasksPage() {
       const taskList = await listTasks(activeFilters);
       setTasks(sortTasksByRecent(taskList));
     } catch (loadError) {
-      setListError(getErrorMessage(loadError, "Unable to load tasks."));
+      setListError(getErrorMessage(loadError, t("tasks.loading")));
     } finally {
       if (!silent) {
         setLoading(false);
@@ -87,7 +89,7 @@ export function TasksPage() {
 
   function applyDemoTaskTemplate() {
     setForm(demoTaskTemplate);
-    setNotice("Demo task template loaded. Review it and create the task.");
+    setNotice(t("tasks.demoTemplateLoaded"));
     setActionError("");
   }
 
@@ -117,10 +119,10 @@ export function TasksPage() {
     try {
       await createTask(form);
       setForm({ title: "", description: "" });
-      setNotice("Task created successfully. You can execute it from the list below.");
+      setNotice(t("tasks.createSuccess"));
       await loadTasks();
     } catch (saveError) {
-      setActionError(getErrorMessage(saveError, "Unable to create task."));
+      setActionError(getErrorMessage(saveError, t("tasks.create")));
     } finally {
       setSaving(false);
     }
@@ -140,12 +142,12 @@ export function TasksPage() {
       );
       setNotice(
         updatedTask.status === "processing"
-          ? "Execution started. The list will refresh automatically while the task is running."
-          : "Task execution completed and the list has been updated.",
+          ? t("tasks.executeStarted")
+          : t("tasks.executeCompleted"),
       );
       await loadTasks({ silent: true });
     } catch (executeError) {
-      setActionError(getErrorMessage(executeError, "Unable to execute task."));
+      setActionError(getErrorMessage(executeError, t("tasks.execute")));
     } finally {
       setExecutingId(null);
     }
@@ -159,8 +161,8 @@ export function TasksPage() {
     <div className="page-grid">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Tasks</p>
-          <h2>Create, execute and inspect task runs</h2>
+          <p className="eyebrow">{t("tasks.eyebrow")}</p>
+          <h2>{t("tasks.title")}</h2>
         </div>
       </header>
 
@@ -168,58 +170,59 @@ export function TasksPage() {
       <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
 
       <SectionCard
-        title="Create Task"
-        subtitle="A compact form to push work into the backend orchestration flow."
+        title={t("tasks.createTitle")}
+        subtitle={t("tasks.createSubtitle")}
         actions={
           <button
             className="button button-secondary"
             onClick={applyDemoTaskTemplate}
             type="button"
           >
-            Use demo template
+            {t("tasks.useDemoTemplate")}
           </button>
         }
       >
         <form className="form-grid" onSubmit={handleCreateTask}>
           <label className="form-field">
-            <span>Title</span>
+            <span>{t("tasks.fieldTitle")}</span>
             <input
               name="title"
               onChange={updateField}
-              placeholder="Compare FastAPI and Django for an internal AI platform"
+              placeholder={t("tasks.titlePlaceholder")}
               required
               value={form.title}
             />
           </label>
 
           <label className="form-field">
-            <span>Description</span>
+            <span>{t("tasks.fieldDescription")}</span>
             <textarea
               name="description"
               onChange={updateField}
-              placeholder="Describe the task, expected output or context."
+              placeholder={t("tasks.descriptionPlaceholder")}
               rows="5"
               value={form.description}
             />
           </label>
 
           <button className="button button-primary" disabled={saving} type="submit">
-            {saving ? "Creating task..." : "Create task"}
+            {saving ? t("tasks.creating") : t("tasks.create")}
           </button>
         </form>
         <p className="inline-helper">
-          {"Demo path: create a task -> execute -> open detail -> review trace -> submit rating."}
-          <Link className="inline-link" to={ROUTES.DOCUMENTS}> Add documents</Link> to enrich the next run.
+          {t("tasks.demoPathHelper")}
+          <Link className="inline-link" to={ROUTES.DOCUMENTS}>{t("tasks.addDocuments")}</Link>
+          {t("tasks.addDocumentsSuffix")}
         </p>
       </SectionCard>
 
       <SectionCard
-        title="Task List"
-        subtitle="Current tasks with status, summary and quick execution control."
+        title={t("tasks.listTitle")}
+        subtitle={t("tasks.listSubtitle")}
         actions={
           <>
-            <span className="meta-pill">{tasks.length} total</span>
-            <span className="meta-pill meta-pill-accent">{runningCount} active</span>
+            <span className="meta-pill">{t("tasks.total", { count: tasks.length })}</span>
+            <span className="meta-pill meta-pill-accent">{t("tasks.active", { count: runningCount })}</span>
             <button
               className="button button-secondary"
               disabled={loading}
@@ -228,21 +231,21 @@ export function TasksPage() {
               }}
               type="button"
             >
-              Refresh
+              {t("common.refresh")}
             </button>
           </>
         }
       >
         <FeedbackMessage tone="info">
           {runningCount
-            ? "Aegis refreshes active tasks automatically while they are pending or processing."
+            ? t("tasks.autoRefreshNotice")
             : ""}
         </FeedbackMessage>
         <div className="filter-grid">
           <label className="form-field">
-            <span>Status</span>
+            <span>{t("tasks.filterStatus")}</span>
             <select name="status" onChange={updateFilterField} value={filters.status}>
-              <option value="">All</option>
+              <option value="">{t("common.all")}</option>
               <option value="pending">pending</option>
               <option value="processing">processing</option>
               <option value="completed">completed</option>
@@ -251,9 +254,9 @@ export function TasksPage() {
           </label>
 
           <label className="form-field">
-            <span>Task type</span>
+            <span>{t("tasks.filterTaskType")}</span>
             <select name="taskType" onChange={updateFilterField} value={filters.taskType}>
-              <option value="">All</option>
+              <option value="">{t("common.all")}</option>
               <option value="general">general</option>
               <option value="research">research</option>
               <option value="summary">summary</option>
@@ -262,9 +265,9 @@ export function TasksPage() {
           </label>
 
           <label className="form-field">
-            <span>Agent</span>
+            <span>{t("tasks.filterAgent")}</span>
             <select name="agentName" onChange={updateFilterField} value={filters.agentName}>
-              <option value="">All</option>
+              <option value="">{t("common.all")}</option>
               <option value="GeneralAssistantAgent">GeneralAssistantAgent</option>
               <option value="ResearchAgent">ResearchAgent</option>
               <option value="SummaryAgent">SummaryAgent</option>
@@ -273,13 +276,13 @@ export function TasksPage() {
           </label>
 
           <label className="form-field">
-            <span>Feedback rating</span>
+            <span>{t("tasks.filterRating")}</span>
             <select
               name="feedbackRating"
               onChange={updateFilterField}
               value={filters.feedbackRating}
             >
-              <option value="">All</option>
+              <option value="">{t("common.all")}</option>
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>
@@ -290,10 +293,10 @@ export function TasksPage() {
         </div>
         <div className="filter-actions">
           <button className="button button-secondary" onClick={applyFilters} type="button">
-            Apply filters
+            {t("common.applyFilters")}
           </button>
           <button className="button button-secondary" onClick={resetFilters} type="button">
-            Reset
+            {t("common.reset")}
           </button>
         </div>
 
@@ -301,9 +304,9 @@ export function TasksPage() {
           loading={loading}
           error={listError}
           isEmpty={!tasks.length}
-          loadingText="Loading tasks..."
-          emptyTitle="No tasks available"
-          emptyDescription="Create a task to start interacting with the execution system."
+          loadingText={t("tasks.loading")}
+          emptyTitle={t("tasks.emptyTitle")}
+          emptyDescription={t("tasks.emptyDescription")}
         >
           <div className="list-stack">
             {tasks.map((task) => (
@@ -316,25 +319,29 @@ export function TasksPage() {
                     {task.task_type} / {task.agent_name}
                   </p>
                   <p className="list-item-copy task-list-copy">
-                    {truncateText(task.result_text || task.description)}
+                    {truncateText(task.result_text || task.description, 180, t("common.noData"))}
                   </p>
                   <div className="task-kpi-row">
-                    <span className="meta-pill">{getTaskActivityLabel(task)}</span>
+                    <span className="meta-pill">{getTaskActivityLabel(task, language, locale)}</span>
                     <span className="meta-pill">
-                      Duration: {formatDuration(task.duration_ms)}
+                      {t("tasks.duration", {
+                        value: formatDuration(task.duration_ms, t("common.notAvailable")),
+                      })}
                     </span>
                     <span className="meta-pill">
-                      Rating: {task.feedback_rating ? `${task.feedback_rating}/5` : "not rated"}
+                      {t("tasks.rating", {
+                        value: task.feedback_rating ? `${task.feedback_rating}/5` : t("tasks.notRated"),
+                      })}
                     </span>
                   </div>
                 </div>
 
                 <div className="list-item-meta">
                   <StatusBadge status={task.status} />
-                  <span>{formatDateTime(task.created_at)}</span>
+                  <span>{formatDateTime(task.created_at, locale, t("common.notAvailable"))}</span>
                   <div className="list-item-actions">
                     <Link className="button button-secondary" to={`/tasks/${task.id}`}>
-                      Open detail
+                      {t("tasks.openDetail")}
                     </Link>
                     <button
                       className="button button-primary"
@@ -345,10 +352,10 @@ export function TasksPage() {
                       type="button"
                     >
                       {executingId === task.id
-                        ? "Executing..."
+                        ? t("tasks.executing")
                         : task.status === "processing"
-                          ? "Processing..."
-                          : "Execute"}
+                          ? t("tasks.processing")
+                          : t("tasks.execute")}
                     </button>
                   </div>
                 </div>

@@ -7,10 +7,12 @@ import { AsyncContent } from "../components/AsyncContent";
 import { FeedbackMessage } from "../components/FeedbackMessage";
 import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
+import { useI18n } from "../hooks/useI18n";
 import { getErrorMessage } from "../utils/errors";
 import { formatDateTime, truncateText } from "../utils/formatters";
 
 export function InsightsPage() {
+  const { t, locale } = useI18n();
   const [overview, setOverview] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,7 @@ export function InsightsPage() {
         setOverview(overviewResponse);
         setTasks(tasksResponse);
       } catch (loadError) {
-        setError(getErrorMessage(loadError, "Unable to load operational insights."));
+        setError(getErrorMessage(loadError, t("insights.loading")));
       } finally {
         setLoading(false);
       }
@@ -61,49 +63,45 @@ export function InsightsPage() {
     <div className="page-grid">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Insights</p>
-          <h2>Operational visibility and quality review</h2>
+          <p className="eyebrow">{t("insights.eyebrow")}</p>
+          <h2>{t("insights.title")}</h2>
         </div>
       </header>
 
-      <FeedbackMessage tone="info">
-        Use this view to identify failures, low-rated outputs, and strong task runs.
-      </FeedbackMessage>
+      <FeedbackMessage tone="info">{t("insights.helper")}</FeedbackMessage>
 
       <AsyncContent
         loading={loading}
         error={error}
         isEmpty={false}
-        loadingText="Loading operational insights..."
+        loadingText={t("insights.loading")}
       >
         <>
           <div className="stats-grid">
-            <StatCard label="Total Tasks" value={overview?.total_tasks ?? 0} />
-            <StatCard label="Failed Tasks" value={overview?.failed_tasks ?? 0} />
-            <StatCard label="Low Rated" value={overview?.low_rated_tasks ?? 0} />
-            <StatCard label="Unrated" value={overview?.unrated_tasks ?? 0} />
+            <StatCard label={t("insights.stats.total")} value={overview?.total_tasks ?? 0} />
+            <StatCard label={t("insights.stats.failed")} value={overview?.failed_tasks ?? 0} />
+            <StatCard label={t("insights.stats.lowRated")} value={overview?.low_rated_tasks ?? 0} />
+            <StatCard label={t("insights.stats.unrated")} value={overview?.unrated_tasks ?? 0} />
           </div>
 
           <SectionCard
-            title="Distribution Snapshot"
-            subtitle="Simple per-user distributions by status, type, agent and rating."
+            title={t("insights.distributionTitle")}
+            subtitle={t("insights.distributionSubtitle")}
           >
             <div className="insights-grid">
-              <DistributionList title="By status" items={overview?.tasks_by_status} />
-              <DistributionList title="By task type" items={overview?.tasks_by_task_type} />
-              <DistributionList title="By agent" items={overview?.tasks_by_agent_name} />
-              <DistributionList title="By feedback rating" items={overview?.feedback_rating_distribution} />
+              <DistributionList title={t("insights.byStatus")} items={overview?.tasks_by_status} noDataLabel={t("insights.noData")} />
+              <DistributionList title={t("insights.byTaskType")} items={overview?.tasks_by_task_type} noDataLabel={t("insights.noData")} />
+              <DistributionList title={t("insights.byAgent")} items={overview?.tasks_by_agent_name} noDataLabel={t("insights.noData")} />
+              <DistributionList title={t("insights.byRating")} items={overview?.feedback_rating_distribution} noDataLabel={t("insights.noData")} />
             </div>
           </SectionCard>
 
           <SectionCard
-            title="Quality Review Queue"
-            subtitle="Failed or low-rated tasks that should be reviewed first."
+            title={t("insights.queueTitle")}
+            subtitle={t("insights.queueSubtitle")}
           >
             {!qualityReviewQueue.length ? (
-              <FeedbackMessage tone="success">
-                No failed or low-rated tasks detected for this user.
-              </FeedbackMessage>
+              <FeedbackMessage tone="success">{t("insights.queueEmpty")}</FeedbackMessage>
             ) : (
               <div className="list-stack">
                 {qualityReviewQueue.map((task) => (
@@ -114,15 +112,18 @@ export function InsightsPage() {
                         {task.task_type} / {task.agent_name}
                       </p>
                       <p className="list-item-copy">
-                        {truncateText(task.feedback_comment || task.result_text || task.description)}
+                        {truncateText(task.feedback_comment || task.result_text || task.description, 180, t("common.noData"))}
                       </p>
                     </div>
                     <div className="list-item-meta">
                       <StatusBadge status={task.status} />
                       <span className="meta-pill">
-                        Rating: {task.feedback_rating !== null ? `${task.feedback_rating}/5` : "not rated"}
+                        {t("tasks.rating", {
+                          value:
+                            task.feedback_rating !== null ? `${task.feedback_rating}/5` : t("tasks.notRated"),
+                        })}
                       </span>
-                      <span>{formatDateTime(task.created_at)}</span>
+                      <span>{formatDateTime(task.created_at, locale, t("common.notAvailable"))}</span>
                     </div>
                   </Link>
                 ))}
@@ -131,13 +132,11 @@ export function InsightsPage() {
           </SectionCard>
 
           <SectionCard
-            title="Strong Results"
-            subtitle="Recent highly-rated outputs useful for demo storytelling."
+            title={t("insights.strongTitle")}
+            subtitle={t("insights.strongSubtitle")}
           >
             {!topRatedTasks.length ? (
-              <FeedbackMessage tone="info">
-                No high-rated tasks yet. Complete and evaluate a few tasks to populate this section.
-              </FeedbackMessage>
+              <FeedbackMessage tone="info">{t("insights.strongEmpty")}</FeedbackMessage>
             ) : (
               <div className="list-stack">
                 {topRatedTasks.map((task) => (
@@ -148,13 +147,13 @@ export function InsightsPage() {
                         {task.task_type} / {task.agent_name}
                       </p>
                       <p className="list-item-copy">
-                        {truncateText(task.feedback_comment || task.result_text || task.description)}
+                        {truncateText(task.feedback_comment || task.result_text || task.description, 180, t("common.noData"))}
                       </p>
                     </div>
                     <div className="list-item-meta">
                       <StatusBadge status={task.status} />
                       <span className="meta-pill meta-pill-accent">{task.feedback_rating}/5</span>
-                      <span>{formatDateTime(task.created_at)}</span>
+                      <span>{formatDateTime(task.created_at, locale, t("common.notAvailable"))}</span>
                     </div>
                   </Link>
                 ))}
@@ -176,14 +175,14 @@ function StatCard({ label, value }) {
   );
 }
 
-function DistributionList({ title, items }) {
+function DistributionList({ title, items, noDataLabel }) {
   const entries = Object.entries(items || {});
 
   return (
     <article className="insight-block">
       <p className="section-eyebrow">{title}</p>
       {!entries.length ? (
-        <p className="list-item-subtitle">No data yet.</p>
+        <p className="list-item-subtitle">{noDataLabel}</p>
       ) : (
         <div className="insight-list">
           {entries.map(([key, count]) => (

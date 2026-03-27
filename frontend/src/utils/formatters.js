@@ -1,17 +1,17 @@
-export function formatDateTime(value) {
+export function formatDateTime(value, locale = "en-US", notAvailableLabel = "Not available") {
   if (!value) {
-    return "Not available";
+    return notAvailableLabel;
   }
 
-  return new Intl.DateTimeFormat("es-ES", {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
 }
 
-export function formatDuration(durationMs) {
+export function formatDuration(durationMs, notAvailableLabel = "Not available") {
   if (durationMs === null || durationMs === undefined) {
-    return "Not available";
+    return notAvailableLabel;
   }
 
   if (durationMs < 1000) {
@@ -21,9 +21,9 @@ export function formatDuration(durationMs) {
   return `${(durationMs / 1000).toFixed(2)} s`;
 }
 
-export function truncateText(value, maxLength = 180) {
+export function truncateText(value, maxLength = 180, emptyLabel = "No data") {
   if (!value) {
-    return "No data";
+    return emptyLabel;
   }
 
   if (value.length <= maxLength) {
@@ -33,15 +33,25 @@ export function truncateText(value, maxLength = 180) {
   return `${value.slice(0, maxLength).trimEnd()}...`;
 }
 
-export function formatStatusLabel(status) {
+export function formatStatusLabel(status, language = "en") {
   const normalizedStatus = status || "unknown";
-  const labels = {
-    pending: "Pending",
-    processing: "Processing",
-    completed: "Completed",
-    failed: "Failed",
-    unknown: "Unknown",
+  const labelsByLanguage = {
+    en: {
+      pending: "Pending",
+      processing: "Processing",
+      completed: "Completed",
+      failed: "Failed",
+      unknown: "Unknown",
+    },
+    es: {
+      pending: "Pendiente",
+      processing: "Procesando",
+      completed: "Completada",
+      failed: "Fallida",
+      unknown: "Desconocido",
+    },
   };
+  const labels = labelsByLanguage[language] || labelsByLanguage.en;
 
   return labels[normalizedStatus] || normalizedStatus;
 }
@@ -52,20 +62,25 @@ export function sortTasksByRecent(tasks) {
   });
 }
 
-export function getTaskActivityLabel(task) {
+export function getTaskActivityLabel(task, language = "en", locale = "en-US") {
+  const startedLabel = language === "es" ? "Iniciada" : "Started";
+  const finishedLabel = language === "es" ? "Finalizada" : "Finished";
+  const createdLabel = language === "es" ? "Creada" : "Created";
+  const noneLabel = language === "es" ? "Sin actividad reciente" : "No recent activity";
+
   if (task?.status === "processing" && task.started_at) {
-    return `Started ${formatDateTime(task.started_at)}`;
+    return `${startedLabel} ${formatDateTime(task.started_at, locale)}`;
   }
 
   if (task?.finished_at) {
-    return `Finished ${formatDateTime(task.finished_at)}`;
+    return `${finishedLabel} ${formatDateTime(task.finished_at, locale)}`;
   }
 
   if (task?.created_at) {
-    return `Created ${formatDateTime(task.created_at)}`;
+    return `${createdLabel} ${formatDateTime(task.created_at, locale)}`;
   }
 
-  return "No recent activity";
+  return noneLabel;
 }
 
 function resolveTaskTimestamp(task) {

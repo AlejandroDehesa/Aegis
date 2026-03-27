@@ -9,6 +9,7 @@ import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { TaskTraceList } from "../components/TaskTraceList";
 import { ROUTES } from "../constants/routes";
+import { useI18n } from "../hooks/useI18n";
 import { usePolling } from "../hooks/usePolling";
 import { getErrorMessage } from "../utils/errors";
 import { formatDateTime, formatDuration } from "../utils/formatters";
@@ -21,6 +22,7 @@ function createFeedbackForm(task) {
 }
 
 export function TaskDetailPage() {
+  const { t, locale } = useI18n();
   const { taskId } = useParams();
   const [task, setTask] = useState(null);
   const [trace, setTrace] = useState(null);
@@ -72,7 +74,7 @@ export function TaskDetailPage() {
         setLoadError("");
       }
     } catch (error) {
-      const message = getErrorMessage(error, "Unable to load task detail.");
+      const message = getErrorMessage(error, t("taskDetail.loading"));
       setLoadError(message);
     } finally {
       if (!silent) {
@@ -98,11 +100,11 @@ export function TaskDetailPage() {
 
       setNotice(
         taskData.status === "processing"
-          ? "Execution started. This view will refresh automatically until the task finishes."
-          : "Execution completed. The latest task detail is now visible.",
+          ? t("taskDetail.executeStarted")
+          : t("taskDetail.executeCompleted"),
       );
     } catch (error) {
-      setActionError(getErrorMessage(error, "Unable to execute this task."));
+      setActionError(getErrorMessage(error, t("taskDetail.execute")));
     } finally {
       setExecuting(false);
     }
@@ -128,7 +130,7 @@ export function TaskDetailPage() {
     event.preventDefault();
 
     if (!feedbackForm.feedback_rating) {
-      setActionError("Select a rating before submitting feedback.");
+      setActionError(t("taskDetail.missingRating"));
       return;
     }
 
@@ -145,9 +147,9 @@ export function TaskDetailPage() {
       setTask(updatedTask);
       setFeedbackForm(createFeedbackForm(updatedTask));
       setFeedbackDirty(false);
-      setFeedbackNotice("Task evaluation saved successfully.");
+      setFeedbackNotice(t("taskDetail.feedbackSaved"));
     } catch (error) {
-      setActionError(getErrorMessage(error, "Unable to save task evaluation."));
+      setActionError(getErrorMessage(error, t("taskDetail.saveEvaluation")));
     } finally {
       setFeedbackSaving(false);
     }
@@ -160,9 +162,9 @@ export function TaskDetailPage() {
           loading={loading}
           error={loadError}
           isEmpty={!loading && !loadError}
-          loadingText="Loading task detail..."
-          emptyTitle="Task not found"
-          emptyDescription="The requested task is not available for this user."
+          loadingText={t("taskDetail.loading")}
+          emptyTitle={t("taskDetail.emptyTitle")}
+          emptyDescription={t("taskDetail.emptyDescription")}
         >
           <div />
         </AsyncContent>
@@ -176,12 +178,12 @@ export function TaskDetailPage() {
     <div className="page-grid">
       <header className="page-header page-header-inline">
         <div>
-          <p className="eyebrow">Task Detail</p>
+          <p className="eyebrow">{t("taskDetail.eyebrow")}</p>
           <h2>{task.title}</h2>
         </div>
         <div className="header-action-row">
           <Link className="button button-secondary" to={ROUTES.TASKS}>
-            Back to tasks
+            {t("taskDetail.backToTasks")}
           </Link>
           <button
             className="button button-primary"
@@ -190,95 +192,91 @@ export function TaskDetailPage() {
             type="button"
           >
             {executing
-              ? "Executing task..."
+              ? t("taskDetail.executing")
               : task.status === "processing"
-                ? "Task running..."
-                : "Execute task"}
+                ? t("taskDetail.running")
+                : t("taskDetail.execute")}
           </button>
         </div>
       </header>
 
       <FeedbackMessage tone="info">
         {task.status === "processing"
-          ? "Task is still running. Aegis is refreshing this page automatically."
+          ? t("taskDetail.runningNotice")
           : notice}
       </FeedbackMessage>
       <FeedbackMessage tone="success">{feedbackNotice}</FeedbackMessage>
       <FeedbackMessage tone="error">{loadError}</FeedbackMessage>
       <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
-      <FeedbackMessage tone="info">
-        {"Demo checklist: execute -> inspect result and trace -> submit rating -> upload docs -> rerun task."}
-      </FeedbackMessage>
+      <FeedbackMessage tone="info">{t("taskDetail.demoChecklist")}</FeedbackMessage>
 
       <SectionCard
-        title="Task Overview"
-        subtitle="Primary task metadata and current execution state."
+        title={t("taskDetail.overviewTitle")}
+        subtitle={t("taskDetail.overviewSubtitle")}
       >
         <dl className="detail-grid">
           <div>
-            <dt>Status</dt>
+            <dt>{t("taskDetail.status")}</dt>
             <dd>
               <StatusBadge status={task.status} />
             </dd>
           </div>
           <div>
-            <dt>Task type</dt>
+            <dt>{t("taskDetail.taskType")}</dt>
             <dd>{task.task_type}</dd>
           </div>
           <div>
-            <dt>Agent</dt>
+            <dt>{t("taskDetail.agent")}</dt>
             <dd>{task.agent_name}</dd>
           </div>
           <div>
-            <dt>Created</dt>
-            <dd>{formatDateTime(task.created_at)}</dd>
+            <dt>{t("taskDetail.created")}</dt>
+            <dd>{formatDateTime(task.created_at, locale, t("common.notAvailable"))}</dd>
           </div>
           <div>
-            <dt>Started</dt>
-            <dd>{formatDateTime(task.started_at)}</dd>
+            <dt>{t("taskDetail.started")}</dt>
+            <dd>{formatDateTime(task.started_at, locale, t("common.notAvailable"))}</dd>
           </div>
           <div>
-            <dt>Finished</dt>
-            <dd>{formatDateTime(task.finished_at)}</dd>
+            <dt>{t("taskDetail.finished")}</dt>
+            <dd>{formatDateTime(task.finished_at, locale, t("common.notAvailable"))}</dd>
           </div>
           <div>
-            <dt>Duration</dt>
-            <dd>{formatDuration(task.duration_ms)}</dd>
+            <dt>{t("taskDetail.duration")}</dt>
+            <dd>{formatDuration(task.duration_ms, t("common.notAvailable"))}</dd>
           </div>
           <div>
-            <dt>Rating</dt>
-            <dd>{task.feedback_rating ? `${task.feedback_rating}/5` : "Not rated yet"}</dd>
+            <dt>{t("taskDetail.rating")}</dt>
+            <dd>{task.feedback_rating ? `${task.feedback_rating}/5` : t("taskDetail.notRatedYet")}</dd>
           </div>
         </dl>
 
         <div className="content-block">
-          <h3>Task input</h3>
-          <pre>{task.description || "No description provided."}</pre>
+          <h3>{t("taskDetail.taskInput")}</h3>
+          <pre>{task.description || t("taskDetail.noDescription")}</pre>
         </div>
       </SectionCard>
 
       <SectionCard
-        title="Result"
-        subtitle="Final consolidated output returned by the orchestration pipeline."
+        title={t("taskDetail.resultTitle")}
+        subtitle={t("taskDetail.resultSubtitle")}
       >
         <div className="content-block">
-          <h3>Result text</h3>
-          <pre>{task.result_text || "No result available yet."}</pre>
+          <h3>{t("taskDetail.resultText")}</h3>
+          <pre>{task.result_text || t("taskDetail.noResult")}</pre>
         </div>
 
         {task.error_message ? (
-          <p className="trace-error">Error: {task.error_message}</p>
+          <p className="trace-error">{t("taskDetail.errorPrefix", { message: task.error_message })}</p>
         ) : null}
       </SectionCard>
 
       <SectionCard
-        title="Result Evaluation"
-        subtitle="Lightweight quality signal to rate the task output for demo and portfolio review."
+        title={t("taskDetail.evalTitle")}
+        subtitle={t("taskDetail.evalSubtitle")}
       >
         {!canEvaluateTask ? (
-          <FeedbackMessage tone="info">
-            Run this task to completion first. Evaluation is enabled for completed or failed tasks.
-          </FeedbackMessage>
+          <FeedbackMessage tone="info">{t("taskDetail.evalLocked")}</FeedbackMessage>
         ) : null}
 
         <form className="form-grid" onSubmit={handleSubmitFeedback}>
@@ -301,12 +299,12 @@ export function TaskDetailPage() {
           </div>
 
           <label className="form-field">
-            <span>Comment (optional)</span>
+            <span>{t("taskDetail.commentOptional")}</span>
             <textarea
               disabled={!canEvaluateTask || feedbackSaving}
               maxLength={1200}
               onChange={updateFeedbackComment}
-              placeholder="What worked well? What should improve?"
+              placeholder={t("taskDetail.commentPlaceholder")}
               rows="4"
               value={feedbackForm.feedback_comment}
             />
@@ -314,7 +312,9 @@ export function TaskDetailPage() {
 
           <div className="feedback-meta-row">
             <span className="meta-pill">
-              Last feedback: {formatDateTime(task.feedback_submitted_at)}
+              {t("taskDetail.lastFeedback", {
+                value: formatDateTime(task.feedback_submitted_at, locale, t("common.notAvailable")),
+              })}
             </span>
           </div>
 
@@ -323,25 +323,25 @@ export function TaskDetailPage() {
             disabled={!canEvaluateTask || feedbackSaving}
             type="submit"
           >
-            {feedbackSaving ? "Saving feedback..." : "Save evaluation"}
+            {feedbackSaving ? t("taskDetail.savingFeedback") : t("taskDetail.saveEvaluation")}
           </button>
         </form>
       </SectionCard>
 
       <SectionCard
-        title="Execution Trace"
-        subtitle="Lifecycle by step across the orchestration pipeline."
+        title={t("taskDetail.traceTitle")}
+        subtitle={t("taskDetail.traceSubtitle")}
       >
         <TaskTraceList trace={trace?.execution_trace || task.execution_trace} />
       </SectionCard>
 
       {task.rag_debug ? (
         <SectionCard
-          title="Debug Context"
-          subtitle="Collapsed by default to keep the main product view focused on outcomes."
+          title={t("taskDetail.debugTitle")}
+          subtitle={t("taskDetail.debugSubtitle")}
         >
           <details className="debug-details">
-            <summary className="debug-summary">Open RAG and memory debug context</summary>
+            <summary className="debug-summary">{t("taskDetail.openDebug")}</summary>
             <RagDebugPanel debug={task.rag_debug} />
           </details>
         </SectionCard>

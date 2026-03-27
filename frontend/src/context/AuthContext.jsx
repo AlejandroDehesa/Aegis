@@ -3,6 +3,7 @@ import { createContext, useEffect, useMemo, useState } from "react";
 import { getCurrentUser, loginUser, signupUser } from "../api/authApi";
 import { setUnauthorizedHandler } from "../api/http";
 import { TOKEN_STORAGE_KEY } from "../constants/storage";
+import { useI18n } from "../hooks/useI18n";
 import { getErrorMessage } from "../utils/errors";
 import { isJwtExpired, readJwtExpiration } from "../utils/jwt";
 import { clearStoredToken, getStoredToken, setStoredToken } from "../utils/storage";
@@ -10,6 +11,7 @@ import { clearStoredToken, getStoredToken, setStoredToken } from "../utils/stora
 export const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const { t } = useI18n();
   const [token, setToken] = useState(() => getStoredToken());
   const [user, setUser] = useState(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
@@ -25,7 +27,7 @@ export function AuthProvider({ children }) {
   async function syncUserFromToken(storedToken) {
     if (!storedToken || isJwtExpired(storedToken)) {
       resetSession({
-        notice: storedToken ? "Your session expired. Please log in again." : "",
+        notice: storedToken ? t("auth.notice.sessionExpired") : "",
       });
       return;
     }
@@ -37,7 +39,7 @@ export function AuthProvider({ children }) {
       setAuthNotice("");
     } catch (error) {
       resetSession({
-        notice: getErrorMessage(error, "Your session is no longer valid. Please log in again."),
+        notice: getErrorMessage(error, t("auth.notice.sessionNoLongerValid")),
       });
     }
   }
@@ -52,7 +54,7 @@ export function AuthProvider({ children }) {
       }
 
       if (isJwtExpired(storedToken)) {
-        resetSession({ notice: "Your previous session expired. Please log in again." });
+        resetSession({ notice: t("auth.notice.previousSessionExpired") });
         setIsBootstrapping(false);
         return;
       }
@@ -69,19 +71,19 @@ export function AuthProvider({ children }) {
     }
 
     bootstrap();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
       resetSession({
-        notice: "Your session expired. Please log in again.",
+        notice: t("auth.notice.sessionExpired"),
       });
     });
 
     return () => {
       setUnauthorizedHandler(null);
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     function handleStorageChange(event) {
@@ -94,7 +96,7 @@ export function AuthProvider({ children }) {
       if (!nextToken) {
         setToken(null);
         setUser(null);
-        setAuthNotice("Session ended in another tab.");
+        setAuthNotice(t("auth.notice.sessionEndedAnotherTab"));
         return;
       }
 
@@ -105,7 +107,7 @@ export function AuthProvider({ children }) {
     return () => {
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!token) {
@@ -122,27 +124,27 @@ export function AuthProvider({ children }) {
 
     if (expiresInMs <= 0) {
       resetSession({
-        notice: "Your session expired. Please log in again.",
+        notice: t("auth.notice.sessionExpired"),
       });
       return undefined;
     }
 
     const timeout = window.setTimeout(() => {
       resetSession({
-        notice: "Your session expired. Please log in again.",
+        notice: t("auth.notice.sessionExpired"),
       });
     }, expiresInMs + 1000);
 
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [token]);
+  }, [token, t]);
 
   async function login(credentials) {
     const tokenResponse = await loginUser(credentials);
 
     if (!tokenResponse?.access_token) {
-      throw new Error("The API did not return a valid access token.");
+      throw new Error(t("auth.notice.tokenMissing"));
     }
 
     setStoredToken(tokenResponse.access_token);
@@ -156,7 +158,7 @@ export function AuthProvider({ children }) {
     } catch (error) {
       resetSession();
       throw new Error(
-        getErrorMessage(error, "Login failed due to an invalid session response."),
+        getErrorMessage(error, t("auth.notice.loginInvalidSessionResponse")),
       );
     }
   }
@@ -189,7 +191,7 @@ export function AuthProvider({ children }) {
       logout,
       clearAuthNotice,
     }),
-    [token, user, isBootstrapping, authNotice],
+    [token, user, isBootstrapping, authNotice, t],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
