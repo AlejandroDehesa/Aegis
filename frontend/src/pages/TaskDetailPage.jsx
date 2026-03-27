@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { executeTask, getTask, getTaskTrace } from "../api/tasksApi";
+import { executeTask, getTask, getTaskTrace, submitTaskFeedback } from "../api/tasksApi";
 import { AsyncContent } from "../components/AsyncContent";
 import { FeedbackMessage } from "../components/FeedbackMessage";
 import { RagDebugPanel } from "../components/RagDebugPanel";
@@ -12,17 +12,30 @@ import { usePolling } from "../hooks/usePolling";
 import { getErrorMessage } from "../utils/errors";
 import { formatDateTime, formatDuration } from "../utils/formatters";
 
+function createFeedbackForm(task) {
+  return {
+    feedback_rating: task?.feedback_rating || 0,
+    feedback_comment: task?.feedback_comment || "",
+  };
+}
+
 export function TaskDetailPage() {
   const { taskId } = useParams();
   const [task, setTask] = useState(null);
   const [trace, setTrace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [executing, setExecuting] = useState(false);
+  const [feedbackSaving, setFeedbackSaving] = useState(false);
+  const [feedbackDirty, setFeedbackDirty] = useState(false);
+  const [feedbackForm, setFeedbackForm] = useState(createFeedbackForm(null));
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
   const [notice, setNotice] = useState("");
+  const [feedbackNotice, setFeedbackNotice] = useState("");
 
   useEffect(() => {
+    setFeedbackDirty(false);
+    setFeedbackForm(createFeedbackForm(null));
     void loadTaskDetail();
   }, [taskId]);
 
@@ -49,9 +62,17 @@ export function TaskDetailPage() {
       ]);
       setTask(taskData);
       setTrace(traceData);
-      setLoadError("");
+
+      if (!feedbackDirty) {
+        setFeedbackForm(createFeedbackForm(taskData));
+      }
+
+      if (!silent) {
+        setLoadError("");
+      }
     } catch (error) {
-      setLoadError(getErrorMessage(error, "Unable to load task detail."));
+      const message = getErrorMessage(error, "Unable to load task detail.");
+      setLoadError(message);
     } finally {
       if (!silent) {
         setLoading(false);
@@ -69,6 +90,11 @@ export function TaskDetailPage() {
       const traceData = await getTaskTrace(taskId);
       setTask(taskData);
       setTrace(traceData);
+
+      if (!feedbackDirty) {
+        setFeedbackForm(createFeedbackForm(taskData));
+      }
+
       setNotice(
         taskData.status === "processing"
           ? "Execution started. This view will refresh automatically until the task finishes."
@@ -78,6 +104,51 @@ export function TaskDetailPage() {
       setActionError(getErrorMessage(error, "Unable to execute this task."));
     } finally {
       setExecuting(false);
+    }
+  }
+
+  function updateFeedbackComment(event) {
+    setFeedbackDirty(true);
+    setFeedbackForm((current) => ({
+      ...current,
+      feedback_comment: event.target.value,
+    }));
+  }
+
+  function updateFeedbackRating(value) {
+    setFeedbackDirty(true);
+    setFeedbackForm((current) => ({
+      ...current,
+      feedback_rating: value,
+    }));
+  }
+
+  async function handleSubmitFeedback(event) {
+    event.preventDefault();
+
+    if (!feedbackForm.feedback_rating) {
+      setActionError("Select a rating before submitting feedback.");
+      return;
+    }
+
+    setFeedbackSaving(true);
+    setActionError("");
+    setFeedbackNotice("");
+
+    try {
+      const updatedTask = await submitTaskFeedback(taskId, {
+        feedback_rating: feedbackForm.feedback_rating,
+        feedback_comment: feedbackForm.feedback_comment,
+      });
+
+      setTask(updatedTask);
+      setFeedbackForm(createFeedbackForm(updatedTask));
+      setFeedbackDirty(false);
+      setFeedbackNotice("Task evaluation saved successfully.");
+    } catch (error) {
+      setActionError(getErrorMessage(error, "Unable to save task evaluation."));
+    } finally {
+      setFeedbackSaving(false);
     }
   }
 
@@ -97,6 +168,8 @@ export function TaskDetailPage() {
       </div>
     );
   }
+
+  const canEvaluateTask = ["completed", "failed"].includes(task.status);
 
   return (
     <div className="page-grid">
@@ -124,6 +197,7 @@ export function TaskDetailPage() {
           ? "Task is still running. Aegis is refreshing this page automatically."
           : notice}
       </FeedbackMessage>
+      <FeedbackMessage tone="success">{feedbackNotice}</FeedbackMessage>
       <FeedbackMessage tone="error">{loadError}</FeedbackMessage>
       <FeedbackMessage tone="error">{actionError}</FeedbackMessage>
 
@@ -162,6 +236,10 @@ export function TaskDetailPage() {
             <dt>Duration</dt>
             <dd>{formatDuration(task.duration_ms)}</dd>
           </div>
+          <div>
+            <dt>Rating</dt>
+            <dd>{task.feedback_rating ? `${task.feedback_rating}/5` : "Not rated yet"}</dd>
+          </div>
         </dl>
 
         <div className="content-block">
@@ -182,6 +260,63 @@ export function TaskDetailPage() {
         {task.error_message ? (
           <p className="trace-error">Error: {task.error_message}</p>
         ) : null}
+      </SectionCard>
+
+      <SectionCard
+        title="Result Evaluation"
+        subtitle="Lightweight quality signal to rate the task output for demo and portfolio review."
+      >
+        {!canEvaluateTask ? (
+          <FeedbackMessage tone="info">
+            Run this task to completion first. Evaluation is enabled for completed or failed tasks.
+          </FeedbackMessage>
+        ) : null}
+
+        <form className="form-grid" onSubmit={handleSubmitFeedback}>
+          <div className="feedback-rating-group">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <button
+                className={
+                  feedbackForm.feedback_rating === value
+                    ? "rating-button rating-button-active"
+                    : "rating-button"
+                }
+                disabled={!canEvaluateTask || feedbackSaving}
+                key={value}
+                onClick={() => updateFeedbackRating(value)}
+                type="button"
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+
+          <label className="form-field">
+            <span>Comment (optional)</span>
+            <textarea
+              disabled={!canEvaluateTask || feedbackSaving}
+              maxLength={1200}
+              onChange={updateFeedbackComment}
+              placeholder="What worked well? What should improve?"
+              rows="4"
+              value={feedbackForm.feedback_comment}
+            />
+          </label>
+
+          <div className="feedback-meta-row">
+            <span className="meta-pill">
+              Last feedback: {formatDateTime(task.feedback_submitted_at)}
+            </span>
+          </div>
+
+          <button
+            className="button button-primary"
+            disabled={!canEvaluateTask || feedbackSaving}
+            type="submit"
+          >
+            {feedbackSaving ? "Saving feedback..." : "Save evaluation"}
+          </button>
+        </form>
       </SectionCard>
 
       <SectionCard

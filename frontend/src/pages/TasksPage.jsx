@@ -215,6 +215,9 @@ export function TasksPage() {
                     <span className="meta-pill">
                       Duration: {formatDuration(task.duration_ms)}
                     </span>
+                    <span className="meta-pill">
+                      Rating: {task.feedback_rating ? `${task.feedback_rating}/5` : "not rated"}
+                    </span>
                   </div>
                 </div>
 

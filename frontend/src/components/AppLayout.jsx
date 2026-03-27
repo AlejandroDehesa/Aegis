@@ -20,7 +20,14 @@ export function AppLayout() {
           <p className="eyebrow">Aegis</p>
           <h1>Task orchestration, visible.</h1>
           <p className="brand-copy">
-            Frontend foundation for execution, traceability and document context.
+            Execution, traceability, document context and output evaluation in one flow.
+          </p>
+        </div>
+
+        <div className="sidebar-callout">
+          <p className="sidebar-label">Demo path</p>
+          <p className="sidebar-callout-copy">
+            {"Tasks -> Execute -> Detail + Trace -> Rate output -> Documents + RAG."}
           </p>
         </div>
 

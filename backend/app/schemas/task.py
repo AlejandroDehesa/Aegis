@@ -9,6 +9,11 @@ class TaskCreate(BaseModel):
     description: str | None = None
 
 
+class TaskFeedbackUpdate(BaseModel):
+    feedback_rating: int = Field(ge=1, le=5)
+    feedback_comment: str | None = Field(default=None, max_length=1200)
+
+
 class TaskRagChunkRead(BaseModel):
     chunk_id: str
     document_id: str | None = None
@@ -66,6 +71,9 @@ class TaskRead(BaseModel):
     duration_ms: int | None = None
     executed_at: datetime | None = None
     error_message: str | None = None
+    feedback_rating: int | None = None
+    feedback_comment: str | None = None
+    feedback_submitted_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
     rag_debug: TaskRagDebugRead | None = None

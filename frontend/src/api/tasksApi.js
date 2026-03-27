@@ -40,3 +40,10 @@ export function executeTask(taskId, options = {}) {
 export function getTaskTrace(taskId) {
   return apiRequest(`/tasks/${taskId}/trace`);
 }
+
+export function submitTaskFeedback(taskId, payload) {
+  return apiRequest(`/tasks/${taskId}/feedback`, {
+    method: "POST",
+    body: payload,
+  });
+}

@@ -1,72 +1,69 @@
 # Aegis
 
-Aegis es una plataforma backend-first para orquestacion de tareas con agentes de IA.
+Aegis is a backend-first AI task orchestration platform for real execution workflows:
 
-Flujo principal del producto:
+`task -> classification -> agent selection -> execution -> structured result -> trace -> evaluation`
 
-`task -> classification -> agent selection -> execution -> structured result -> trace/history`
-
-Aegis no es un chatbot. El foco es ejecucion de tareas con trazabilidad.
+Aegis is not a chatbot. The goal is operational task runs with persistence, traceability and practical quality review.
 
 ## Stack
 
-- Backend: Python + FastAPI + Pydantic + SQLAlchemy 2.0
-- DB: PostgreSQL
+- Backend: Python, FastAPI, Pydantic, SQLAlchemy 2.0
+- Database: PostgreSQL
 - Auth: JWT
-- IA: OpenAI API (con RAG + memoria en la implementacion actual)
+- AI: OpenAI API + RAG + lightweight memory
 - Frontend: React + Vite (JavaScript)
-- Infra: Docker + Docker Compose + Nginx
+- Infra: Docker, Docker Compose, Nginx
 
-## Estructura
+## Architecture
 
-- `backend/app/`
-- `frontend/src/`
-- `backend/scripts/` (utilidades de soporte, por ejemplo semilla demo)
+- `backend/app/`: API, domain, services, models, schemas, agents
+- `frontend/src/`: pages, API client, context, hooks, components, styles
+- `backend/scripts/`: demo helper scripts
 
-## Variables de entorno
+## What makes this portfolio-ready
 
-### Archivo raiz `.env`
+- End-to-end task orchestration with visible lifecycle
+- Multi-agent execution with trace output
+- Document ingestion + retrieval context
+- Lightweight quality evaluation for completed task outputs
+- Environment-aware frontend/backend integration and containerized demo flow
 
-- `PROJECT_NAME`: nombre del backend
-- `DATABASE_URL`: conexion PostgreSQL
-- `JWT_SECRET_KEY`: secreto de firma JWT
-- `JWT_ALGORITHM`: algoritmo JWT
-- `ACCESS_TOKEN_EXPIRE_MINUTES`: expiracion de token
-- `OPENAI_API_KEY`: clave OpenAI
-- `OPENAI_MODEL`: modelo de chat
-- `OPENAI_EMBEDDING_MODEL`: modelo de embeddings
-- `FRONTEND_ORIGINS`: CORS permitidos (coma-separado)
-- `VITE_API_URL`: base URL para build del frontend (`/api/v1` recomendado)
+## Environment variables
 
-### Archivo `frontend/.env`
+### Root `.env`
 
-- `VITE_API_URL`: base URL del API para el frontend
-- `VITE_DEV_PROXY_TARGET`: target del proxy en `vite dev` (default `http://localhost:8000`)
+- `PROJECT_NAME`
+- `DATABASE_URL`
+- `JWT_SECRET_KEY`
+- `JWT_ALGORITHM`
+- `ACCESS_TOKEN_EXPIRE_MINUTES`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+- `OPENAI_EMBEDDING_MODEL`
+- `FRONTEND_ORIGINS`
+- `VITE_API_URL`
 
-## Arranque rapido (Docker)
+### `frontend/.env`
 
-1. Copiar variables:
+- `VITE_API_URL`
+- `VITE_DEV_PROXY_TARGET`
+
+## Quick start (Docker)
 
 ```bash
 cp .env.example .env
 cp frontend/.env.example frontend/.env
-```
-
-2. Levantar servicios:
-
-```bash
 docker compose up --build
 ```
-
-3. Endpoints:
 
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:8000`
 - Health: `http://localhost:8000/api/v1/health`
 
-## Arranque local (dev)
+## Local development
 
-### 1) Base de datos
+### 1) Database
 
 ```bash
 docker compose up -d db
@@ -90,42 +87,47 @@ npm install
 npm run dev
 ```
 
-Con la configuracion actual, el frontend usa `VITE_API_URL=/api/v1` y Vite hace proxy a `VITE_DEV_PROXY_TARGET`.
+## Final demo flow (recommended)
 
-## Flujo de demo recomendado
+1. Login (or register).
+2. Create a task in `Tasks`.
+3. Execute the task and observe status progression.
+4. Open task detail to inspect result + execution trace.
+5. Submit quality evaluation (`rating + optional comment`).
+6. Upload documents in `Documents`.
+7. Execute a new task to demonstrate RAG-enriched output.
 
-1. Login o registro.
-2. Crear tarea en `/tasks`.
-3. Ejecutar tarea y observar estados (`pending`, `processing`, `completed`, `failed`).
-4. Abrir detalle para ver resultado y `Execution Trace`.
-5. Ir a `/documents` y cargar contenido.
-6. Ejecutar nueva tarea para usar contexto RAG.
-7. Revisar `Debug Context` (ejecucion con debug).
-
-## Semilla demo (opcional)
-
-Script simple para crear usuario demo y tareas de ejemplo (idempotente):
+## Demo seed data (optional)
 
 ```bash
 cd backend
 python scripts/seed_demo_data.py
 ```
 
-Credenciales demo generadas por el script:
+Seed script creates/keeps demo account and sample tasks.
 
-- `demo@aegis.local`
-- `Demo12345!`
+- email: `demo@aegis.local`
+- password: `Demo12345!`
 
-## Hardening aplicado en frontend
+## Deployment notes
 
-- Manejo consistente de token invalido/expirado
-- Limpieza automatica de sesion
-- Sincronizacion de sesion entre pestanas
-- Manejo global de errores API
-- Estados UI consistentes (`loading`, `empty`, `error`, `success`)
+- Frontend is served by Nginx.
+- `/api/*` is proxied to backend inside Compose.
+- CORS is controlled by `FRONTEND_ORIGINS`.
+- Compose includes health checks for db/backend/frontend startup reliability.
 
-## Notas de despliegue
+## Interview highlights
 
-- Nginx sirve frontend y hace proxy de `/api/*` a backend (`backend:8000`) en Compose.
-- CORS backend se controla con `FRONTEND_ORIGINS`.
-- Mantener `VITE_API_URL=/api/v1` simplifica local, demo y despliegue.
+- Backend-first architecture with clear separation of concerns
+- Practical AI orchestration instead of chatbot UX
+- Persistent task history and structured execution traces
+- Lightweight output evaluation loop for quality visibility
+- Demo-ready developer experience and packaging
+
+## Screenshots (placeholders)
+
+Add screenshots in this section before publishing your portfolio:
+
+- Dashboard overview
+- Task detail with trace and evaluation
+- Documents + RAG workflow

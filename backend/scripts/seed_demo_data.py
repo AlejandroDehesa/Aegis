@@ -33,11 +33,12 @@ def get_or_create_demo_user() -> User:
 
 def seed_demo_tasks(user: User) -> None:
     with SessionLocal() as db:
-        existing_titles = set(
-            db.execute(
-                select(Task.title).where(Task.user_id == user.id)
+        existing_tasks = {
+            task.title: task
+            for task in db.execute(
+                select(Task).where(Task.user_id == user.id)
             ).scalars().all()
-        )
+        }
 
         now = datetime.now(UTC)
 
@@ -57,6 +58,9 @@ def seed_demo_tasks(user: User) -> None:
                 "finished_at": now - timedelta(minutes=6, seconds=35),
                 "duration_ms": 25000,
                 "executed_at": now - timedelta(minutes=6, seconds=35),
+                "feedback_rating": 5,
+                "feedback_comment": "Clear output and useful tradeoffs for a backend-first decision.",
+                "feedback_submitted_at": now - timedelta(minutes=5, seconds=50),
                 "execution_trace": [
                     {
                         "step": "classification",
@@ -86,19 +90,28 @@ def seed_demo_tasks(user: User) -> None:
         ]
 
         created = 0
+        updated = 0
 
         for template in task_templates:
-            if template["title"] in existing_titles:
+            existing_task = existing_tasks.get(template["title"])
+
+            if existing_task is not None:
+                if template.get("feedback_rating") and existing_task.feedback_rating is None:
+                    existing_task.feedback_rating = template["feedback_rating"]
+                    existing_task.feedback_comment = template.get("feedback_comment")
+                    existing_task.feedback_submitted_at = template.get("feedback_submitted_at")
+                    db.add(existing_task)
+                    updated += 1
                 continue
 
             task = Task(user_id=user.id, **template)
             db.add(task)
             created += 1
 
-        if created:
+        if created or updated:
             db.commit()
 
-        print(f"Seed complete. Created {created} demo task(s).")
+        print(f"Seed complete. Created {created} demo task(s), updated {updated}.")
 
 
 def main() -> None:

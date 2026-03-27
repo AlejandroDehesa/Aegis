@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -11,6 +12,7 @@ from app.models.user import User
 from app.schemas.task import (
     TaskCreate,
     TaskExecutionStepRead,
+    TaskFeedbackUpdate,
     TaskRagChunkRead,
     TaskRagDebugRead,
     TaskRead,
@@ -186,3 +188,28 @@ def execute_user_task(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(error),
         ) from error
+
+
+@router.post("/tasks/{task_id}/feedback", response_model=TaskRead)
+def submit_task_feedback(
+    task_id: uuid.UUID,
+    feedback_in: TaskFeedbackUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Task:
+    task = _get_user_task(task_id, current_user, db)
+    if task.status not in {"completed", "failed"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Task feedback is available only after execution is finished.",
+        )
+
+    task.feedback_rating = feedback_in.feedback_rating
+    task.feedback_comment = (feedback_in.feedback_comment or "").strip() or None
+    task.feedback_submitted_at = datetime.now(UTC)
+
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+
+    return task

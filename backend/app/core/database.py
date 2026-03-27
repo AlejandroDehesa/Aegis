@@ -66,6 +66,24 @@ def _ensure_runtime_schema_updates() -> None:
                 "ADD COLUMN IF NOT EXISTS duration_ms INTEGER"
             )
         )
+        connection.execute(
+            text(
+                "ALTER TABLE tasks "
+                "ADD COLUMN IF NOT EXISTS feedback_rating INTEGER"
+            )
+        )
+        connection.execute(
+            text(
+                "ALTER TABLE tasks "
+                "ADD COLUMN IF NOT EXISTS feedback_comment TEXT"
+            )
+        )
+        connection.execute(
+            text(
+                "ALTER TABLE tasks "
+                "ADD COLUMN IF NOT EXISTS feedback_submitted_at TIMESTAMPTZ"
+            )
+        )
 
 
 def get_db() -> Generator[Session, None, None]:
