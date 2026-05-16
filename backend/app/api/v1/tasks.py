@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -31,13 +32,70 @@ from app.services.task_executor import (
 router = APIRouter()
 
 
+def _normalize_trace_step(raw_step: Any, fallback_agent_name: str) -> dict[str, Any]:
+    if not isinstance(raw_step, dict):
+        return {
+            "step_name": "execution",
+            "agent_name": fallback_agent_name,
+            "status": "completed",
+            "short_summary": str(raw_step),
+        }
+
+    step_name = raw_step.get("step_name") or raw_step.get("step") or "execution"
+    agent_name = raw_step.get("agent_name") or fallback_agent_name
+    status = raw_step.get("status") or "completed"
+    short_summary = raw_step.get("short_summary") or raw_step.get("summary")
+
+    normalized = {
+        "step_index": raw_step.get("step_index") or raw_step.get("step_number"),
+        "step_number": raw_step.get("step_number") or raw_step.get("step_index"),
+        "step_name": step_name,
+        "agent_name": agent_name,
+        "status": status,
+        "short_summary": short_summary,
+        "result_preview": raw_step.get("result_preview") or short_summary,
+        "used_previous_output": bool(raw_step.get("used_previous_output", False)),
+        "started_at": raw_step.get("started_at"),
+        "finished_at": raw_step.get("finished_at"),
+        "duration_ms": raw_step.get("duration_ms"),
+        "error_message": raw_step.get("error_message"),
+    }
+    return normalized
+
+
 def _serialize_trace_steps(task: Task) -> list[TaskExecutionStepRead]:
-    return [TaskExecutionStepRead.model_validate(step) for step in (task.execution_trace or [])]
+    return [
+        TaskExecutionStepRead.model_validate(
+            _normalize_trace_step(step, task.agent_name or "GeneralAssistantAgent")
+        )
+        for step in (task.execution_trace or [])
+    ]
 
 
 def _serialize_task(task: Task, execution: TaskExecutionResult | None = None) -> TaskRead:
-    payload = TaskRead.model_validate(task).model_dump()
-    payload["execution_trace"] = _serialize_trace_steps(task)
+    now = datetime.now(UTC)
+    payload = {
+        "id": task.id,
+        "user_id": task.user_id,
+        "title": task.title,
+        "description": task.description,
+        "status": task.status or "pending",
+        "task_type": task.task_type or "general",
+        "agent_name": task.agent_name or "GeneralAssistantAgent",
+        "result_text": task.result_text,
+        "execution_trace": _serialize_trace_steps(task),
+        "started_at": task.started_at,
+        "finished_at": task.finished_at,
+        "duration_ms": task.duration_ms,
+        "executed_at": task.executed_at,
+        "error_message": task.error_message,
+        "feedback_rating": task.feedback_rating,
+        "feedback_comment": task.feedback_comment,
+        "feedback_submitted_at": task.feedback_submitted_at,
+        "created_at": task.created_at or now,
+        "updated_at": task.updated_at or now,
+        "rag_debug": None,
+    }
 
     if execution is not None and execution.rag_debug is not None:
         payload["rag_debug"] = TaskRagDebugRead(
@@ -103,6 +161,7 @@ def create_task(
     agent_name = select_agent(task_type)
 
     task = Task(
+        id=uuid.uuid4(),
         user_id=current_user.id,
         title=task_in.title,
         description=task_in.description,
@@ -114,7 +173,7 @@ def create_task(
     db.commit()
     db.refresh(task)
 
-    return task
+    return _serialize_task(task)
 
 
 @router.get("/tasks", response_model=list[TaskRead])
@@ -125,7 +184,7 @@ def list_tasks(
     feedback_rating: int | None = Query(default=None, ge=1, le=5),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[Task]:
+) -> list[TaskRead]:
     query = select(Task).where(Task.user_id == current_user.id)
 
     if task_status:
@@ -144,7 +203,7 @@ def list_tasks(
         query.order_by(Task.created_at.desc())
     ).scalars().all()
 
-    return tasks
+    return [_serialize_task(task) for task in tasks]
 
 
 @router.get("/tasks/{task_id}", response_model=TaskRead)
@@ -152,8 +211,9 @@ def get_task(
     task_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> Task:
-    return _get_user_task(task_id, current_user, db)
+) -> TaskRead:
+    task = _get_user_task(task_id, current_user, db)
+    return _serialize_task(task)
 
 
 @router.get("/tasks/{task_id}/trace", response_model=TaskTraceRead)
@@ -212,7 +272,7 @@ def submit_task_feedback(
     feedback_in: TaskFeedbackUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> Task:
+) -> TaskRead:
     task = _get_user_task(task_id, current_user, db)
     if task.status not in {"completed", "failed"}:
         raise HTTPException(
@@ -228,4 +288,4 @@ def submit_task_feedback(
     db.commit()
     db.refresh(task)
 
-    return task
+    return _serialize_task(task)

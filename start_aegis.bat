@@ -105,12 +105,36 @@ start "" "http://localhost:5173"
 exit /b 0
 
 :ensure_docker_daemon
-docker info --format "{{.ServerVersion}}" >nul 2>nul
+set "DOCKER_CHECK_LOG=%TEMP%\aegis_docker_check_%RANDOM%.log"
+docker info >"%DOCKER_CHECK_LOG%" 2>&1
 if not errorlevel 1 (
+  del /q "%DOCKER_CHECK_LOG%" >nul 2>nul
   echo [Aegis] Docker daemon OK.
   exit /b 0
 )
 
+findstr /I /C:"must be run with elevated privileges" /C:"open //./pipe/docker_engine" /C:"Acceso denegado" "%DOCKER_CHECK_LOG%" >nul
+if not errorlevel 1 (
+  del /q "%DOCKER_CHECK_LOG%" >nul 2>nul
+  echo [ERROR] Docker esta instalado, pero Windows denego acceso al daemon.
+  echo         Solucion habitual:
+  echo         1^) Abre PowerShell como Administrador y ejecuta de nuevo este .bat
+  echo         2^) Agrega tu usuario al grupo docker-users:
+  echo            net localgroup docker-users %%USERNAME%% /add
+  echo         3^) Cierra sesion o reinicia Windows para aplicar cambios
+  exit /b 1
+)
+
+findstr /I /C:".docker\config.json" /C:"Error loading config file" "%DOCKER_CHECK_LOG%" >nul
+if not errorlevel 1 (
+  del /q "%DOCKER_CHECK_LOG%" >nul 2>nul
+  echo [ERROR] Docker no puede leer C:\Users\%%USERNAME%%\.docker\config.json por permisos.
+  echo         Abre PowerShell como Administrador y corrige permisos de esa carpeta.
+  echo         Luego reintenta este script.
+  exit /b 1
+)
+
+del /q "%DOCKER_CHECK_LOG%" >nul 2>nul
 echo [Aegis] Docker daemon no responde. Intentando iniciar Docker Desktop...
 if exist "C:\Program Files\Docker\Docker\Docker Desktop.exe" (
   start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"

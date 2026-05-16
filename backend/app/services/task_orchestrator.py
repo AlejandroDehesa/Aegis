@@ -1,10 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import re
+import unicodedata
 
 from sqlalchemy.orm import Session
 
 from app.agents.comparison_agent import run_task as run_comparison_task
 from app.agents.general_assistant_agent import run_task as run_general_task
+from app.agents.analysis_agent import run_task as run_analysis_task
+from app.agents.planning_agent import run_task as run_planning_task
 from app.agents.research_agent import run_task as run_research_task
 from app.agents.summary_agent import run_task as run_summary_task
 from app.core.config import settings
@@ -24,6 +28,8 @@ AGENT_RUNNERS = {
     "ResearchAgent": run_research_task,
     "SummaryAgent": run_summary_task,
     "ComparisonAgent": run_comparison_task,
+    "AnalysisAgent": run_analysis_task,
+    "PlanningAgent": run_planning_task,
     "GeneralAssistantAgent": run_general_task,
 }
 
@@ -40,10 +46,30 @@ PIPELINES_BY_TASK_TYPE = {
     "summary": [
         ("summary", "SummaryAgent"),
     ],
+    "analysis": [
+        ("analysis", "AnalysisAgent"),
+    ],
+    "planning": [
+        ("planning", "PlanningAgent"),
+    ],
     "general": [
         ("general", "GeneralAssistantAgent"),
     ],
 }
+
+FORBIDDEN_PLACEHOLDER_PHRASES = (
+    "future expansion",
+    "ready for future expansion",
+    "placeholder",
+    "mock response",
+    "todo",
+    "not implemented",
+    "general assistant workflow",
+    "processed with the general assistant workflow",
+    "dummy",
+    "stub",
+)
+MIN_OUTPUT_LENGTH = 80
 
 
 @dataclass
@@ -227,6 +253,52 @@ def _build_step_context(
     return "\n\n".join(context_sections)
 
 
+def _normalize_text(text: str) -> str:
+    lowered = text.lower().strip()
+    without_accents = "".join(
+        char
+        for char in unicodedata.normalize("NFD", lowered)
+        if unicodedata.category(char) != "Mn"
+    )
+    normalized = re.sub(r"[^a-z0-9\s]", " ", without_accents)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized
+
+
+def _validate_output_quality(task: Task, output_text: str | None) -> str | None:
+    if not output_text or not output_text.strip():
+        return "Generated output is empty."
+
+    normalized_output = _normalize_text(output_text)
+
+    if len(normalized_output) < MIN_OUTPUT_LENGTH:
+        return "Generated output is too short to be useful."
+
+    for phrase in FORBIDDEN_PLACEHOLDER_PHRASES:
+        if phrase in normalized_output:
+            return f"Generated output contains disallowed placeholder language: '{phrase}'."
+
+    if task.task_type == "comparison":
+        if "recommend" not in normalized_output and "recomend" not in normalized_output:
+            return "Comparison output must include a recommendation."
+
+    if task.task_type == "analysis":
+        required = ("risk", "impact", "mitigation")
+        if not all(token in normalized_output for token in required):
+            return "Analysis output must include risks, impact, and mitigation."
+
+    if task.task_type == "planning":
+        if not re.search(r"\b1\b", normalized_output):
+            return "Planning output must include numbered steps."
+
+    normalized_input = _normalize_text(f"{task.title} {task.description or ''}")
+    tokens = [token for token in normalized_input.split() if len(token) >= 4]
+    if tokens and not any(token in normalized_output for token in tokens[:8]):
+        return "Generated output does not reference task-specific content."
+
+    return None
+
+
 def _prepare_combined_context(
     task: Task,
     db: Session,
@@ -351,8 +423,44 @@ def orchestrate_task(
     pipeline = _get_pipeline(task.task_type)
     execution_trace: list[dict[str, object]] = []
     previous_output: str | None = None
+    step_index = 1
 
-    for step_index, (step_name, agent_name) in enumerate(pipeline, start=1):
+    classification_started = _utc_now()
+    classification_finished = _utc_now()
+    execution_trace.append(
+        _build_trace_step(
+            step_index=step_index,
+            step_name="classification",
+            agent_name="TaskClassifier",
+            status="completed",
+            used_previous_output=False,
+            short_summary=f"Task classified as '{task.task_type}'.",
+            error_message=None,
+            started_at=classification_started,
+            finished_at=classification_finished,
+        )
+    )
+    step_index += 1
+
+    selected_agents = ", ".join(agent_name for _step_name, agent_name in pipeline)
+    selection_started = _utc_now()
+    selection_finished = _utc_now()
+    execution_trace.append(
+        _build_trace_step(
+            step_index=step_index,
+            step_name="agent_selection",
+            agent_name=task.agent_name or "AgentSelector",
+            status="completed",
+            used_previous_output=False,
+            short_summary=f"Selected execution pipeline agents: {selected_agents}.",
+            error_message=None,
+            started_at=selection_started,
+            finished_at=selection_finished,
+        )
+    )
+    step_index += 1
+
+    for logical_step_name, agent_name in pipeline:
         runner = AGENT_RUNNERS.get(agent_name)
         step_started_at = _utc_now()
         used_previous_output = previous_output is not None
@@ -362,12 +470,14 @@ def orchestrate_task(
             execution_trace.append(
                 _build_trace_step(
                     step_index=step_index,
-                    step_name=step_name,
+                    step_name="execution",
                     agent_name=agent_name,
                     status="failed",
                     used_previous_output=used_previous_output,
                     short_summary=None,
-                    error_message="No execution strategy found for the configured agent.",
+                    error_message=(
+                        f"No execution strategy found for the configured agent '{agent_name}'."
+                    ),
                     started_at=step_started_at,
                     finished_at=step_finished_at,
                 )
@@ -391,7 +501,7 @@ def orchestrate_task(
             execution_trace.append(
                 _build_trace_step(
                     step_index=step_index,
-                    step_name=step_name,
+                    step_name="execution",
                     agent_name=agent_name,
                     status="failed",
                     used_previous_output=used_previous_output,
@@ -403,18 +513,23 @@ def orchestrate_task(
             )
             raise TaskOrchestrationError(
                 (
-                    f"Task orchestration failed at step '{step_name}' "
+                    f"Task orchestration failed at step '{logical_step_name}' "
                     f"with agent '{agent_name}': {error}"
                 ),
                 execution_trace=execution_trace,
                 rag_debug=rag_debug,
             ) from error
 
-        short_summary = _build_output_preview(step_output)
+        output_preview = _build_output_preview(step_output)
+        short_summary = (
+            f"[{logical_step_name}] {output_preview}"
+            if output_preview is not None
+            else f"[{logical_step_name}]"
+        )
         execution_trace.append(
             _build_trace_step(
                 step_index=step_index,
-                step_name=step_name,
+                step_name="execution",
                 agent_name=agent_name,
                 status="completed",
                 used_previous_output=used_previous_output,
@@ -424,7 +539,31 @@ def orchestrate_task(
                 finished_at=step_finished_at,
             )
         )
+        step_index += 1
         previous_output = step_output
+
+    quality_error = _validate_output_quality(task, previous_output)
+    if quality_error is not None:
+        failed_started_at = _utc_now()
+        failed_finished_at = _utc_now()
+        execution_trace.append(
+            _build_trace_step(
+                step_index=step_index,
+                step_name="execution",
+                agent_name=task.agent_name or "UnknownAgent",
+                status="failed",
+                used_previous_output=previous_output is not None,
+                short_summary=None,
+                error_message=quality_error,
+                started_at=failed_started_at,
+                finished_at=failed_finished_at,
+            )
+        )
+        raise TaskOrchestrationError(
+            "Generated output did not pass minimum quality checks.",
+            execution_trace=execution_trace,
+            rag_debug=rag_debug,
+        )
 
     return TaskOrchestrationResult(
         final_output=previous_output or "",

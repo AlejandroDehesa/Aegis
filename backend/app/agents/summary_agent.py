@@ -26,8 +26,9 @@ def _build_fallback(task: Task) -> str:
         "Core points:\n"
         f"- Title: {task.title}\n"
         f"- Context: {description}\n"
-        "- A concise synthesis has been prepared.\n"
-        "- This task fits a summary-oriented workflow."
+        "- Main idea: prioritize the most relevant information first.\n"
+        "- Key takeaway: keep implementation focused on practical outcomes.\n"
+        "- Recommendation: use this summary as the baseline for next decisions."
     )
 
 

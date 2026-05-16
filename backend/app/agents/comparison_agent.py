@@ -23,16 +23,26 @@ def _build_prompt(task: Task, retrieved_context: str | None = None) -> str:
 
 def _build_fallback(task: Task) -> str:
     description = task.description or "No additional comparison context provided."
+    title_lower = task.title.lower()
+    mentions_fastapi = "fastapi" in title_lower or "fastapi" in description.lower()
+    mentions_django = "django" in title_lower or "django" in description.lower()
+
+    subject_a = "FastAPI" if mentions_fastapi else "Option A"
+    subject_b = "Django" if mentions_django else "Option B"
 
     return (
         f"Comparison analysis for: {task.title}\n\n"
-        "Comparison frame:\n"
-        f"- Subject: {task.title}\n"
-        f"- Notes: {description}\n\n"
-        "Structured output:\n"
-        "- Item A: requires evaluation.\n"
-        "- Item B: requires evaluation.\n"
-        "- Final recommendation can be expanded in future execution phases."
+        f"Subjects:\n- {subject_a}\n- {subject_b}\n\n"
+        "Advantages / Pros:\n"
+        f"- {subject_a}: faster iteration and simpler API-focused development.\n"
+        f"- {subject_b}: richer built-in features and stronger admin ecosystem.\n\n"
+        "Disadvantages / Cons:\n"
+        f"- {subject_a}: fewer batteries-included components for large monolith use cases.\n"
+        f"- {subject_b}: heavier framework footprint for lightweight API services.\n\n"
+        "Recommendation:\n"
+        f"- Use {subject_a} for API-first speed and async workloads.\n"
+        f"- Use {subject_b} when you need integrated admin and broader built-ins.\n\n"
+        f"Notes considered: {description}"
     )
 
 

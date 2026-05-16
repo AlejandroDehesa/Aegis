@@ -1,6 +1,8 @@
 from app.services.task_classifier import (
+    TASK_TYPE_ANALYSIS,
     TASK_TYPE_COMPARISON,
     TASK_TYPE_GENERAL,
+    TASK_TYPE_PLANNING,
     TASK_TYPE_RESEARCH,
     TASK_TYPE_SUMMARY,
 )
@@ -21,6 +23,16 @@ AGENT_CATALOG = [
         "name": "ComparisonAgent",
         "description": "Produces structured comparisons between options or approaches.",
         "supported_task_types": [TASK_TYPE_COMPARISON],
+    },
+    {
+        "name": "AnalysisAgent",
+        "description": "Assesses risks, impact, and mitigations for analytical tasks.",
+        "supported_task_types": [TASK_TYPE_ANALYSIS],
+    },
+    {
+        "name": "PlanningAgent",
+        "description": "Creates practical step-by-step execution plans.",
+        "supported_task_types": [TASK_TYPE_PLANNING],
     },
     {
         "name": "GeneralAssistantAgent",

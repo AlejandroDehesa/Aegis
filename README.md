@@ -68,6 +68,12 @@ Esto permite demostrar criterio de producto, arquitectura y operacion, no solo i
 7. Ir a `Documents`, subir contexto y volver a ejecutar una tarea.
 8. Mostrar en `Dashboard` el estado global del flujo.
 
+## Guia de usuario
+
+Para onboarding completo de un usuario nuevo (navegacion, flujo de trabajo y troubleshooting):
+
+- `GUIA_USUARIO_NUEVO.md`
+
 ## Operational insights y quality review
 
 Aegis ahora incluye una capa ligera de analisis operativo por usuario autenticado:
@@ -137,7 +143,7 @@ npm run dev
 
 ```bash
 cd backend
-python scripts/seed_demo_data.py
+python -m scripts.seed_demo_data
 ```
 
 Credenciales seed:

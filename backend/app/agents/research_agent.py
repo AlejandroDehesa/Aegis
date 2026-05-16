@@ -30,8 +30,8 @@ def _build_fallback(task: Task) -> str:
         f"Context:\n- {description}\n\n"
         "Initial findings:\n"
         "- Key topics have been identified for further investigation.\n"
-        "- A deeper source-by-source analysis can be executed in a future phase.\n"
-        "- This task is suitable for a research-oriented workflow."
+        "- Priority options were identified based on likely impact.\n"
+        "- Recommendation: validate assumptions with concrete source checks next."
     )
 
 

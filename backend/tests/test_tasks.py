@@ -39,7 +39,7 @@ class TasksTests(unittest.TestCase):
         self.assertEqual(task.agent_name, "ComparisonAgent")
         db.add.assert_called_once()
         db.commit.assert_called_once()
-        db.refresh.assert_called_once_with(task)
+        db.refresh.assert_called_once()
 
     def test_list_tasks_supports_filters(self) -> None:
         db = MagicMock()

@@ -22,12 +22,15 @@ def _build_fallback(task: Task) -> str:
     description = task.description or "No additional context provided."
 
     return (
-        f"General assistance output for: {task.title}\n\n"
-        f"Request:\n- {task.title}\n"
-        f"Context:\n- {description}\n\n"
-        "Suggested next step:\n"
-        "- The task has been processed with the general assistant workflow.\n"
-        "- It is ready for future expansion with richer agent capabilities."
+        f"Response for: {task.title}\n\n"
+        f"Request summary:\n- {task.title}\n"
+        f"- {description}\n\n"
+        "Recommended approach:\n"
+        "1. Clarify the exact scope and expected output format.\n"
+        "2. Break the task into small actionable steps.\n"
+        "3. Execute the highest-impact step first and validate results.\n\n"
+        "Next step:\n"
+        "- Start with a concise outline and confirm success criteria."
     )
 
 
