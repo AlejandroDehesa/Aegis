@@ -73,6 +73,8 @@ Esto permite demostrar criterio de producto, arquitectura y operacion, no solo i
 Para onboarding completo de un usuario nuevo (navegacion, flujo de trabajo y troubleshooting):
 
 - `GUIA_USUARIO_NUEVO.md`
+- Estrategia de testing por fases: `docs/TESTING_STRATEGY.md`
+- Matriz ideal de cobertura (1500 casos): `docs/TEST_MATRIX_1000.md`
 
 ## Operational insights y quality review
 
@@ -151,6 +153,14 @@ Credenciales seed:
 - email: `demo@aegis.local`
 - password: `Demo12345!`
 
+## Reset demo local (limpio)
+
+```bash
+docker compose down -v
+docker compose up -d
+docker compose run --rm backend python -m scripts.seed_demo_data
+```
+
 ## Testing y release confidence
 
 ### Backend tests (unit)
@@ -176,6 +186,8 @@ cd frontend
 npm run check:smoke
 npm run build
 ```
+
+`npm run test` no esta configurado actualmente en el frontend. La validacion actual para estabilidad visual/estructura se basa en `check:smoke` + `build`.
 
 `check:smoke` valida presencia de flujo critico en UI:
 

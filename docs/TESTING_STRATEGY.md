@@ -1,0 +1,51 @@
+# Aegis Testing Strategy
+
+## Objetivo
+Maximizar confianza de demo y estabilidad con foco en regresiones criticas sin sobreingenieria.
+
+## Fases de automatizacion
+1. Fase P0: clasificacion, seleccion de agente, calidad de output, pipeline, trace, auth, ownership, seed, contrato task detail, health backend.
+2. Fase P1: feedback, insights, upload documentos, fallback RAG, smoke/build frontend, health frontend en compose.
+3. Fase P2: cobertura de contratos ampliados y escenarios negativos de integracion.
+4. Fase P3: e2e browser y performance sistematica en CI.
+
+## Comandos recomendados
+```bash
+docker compose build
+docker compose up -d
+docker compose run --rm backend python -m unittest discover -s tests -t . -p "test_*.py" -v
+cd frontend && npm run check:smoke && npm run build
+docker compose run --rm backend python -m scripts.seed_demo_data
+```
+
+## Reset demo local
+```bash
+docker compose down -v
+docker compose up -d
+docker compose run --rm backend python -m scripts.seed_demo_data
+```
+
+## Distribucion de la matriz ideal
+| Area | Casos |
+|---|---|
+| A - Boot, health y configuracion | 40 |
+| B - Auth y usuarios | 80 |
+| C - Task CRUD | 90 |
+| D - Clasificacion ES/EN | 120 |
+| E - Agent selection | 70 |
+| F - Agent output quality | 100 |
+| G - Execution pipeline | 100 |
+| H - Execution trace | 90 |
+| I - Feedback y rating | 50 |
+| J - Insights | 70 |
+| K - Documents upload | 80 |
+| L - RAG retrieval | 90 |
+| M - API contract backend/frontend | 80 |
+| N - Frontend unit/component | 80 |
+| O - Frontend e2e/user flows | 90 |
+| P - Docker, DevOps y scripts | 60 |
+| Q - Security basica | 70 |
+| R - Seed y demo data | 40 |
+| S - Internacionalizacion y UX copy | 40 |
+| T - Regression bugs conocidos | 60 |
+| **Total** | **1500** |

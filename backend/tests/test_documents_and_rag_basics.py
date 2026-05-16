@@ -1,0 +1,190 @@
+from __future__ import annotations
+
+import asyncio
+import unittest
+import uuid
+from unittest.mock import MagicMock, patch
+
+from fastapi import HTTPException, UploadFile
+
+from app.api.v1.documents import upload_document
+from app.services.document_service import (
+    DocumentValidationError,
+    _chunk_text,
+    _normalize_content,
+    create_document,
+)
+from app.services.retrieval_service import build_context, retrieve_relevant_chunks
+from tests.helpers import build_user
+
+
+class DocumentsAndRagBasicsTests(unittest.TestCase):
+    def test_document_upload_creates_chunks_or_controlled_fallback(self) -> None:
+        chunks = _chunk_text(
+            "FastAPI enables rapid API development with type hints and automatic docs. "
+            "Django includes robust admin and built-in modules."
+        )
+        self.assertGreater(len(chunks), 0)
+        self.assertTrue(all(chunk.strip() for chunk in chunks))
+
+    def test_chunk_text_returns_empty_for_blank_input(self) -> None:
+        self.assertEqual(_chunk_text("   "), [])
+
+    def test_chunk_text_respects_overlap_without_infinite_loop(self) -> None:
+        long_text = " ".join(["token"] * 600)
+        chunks = _chunk_text(long_text)
+        self.assertGreater(len(chunks), 1)
+        self.assertLess(len(chunks), 200)
+
+    def test_normalize_content_strips_whitespace(self) -> None:
+        self.assertEqual(_normalize_content("  hello world  "), "hello world")
+
+    def test_create_document_rejects_empty_title(self) -> None:
+        with self.assertRaises(DocumentValidationError):
+            create_document(
+                db=MagicMock(),
+                user_id=uuid.uuid4(),
+                title=" ",
+                content="Some content",
+                source_type="text",
+            )
+
+    def test_create_document_rejects_empty_content(self) -> None:
+        with self.assertRaises(DocumentValidationError):
+            create_document(
+                db=MagicMock(),
+                user_id=uuid.uuid4(),
+                title="My document",
+                content=" ",
+                source_type="text",
+            )
+
+    def test_upload_document_rejects_content_and_file_together(self) -> None:
+        current_user = build_user()
+        db = MagicMock()
+        upload = UploadFile(filename="doc.txt", file=MagicMock())
+
+        async def _run() -> None:
+            with self.assertRaises(HTTPException) as context:
+                await upload_document(
+                    title="Combined input",
+                    content="raw text",
+                    file=upload,
+                    current_user=current_user,
+                    db=db,
+                )
+            self.assertEqual(context.exception.status_code, 400)
+
+        asyncio.run(_run())
+
+    def test_upload_document_rejects_empty_payload(self) -> None:
+        current_user = build_user()
+        db = MagicMock()
+
+        async def _run() -> None:
+            with self.assertRaises(HTTPException) as context:
+                await upload_document(
+                    title="No content",
+                    content="",
+                    file=None,
+                    current_user=current_user,
+                    db=db,
+                )
+            self.assertEqual(context.exception.status_code, 400)
+
+        asyncio.run(_run())
+
+    def test_upload_document_rejects_non_utf8_file(self) -> None:
+        current_user = build_user()
+        db = MagicMock()
+        file_mock = MagicMock()
+        file_mock.read = MagicMock(return_value=b"\xff\xfe\xfd")
+        upload = UploadFile(filename="binary.bin", file=file_mock)
+
+        async def _run() -> None:
+            with self.assertRaises(HTTPException) as context:
+                await upload_document(
+                    title=None,
+                    content=None,
+                    file=upload,
+                    current_user=current_user,
+                    db=db,
+                )
+            self.assertEqual(context.exception.status_code, 400)
+
+        asyncio.run(_run())
+
+    def test_retrieve_relevant_chunks_returns_empty_for_blank_query(self) -> None:
+        chunks = retrieve_relevant_chunks(query=" ", user_id=uuid.uuid4())
+        self.assertEqual(chunks, [])
+
+    def test_rag_fallback_does_not_crash_when_vector_store_unavailable(self) -> None:
+        with (
+            patch("app.services.retrieval_service.generate_embedding", return_value=[0.1, 0.2, 0.3]),
+            patch("app.services.retrieval_service.query_records", return_value=[]),
+        ):
+            chunks = retrieve_relevant_chunks(
+                query="compare docker deployment options",
+                user_id=uuid.uuid4(),
+                top_k=3,
+                min_score=0.2,
+            )
+        self.assertEqual(chunks, [])
+
+    def test_retrieve_relevant_chunks_filters_by_min_score(self) -> None:
+        with (
+            patch("app.services.retrieval_service.generate_embedding", return_value=[0.1, 0.2]),
+            patch(
+                "app.services.retrieval_service.query_records",
+                return_value=[
+                    {
+                        "id": "chunk-high",
+                        "text": "high score chunk",
+                        "metadata": {"document_title": "Doc A", "user_id": "u1"},
+                        "score": 0.91,
+                    },
+                    {
+                        "id": "chunk-low",
+                        "text": "low score chunk",
+                        "metadata": {"document_title": "Doc B", "user_id": "u1"},
+                        "score": 0.05,
+                    },
+                ],
+            ),
+        ):
+            chunks = retrieve_relevant_chunks(
+                query="deployment",
+                user_id=uuid.uuid4(),
+                top_k=3,
+                min_score=0.2,
+            )
+
+        self.assertEqual(len(chunks), 1)
+        self.assertEqual(chunks[0].chunk_id, "chunk-high")
+
+    def test_build_context_returns_none_when_no_chunks(self) -> None:
+        context = build_context([])
+        self.assertIsNone(context.text)
+        self.assertEqual(context.used_chunks, [])
+
+    def test_build_context_marks_truncated_when_context_limit_small(self) -> None:
+        from app.services.retrieval_service import RetrievedChunk
+
+        chunks = [
+            RetrievedChunk(
+                chunk_id="1",
+                document_id="doc-1",
+                document_title="Doc",
+                source_name="src",
+                chunk_index=0,
+                text="A" * 500,
+                score=0.9,
+            )
+        ]
+        context = build_context(chunks, max_chars=180)
+        self.assertTrue(context.truncated)
+        self.assertIsNotNone(context.text)
+
+
+if __name__ == "__main__":
+    unittest.main()
