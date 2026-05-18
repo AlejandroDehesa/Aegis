@@ -1,6 +1,8 @@
+from app.agents.execution_result import AgentExecutionResult
 from app.models.task import Task
 from app.agents.prompt_utils import build_retrieved_context_block
-from app.services.llm_service import generate_text
+from app.services.llm.schemas import LLMRequest
+from app.services.llm_service import generate
 
 
 def _build_prompt(task: Task, retrieved_context: str | None = None) -> str:
@@ -36,7 +38,12 @@ def _build_fallback(task: Task) -> str:
 
 
 def run_task(task: Task, retrieved_context: str | None = None) -> str:
-    return generate_text(
-        prompt=_build_prompt(task, retrieved_context=retrieved_context),
+    return run_task_with_metadata(task, retrieved_context=retrieved_context).text
+
+
+def run_task_with_metadata(task: Task, retrieved_context: str | None = None) -> AgentExecutionResult:
+    response = generate(
+        request=LLMRequest(prompt=_build_prompt(task, retrieved_context=retrieved_context)),
         fallback_text=_build_fallback(task),
     )
+    return AgentExecutionResult.from_llm_response(response)

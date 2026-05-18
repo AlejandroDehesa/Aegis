@@ -59,6 +59,14 @@ def _normalize_trace_step(raw_step: Any, fallback_agent_name: str) -> dict[str, 
         "finished_at": raw_step.get("finished_at"),
         "duration_ms": raw_step.get("duration_ms"),
         "error_message": raw_step.get("error_message"),
+        "llm_provider": raw_step.get("llm_provider"),
+        "llm_model": raw_step.get("llm_model"),
+        "llm_prompt_tokens": raw_step.get("llm_prompt_tokens"),
+        "llm_completion_tokens": raw_step.get("llm_completion_tokens"),
+        "llm_total_tokens": raw_step.get("llm_total_tokens"),
+        "llm_estimated_cost": raw_step.get("llm_estimated_cost"),
+        "llm_fallback_used": raw_step.get("llm_fallback_used"),
+        "llm_error": raw_step.get("llm_error"),
     }
     return normalized
 

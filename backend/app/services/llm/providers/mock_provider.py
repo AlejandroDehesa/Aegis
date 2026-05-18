@@ -9,7 +9,8 @@ class MockProvider(LLMProvider):
         if bool(metadata.get("mock_raise_error")):
             raise LLMProviderError("Mock provider forced failure.")
 
-        mock_text = str(metadata.get("mock_text") or "MOCK_RESPONSE_OK")
+        fallback_text = str(metadata.get("fallback_text") or "").strip()
+        mock_text = str(metadata.get("mock_text") or fallback_text or "MOCK_RESPONSE_OK")
         fallback_used = bool(metadata.get("mock_fallback_used", False))
 
         return LLMResponse(

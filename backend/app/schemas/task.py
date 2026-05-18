@@ -52,6 +52,14 @@ class TaskExecutionStepRead(BaseModel):
     finished_at: datetime | None = None
     duration_ms: int | None = None
     error_message: str | None = None
+    llm_provider: str | None = None
+    llm_model: str | None = None
+    llm_prompt_tokens: int | None = None
+    llm_completion_tokens: int | None = None
+    llm_total_tokens: int | None = None
+    llm_estimated_cost: float | None = None
+    llm_fallback_used: bool | None = None
+    llm_error: str | None = None
 
 
 class TaskRead(BaseModel):

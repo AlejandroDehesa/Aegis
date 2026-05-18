@@ -196,6 +196,25 @@ Notas de seguridad y alcance:
 - Los tests no realizan llamadas reales a OpenRouter.
 - Esta fase no implementa RAG nuevo ni ejecucion async.
 
+### Using OpenRouter for real agent intelligence
+
+Por defecto, Aegis usa `LLM_PROVIDER=template` para un modo seguro y sin consumo de tokens.
+
+Para activar inteligencia real en agentes con OpenRouter:
+
+```env
+LLM_PROVIDER=openrouter
+LLM_ENABLE_REAL_CALLS=true
+OPENROUTER_API_KEY=tu_clave
+OPENROUTER_MODEL=tu_modelo
+```
+
+Notas:
+
+- Los tests siguen usando template/mock y no deben gastar tokens.
+- La metadata LLM (`provider`, `model`, `tokens`, `fallback/error`) se guarda en `execution_trace`.
+- `OPENROUTER_API_KEY` permanece solo en backend.
+
 ## Decisiones tecnicas
 
 - Enfoque backend-first para priorizar flujo de ejecucion y trazabilidad.

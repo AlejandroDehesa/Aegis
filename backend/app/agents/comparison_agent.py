@@ -1,6 +1,8 @@
+from app.agents.execution_result import AgentExecutionResult
 from app.models.task import Task
 from app.agents.prompt_utils import build_retrieved_context_block
-from app.services.llm_service import generate_text
+from app.services.llm.schemas import LLMRequest
+from app.services.llm_service import generate
 
 
 def _build_prompt(task: Task, retrieved_context: str | None = None) -> str:
@@ -8,16 +10,20 @@ def _build_prompt(task: Task, retrieved_context: str | None = None) -> str:
     context_block = build_retrieved_context_block(retrieved_context)
 
     return (
-        "You are ComparisonAgent inside Aegis, a task execution system.\n"
-        "Produce a brief, structured comparison.\n"
-        "Keep the output practical and easy to scan.\n\n"
+        "You are ComparisonAgent inside Aegis.\n"
+        "Provide an executive-level comparison that is practical and task-specific.\n"
+        "Avoid placeholder language and generic statements.\n\n"
         f"Task title: {task.title}\n"
         f"Task description: {description}\n\n"
         f"{context_block}"
-        "Return:\n"
-        "- Comparison criteria\n"
-        "- Main differences\n"
-        "- Short recommendation"
+        "Output format (use these exact section headings):\n"
+        "1. Executive summary\n"
+        "2. Compared options\n"
+        "3. Advantages / Pros\n"
+        "4. Disadvantages / Cons\n"
+        "5. Best use cases\n"
+        "6. Final recommendation\n"
+        "7. Assumptions / caveats (if applicable)"
     )
 
 
@@ -31,23 +37,35 @@ def _build_fallback(task: Task) -> str:
     subject_b = "Django" if mentions_django else "Option B"
 
     return (
-        f"Comparison analysis for: {task.title}\n\n"
-        f"Subjects:\n- {subject_a}\n- {subject_b}\n\n"
+        "Executive summary:\n"
+        f"- This comparison evaluates {subject_a} and {subject_b} for the requested task.\n\n"
+        "Compared options:\n"
+        f"- Option A: {subject_a}\n"
+        f"- Option B: {subject_b}\n\n"
         "Advantages / Pros:\n"
         f"- {subject_a}: faster iteration and simpler API-focused development.\n"
         f"- {subject_b}: richer built-in features and stronger admin ecosystem.\n\n"
         "Disadvantages / Cons:\n"
         f"- {subject_a}: fewer batteries-included components for large monolith use cases.\n"
         f"- {subject_b}: heavier framework footprint for lightweight API services.\n\n"
-        "Recommendation:\n"
+        "Best use cases:\n"
+        f"- {subject_a}: API-first products, async-heavy workloads, rapid prototyping.\n"
+        f"- {subject_b}: admin-centric platforms, content-heavy backoffice workflows.\n\n"
+        "Final recommendation:\n"
         f"- Use {subject_a} for API-first speed and async workloads.\n"
         f"- Use {subject_b} when you need integrated admin and broader built-ins.\n\n"
-        f"Notes considered: {description}"
+        "Assumptions / caveats:\n"
+        f"- Recommendation assumes current context: {description}"
     )
 
 
 def run_task(task: Task, retrieved_context: str | None = None) -> str:
-    return generate_text(
-        prompt=_build_prompt(task, retrieved_context=retrieved_context),
+    return run_task_with_metadata(task, retrieved_context=retrieved_context).text
+
+
+def run_task_with_metadata(task: Task, retrieved_context: str | None = None) -> AgentExecutionResult:
+    response = generate(
+        request=LLMRequest(prompt=_build_prompt(task, retrieved_context=retrieved_context)),
         fallback_text=_build_fallback(task),
     )
+    return AgentExecutionResult.from_llm_response(response)

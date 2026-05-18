@@ -5,12 +5,13 @@ import unicodedata
 
 from sqlalchemy.orm import Session
 
-from app.agents.comparison_agent import run_task as run_comparison_task
-from app.agents.general_assistant_agent import run_task as run_general_task
-from app.agents.analysis_agent import run_task as run_analysis_task
-from app.agents.planning_agent import run_task as run_planning_task
-from app.agents.research_agent import run_task as run_research_task
-from app.agents.summary_agent import run_task as run_summary_task
+from app.agents.analysis_agent import run_task_with_metadata as run_analysis_task
+from app.agents.comparison_agent import run_task_with_metadata as run_comparison_task
+from app.agents.execution_result import AgentExecutionResult
+from app.agents.general_assistant_agent import run_task_with_metadata as run_general_task
+from app.agents.planning_agent import run_task_with_metadata as run_planning_task
+from app.agents.research_agent import run_task_with_metadata as run_research_task
+from app.agents.summary_agent import run_task_with_metadata as run_summary_task
 from app.core.config import settings
 from app.models.task import Task
 from app.services.memory_service import get_recent_task_context_result
@@ -388,10 +389,10 @@ def _build_trace_step(
     error_message: str | None,
     started_at: datetime | None,
     finished_at: datetime | None,
+    llm_metadata: dict[str, object] | None = None,
 ) -> dict[str, object]:
     duration_ms = _calculate_duration_ms(started_at, finished_at)
-
-    return {
+    step = {
         "step_index": step_index,
         "step_number": step_index,
         "step_name": step_name,
@@ -405,6 +406,36 @@ def _build_trace_step(
         "duration_ms": duration_ms,
         "error_message": error_message,
     }
+    if llm_metadata is not None:
+        step["llm_provider"] = llm_metadata.get("provider")
+        step["llm_model"] = llm_metadata.get("model")
+        step["llm_prompt_tokens"] = llm_metadata.get("prompt_tokens")
+        step["llm_completion_tokens"] = llm_metadata.get("completion_tokens")
+        step["llm_total_tokens"] = llm_metadata.get("total_tokens")
+        step["llm_estimated_cost"] = llm_metadata.get("estimated_cost")
+        step["llm_fallback_used"] = llm_metadata.get("fallback_used")
+        step["llm_error"] = llm_metadata.get("error")
+    return step
+
+
+def _extract_agent_output(step_output: object) -> tuple[str, dict[str, object] | None]:
+    if isinstance(step_output, AgentExecutionResult):
+        llm_metadata = {
+            "provider": step_output.llm_provider,
+            "model": step_output.llm_model,
+            "prompt_tokens": step_output.prompt_tokens,
+            "completion_tokens": step_output.completion_tokens,
+            "total_tokens": step_output.total_tokens,
+            "estimated_cost": step_output.estimated_cost,
+            "fallback_used": step_output.fallback_used,
+            "error": step_output.llm_error,
+        }
+        return step_output.text, llm_metadata
+
+    if isinstance(step_output, str):
+        return step_output, None
+
+    return str(step_output), None
 
 
 def orchestrate_task(
@@ -494,7 +525,8 @@ def orchestrate_task(
         )
 
         try:
-            step_output = runner(task, retrieved_context=step_context)
+            raw_step_output = runner(task, retrieved_context=step_context)
+            step_output, llm_metadata = _extract_agent_output(raw_step_output)
             step_finished_at = _utc_now()
         except Exception as error:
             step_finished_at = _utc_now()
@@ -537,6 +569,7 @@ def orchestrate_task(
                 error_message=None,
                 started_at=step_started_at,
                 finished_at=step_finished_at,
+                llm_metadata=llm_metadata,
             )
         )
         step_index += 1
