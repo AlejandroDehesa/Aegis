@@ -166,6 +166,36 @@ Estado: **MVP tecnico estable para demo y portfolio**.
 
 No se presenta como "production-ready". Se presenta como base solida demostrable.
 
+## LLM Providers (v0.2 Fase 1)
+
+Aegis incorpora una capa `LLMService -> LLMProvider` con tres providers:
+
+- `template`: provider por defecto, sin llamadas externas, usa fallback seguro.
+- `mock`: provider determinista para pruebas unitarias.
+- `openrouter`: provider real preparado para OpenRouter (sin activacion por defecto).
+
+Variables recomendadas en `.env` local:
+
+```env
+LLM_PROVIDER=template
+LLM_ENABLE_REAL_CALLS=false
+LLM_TIMEOUT_SECONDS=30
+LLM_MAX_TOKENS=1200
+LLM_TEMPERATURE=0.3
+
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_SITE_URL=http://localhost:5173
+OPENROUTER_APP_NAME=Aegis
+```
+
+Notas de seguridad y alcance:
+
+- `OPENROUTER_API_KEY` solo vive en backend, nunca en frontend.
+- Los tests no realizan llamadas reales a OpenRouter.
+- Esta fase no implementa RAG nuevo ni ejecucion async.
+
 ## Decisiones tecnicas
 
 - Enfoque backend-first para priorizar flujo de ejecucion y trazabilidad.

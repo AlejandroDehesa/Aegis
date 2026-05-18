@@ -10,6 +10,13 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(ROOT_DIR / ".env")
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 class Settings(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -21,6 +28,16 @@ class Settings(BaseModel):
     OPENAI_API_KEY: str | None = None
     OPENAI_MODEL: str = "gpt-5-mini"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    LLM_PROVIDER: str = "template"
+    LLM_ENABLE_REAL_CALLS: bool = False
+    LLM_TIMEOUT_SECONDS: int = 30
+    LLM_MAX_TOKENS: int = 1200
+    LLM_TEMPERATURE: float = 0.3
+    OPENROUTER_API_KEY: str | None = None
+    OPENROUTER_MODEL: str | None = None
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    OPENROUTER_SITE_URL: str | None = "http://localhost:5173"
+    OPENROUTER_APP_NAME: str | None = "Aegis"
     RAG_CHUNK_SIZE: int = 500
     RAG_CHUNK_OVERLAP: int = 50
     RAG_TOP_K: int = 3
@@ -53,6 +70,19 @@ def get_settings() -> Settings:
             "OPENAI_EMBEDDING_MODEL",
             "text-embedding-3-small",
         ),
+        LLM_PROVIDER=os.getenv("LLM_PROVIDER", "template"),
+        LLM_ENABLE_REAL_CALLS=_env_bool("LLM_ENABLE_REAL_CALLS", False),
+        LLM_TIMEOUT_SECONDS=int(os.getenv("LLM_TIMEOUT_SECONDS", "30")),
+        LLM_MAX_TOKENS=int(os.getenv("LLM_MAX_TOKENS", "1200")),
+        LLM_TEMPERATURE=float(os.getenv("LLM_TEMPERATURE", "0.3")),
+        OPENROUTER_API_KEY=os.getenv("OPENROUTER_API_KEY") or None,
+        OPENROUTER_MODEL=os.getenv("OPENROUTER_MODEL") or None,
+        OPENROUTER_BASE_URL=os.getenv(
+            "OPENROUTER_BASE_URL",
+            "https://openrouter.ai/api/v1",
+        ),
+        OPENROUTER_SITE_URL=os.getenv("OPENROUTER_SITE_URL") or None,
+        OPENROUTER_APP_NAME=os.getenv("OPENROUTER_APP_NAME") or None,
         RAG_CHUNK_SIZE=int(os.getenv("RAG_CHUNK_SIZE", "500")),
         RAG_CHUNK_OVERLAP=int(os.getenv("RAG_CHUNK_OVERLAP", "50")),
         RAG_TOP_K=int(os.getenv("RAG_TOP_K", "3")),
