@@ -14,6 +14,8 @@ class AgentExecutionResult:
     estimated_cost: float | None = None
     fallback_used: bool = False
     llm_error: str | None = None
+    llm_retry_count: int = 0
+    llm_latency_ms: int | None = None
 
     @classmethod
     def from_llm_response(cls, response: LLMResponse) -> "AgentExecutionResult":
@@ -27,4 +29,6 @@ class AgentExecutionResult:
             estimated_cost=response.estimated_cost,
             fallback_used=response.fallback_used,
             llm_error=response.error,
+            llm_retry_count=response.retry_count,
+            llm_latency_ms=response.latency_ms,
         )

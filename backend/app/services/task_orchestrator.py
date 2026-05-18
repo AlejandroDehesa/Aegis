@@ -100,6 +100,7 @@ class TaskOrchestrationResult:
     final_output: str
     execution_trace: list[dict[str, object]]
     rag_debug: OrchestrationRagDebugInfo
+    llm_usage_summary: dict[str, object] | None = None
 
 
 class TaskOrchestrationError(Exception):
@@ -390,6 +391,7 @@ def _build_trace_step(
     started_at: datetime | None,
     finished_at: datetime | None,
     llm_metadata: dict[str, object] | None = None,
+    llm_usage_summary: dict[str, object] | None = None,
 ) -> dict[str, object]:
     duration_ms = _calculate_duration_ms(started_at, finished_at)
     step = {
@@ -415,6 +417,10 @@ def _build_trace_step(
         step["llm_estimated_cost"] = llm_metadata.get("estimated_cost")
         step["llm_fallback_used"] = llm_metadata.get("fallback_used")
         step["llm_error"] = llm_metadata.get("error")
+        step["llm_retry_count"] = llm_metadata.get("retry_count")
+        step["llm_latency_ms"] = llm_metadata.get("latency_ms")
+    if llm_usage_summary is not None:
+        step["llm_usage_summary"] = llm_usage_summary
     return step
 
 
@@ -429,6 +435,8 @@ def _extract_agent_output(step_output: object) -> tuple[str, dict[str, object] |
             "estimated_cost": step_output.estimated_cost,
             "fallback_used": step_output.fallback_used,
             "error": step_output.llm_error,
+            "retry_count": step_output.llm_retry_count,
+            "latency_ms": step_output.llm_latency_ms,
         }
         return step_output.text, llm_metadata
 
@@ -436,6 +444,78 @@ def _extract_agent_output(step_output: object) -> tuple[str, dict[str, object] |
         return step_output, None
 
     return str(step_output), None
+
+
+def _build_llm_usage_summary(execution_trace: list[dict[str, object]]) -> dict[str, object]:
+    prompt_tokens_total = 0
+    completion_tokens_total = 0
+    total_tokens_total = 0
+    estimated_cost_total = 0.0
+    estimated_cost_available = False
+    providers: set[str] = set()
+    models: set[str] = set()
+    fallback_used_any = False
+    errors_count = 0
+    retries_total = 0
+    latency_ms_total = 0
+    latency_samples = 0
+
+    for step in execution_trace:
+        if step.get("step_name") != "execution":
+            continue
+
+        provider = step.get("llm_provider")
+        if isinstance(provider, str) and provider.strip():
+            providers.add(provider.strip())
+
+        model = step.get("llm_model")
+        if isinstance(model, str) and model.strip():
+            models.add(model.strip())
+
+        prompt_tokens = step.get("llm_prompt_tokens")
+        if isinstance(prompt_tokens, int):
+            prompt_tokens_total += prompt_tokens
+
+        completion_tokens = step.get("llm_completion_tokens")
+        if isinstance(completion_tokens, int):
+            completion_tokens_total += completion_tokens
+
+        total_tokens = step.get("llm_total_tokens")
+        if isinstance(total_tokens, int):
+            total_tokens_total += total_tokens
+
+        estimated_cost = step.get("llm_estimated_cost")
+        if isinstance(estimated_cost, (int, float)):
+            estimated_cost_total += float(estimated_cost)
+            estimated_cost_available = True
+
+        if bool(step.get("llm_fallback_used")):
+            fallback_used_any = True
+
+        if step.get("llm_error"):
+            errors_count += 1
+
+        retry_count = step.get("llm_retry_count")
+        if isinstance(retry_count, int) and retry_count > 0:
+            retries_total += retry_count
+
+        latency_ms = step.get("llm_latency_ms")
+        if isinstance(latency_ms, int) and latency_ms >= 0:
+            latency_ms_total += latency_ms
+            latency_samples += 1
+
+    return {
+        "total_prompt_tokens": prompt_tokens_total,
+        "total_completion_tokens": completion_tokens_total,
+        "total_tokens": total_tokens_total,
+        "estimated_cost": estimated_cost_total if estimated_cost_available else None,
+        "providers_used": sorted(providers),
+        "models_used": sorted(models),
+        "fallback_used_any": fallback_used_any,
+        "llm_errors_count": errors_count,
+        "llm_retry_total": retries_total,
+        "llm_average_latency_ms": (latency_ms_total // latency_samples) if latency_samples else None,
+    }
 
 
 def orchestrate_task(
@@ -455,6 +535,7 @@ def orchestrate_task(
     execution_trace: list[dict[str, object]] = []
     previous_output: str | None = None
     step_index = 1
+    cumulative_llm_total_tokens = 0
 
     classification_started = _utc_now()
     classification_finished = _utc_now()
@@ -572,6 +653,36 @@ def orchestrate_task(
                 llm_metadata=llm_metadata,
             )
         )
+        if llm_metadata is not None:
+            step_tokens = llm_metadata.get("total_tokens")
+            if isinstance(step_tokens, int):
+                cumulative_llm_total_tokens += step_tokens
+                hard_limit = int(getattr(settings, "LLM_TASK_TOTAL_TOKEN_HARD_LIMIT", 10000))
+                if hard_limit > 0 and cumulative_llm_total_tokens > hard_limit:
+                    step_index += 1
+                    failed_started_at = _utc_now()
+                    failed_finished_at = _utc_now()
+                    execution_trace.append(
+                        _build_trace_step(
+                            step_index=step_index,
+                            step_name="execution",
+                            agent_name=agent_name,
+                            status="failed",
+                            used_previous_output=True,
+                            short_summary=None,
+                            error_message=(
+                                "Task exceeded LLM_TASK_TOTAL_TOKEN_HARD_LIMIT "
+                                f"({cumulative_llm_total_tokens} > {hard_limit})."
+                            ),
+                            started_at=failed_started_at,
+                            finished_at=failed_finished_at,
+                        )
+                    )
+                    raise TaskOrchestrationError(
+                        "Task orchestration exceeded hard LLM token limit.",
+                        execution_trace=execution_trace,
+                        rag_debug=rag_debug,
+                    )
         step_index += 1
         previous_output = step_output
 
@@ -598,8 +709,42 @@ def orchestrate_task(
             rag_debug=rag_debug,
         )
 
+    llm_usage_summary = _build_llm_usage_summary(execution_trace)
+    soft_limit = int(getattr(settings, "LLM_TASK_TOTAL_TOKEN_SOFT_LIMIT", 6000))
+    hard_limit = int(getattr(settings, "LLM_TASK_TOTAL_TOKEN_HARD_LIMIT", 10000))
+    llm_usage_summary["soft_limit"] = soft_limit
+    llm_usage_summary["hard_limit"] = hard_limit
+    llm_usage_summary["soft_limit_exceeded"] = (
+        soft_limit > 0 and llm_usage_summary["total_tokens"] > soft_limit
+    )
+    llm_usage_summary["hard_limit_exceeded"] = (
+        hard_limit > 0 and llm_usage_summary["total_tokens"] > hard_limit
+    )
+
+    summary_started_at = _utc_now()
+    summary_finished_at = _utc_now()
+    execution_trace.append(
+        _build_trace_step(
+            step_index=step_index,
+            step_name="llm_usage_summary",
+            agent_name="LLMService",
+            status="completed",
+            used_previous_output=False,
+            short_summary=(
+                "LLM usage summary: "
+                f"total_tokens={llm_usage_summary['total_tokens']}, "
+                f"providers={','.join(llm_usage_summary['providers_used']) or 'none'}."
+            ),
+            error_message=None,
+            started_at=summary_started_at,
+            finished_at=summary_finished_at,
+            llm_usage_summary=llm_usage_summary,
+        )
+    )
+
     return TaskOrchestrationResult(
         final_output=previous_output or "",
         execution_trace=execution_trace,
         rag_debug=rag_debug,
+        llm_usage_summary=llm_usage_summary,
     )

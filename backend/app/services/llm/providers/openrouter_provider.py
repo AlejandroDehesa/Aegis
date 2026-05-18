@@ -70,6 +70,30 @@ class OpenRouterProvider(LLMProvider):
             timeout=float(getattr(self._settings, "LLM_TIMEOUT_SECONDS", 30)),
         )
 
+    @staticmethod
+    def _is_transient_error(error: Exception) -> tuple[bool, int | None]:
+        status_code = getattr(error, "status_code", None)
+        if isinstance(status_code, int):
+            if status_code == 429 or status_code >= 500:
+                return True, status_code
+            return False, status_code
+
+        message = str(error).lower()
+        transient_tokens = (
+            "timeout",
+            "timed out",
+            "temporar",
+            "connection",
+            "rate limit",
+            "429",
+            "502",
+            "503",
+            "504",
+            "server error",
+            "service unavailable",
+        )
+        return any(token in message for token in transient_tokens), status_code
+
     def generate(self, request: LLMRequest) -> LLMResponse:
         enable_real_calls = bool(getattr(self._settings, "LLM_ENABLE_REAL_CALLS", False))
         metadata = request.metadata or {}
@@ -94,7 +118,13 @@ class OpenRouterProvider(LLMProvider):
         api_key = str(getattr(self._settings, "OPENROUTER_API_KEY", "") or "").strip()
         if not api_key:
             raise LLMProviderError(
-                "OPENROUTER_API_KEY is required when LLM_PROVIDER=openrouter and real calls are enabled."
+                "OPENROUTER_API_KEY is required when LLM_PROVIDER=openrouter and real calls are enabled.",
+                configuration=True,
+            )
+        if not model:
+            raise LLMProviderError(
+                "OPENROUTER_MODEL is required when LLM_PROVIDER=openrouter and real calls are enabled.",
+                configuration=True,
             )
 
         messages = [{"role": msg.role, "content": msg.content} for msg in _to_messages(request)]
@@ -108,7 +138,12 @@ class OpenRouterProvider(LLMProvider):
                 temperature=temperature,
             )
         except Exception as error:
-            raise LLMProviderError(f"OpenRouter request failed: {error}") from error
+            transient, status_code = self._is_transient_error(error)
+            raise LLMProviderError(
+                f"OpenRouter request failed: {error}",
+                transient=transient,
+                status_code=status_code,
+            ) from error
 
         choices = getattr(completion, "choices", []) or []
         first_choice = choices[0] if choices else None

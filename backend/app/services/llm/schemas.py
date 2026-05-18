@@ -33,3 +33,5 @@ class LLMResponse:
     raw: dict[str, object] | None = None
     fallback_used: bool = False
     error: str | None = None
+    retry_count: int = 0
+    latency_ms: int | None = None

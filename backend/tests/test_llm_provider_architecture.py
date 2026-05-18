@@ -20,6 +20,14 @@ def _build_settings(**overrides: object) -> SimpleNamespace:
         "LLM_TIMEOUT_SECONDS": 30,
         "LLM_MAX_TOKENS": 1200,
         "LLM_TEMPERATURE": 0.3,
+        "LLM_RETRY_ATTEMPTS": 1,
+        "LLM_RETRY_BACKOFF_SECONDS": 0.0,
+        "LLM_REQUEST_HARD_MAX_TOKENS": 2000,
+        "LLM_TASK_TOTAL_TOKEN_SOFT_LIMIT": 6000,
+        "LLM_TASK_TOTAL_TOKEN_HARD_LIMIT": 10000,
+        "LLM_ENABLE_COST_ESTIMATION": True,
+        "LLM_COST_PER_1M_INPUT_TOKENS": None,
+        "LLM_COST_PER_1M_OUTPUT_TOKENS": None,
         "OPENROUTER_API_KEY": None,
         "OPENROUTER_MODEL": "openrouter/test-model",
         "OPENROUTER_BASE_URL": "https://openrouter.ai/api/v1",
@@ -195,10 +203,11 @@ class LLMProviderArchitectureTests(unittest.TestCase):
         )
         response = service.generate(LLMRequest(prompt="hola"), fallback_text="service fallback")
 
-        self.assertEqual(response.provider, "template")
+        self.assertEqual(response.provider, "openrouter")
         self.assertEqual(response.text, "service fallback")
         self.assertTrue(response.fallback_used)
         self.assertIn("forced provider error", response.error or "")
+        self.assertEqual((response.raw or {}).get("effective_provider"), "template")
 
     def test_no_real_openrouter_call_in_unit_tests(self) -> None:
         settings = _build_settings(LLM_PROVIDER="template")

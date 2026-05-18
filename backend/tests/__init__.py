@@ -15,6 +15,12 @@ os.environ["OPENROUTER_MODEL"] = "test-model"
 os.environ["LLM_MAX_TOKENS"] = "500"
 os.environ["LLM_TEMPERATURE"] = "0.2"
 os.environ["LLM_TIMEOUT_SECONDS"] = "30"
+os.environ["LLM_RETRY_ATTEMPTS"] = "0"
+os.environ["LLM_RETRY_BACKOFF_SECONDS"] = "0"
+os.environ["LLM_REQUEST_HARD_MAX_TOKENS"] = "2000"
+os.environ["LLM_TASK_TOTAL_TOKEN_SOFT_LIMIT"] = "6000"
+os.environ["LLM_TASK_TOTAL_TOKEN_HARD_LIMIT"] = "10000"
+os.environ["LLM_ENABLE_COST_ESTIMATION"] = "true"
 
 
 def _refresh_loaded_settings_if_needed() -> None:

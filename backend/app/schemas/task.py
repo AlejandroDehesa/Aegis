@@ -60,6 +60,9 @@ class TaskExecutionStepRead(BaseModel):
     llm_estimated_cost: float | None = None
     llm_fallback_used: bool | None = None
     llm_error: str | None = None
+    llm_retry_count: int | None = None
+    llm_latency_ms: int | None = None
+    llm_usage_summary: dict[str, object] | None = None
 
 
 class TaskRead(BaseModel):

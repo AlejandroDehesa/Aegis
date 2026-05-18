@@ -33,6 +33,14 @@ class Settings(BaseModel):
     LLM_TIMEOUT_SECONDS: int = 30
     LLM_MAX_TOKENS: int = 1200
     LLM_TEMPERATURE: float = 0.3
+    LLM_RETRY_ATTEMPTS: int = 1
+    LLM_RETRY_BACKOFF_SECONDS: float = 0.5
+    LLM_REQUEST_HARD_MAX_TOKENS: int = 2000
+    LLM_TASK_TOTAL_TOKEN_SOFT_LIMIT: int = 6000
+    LLM_TASK_TOTAL_TOKEN_HARD_LIMIT: int = 10000
+    LLM_ENABLE_COST_ESTIMATION: bool = True
+    LLM_COST_PER_1M_INPUT_TOKENS: float | None = None
+    LLM_COST_PER_1M_OUTPUT_TOKENS: float | None = None
     OPENROUTER_API_KEY: str | None = None
     OPENROUTER_MODEL: str | None = None
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
@@ -75,6 +83,22 @@ def get_settings() -> Settings:
         LLM_TIMEOUT_SECONDS=int(os.getenv("LLM_TIMEOUT_SECONDS", "30")),
         LLM_MAX_TOKENS=int(os.getenv("LLM_MAX_TOKENS", "1200")),
         LLM_TEMPERATURE=float(os.getenv("LLM_TEMPERATURE", "0.3")),
+        LLM_RETRY_ATTEMPTS=int(os.getenv("LLM_RETRY_ATTEMPTS", "1")),
+        LLM_RETRY_BACKOFF_SECONDS=float(os.getenv("LLM_RETRY_BACKOFF_SECONDS", "0.5")),
+        LLM_REQUEST_HARD_MAX_TOKENS=int(os.getenv("LLM_REQUEST_HARD_MAX_TOKENS", "2000")),
+        LLM_TASK_TOTAL_TOKEN_SOFT_LIMIT=int(os.getenv("LLM_TASK_TOTAL_TOKEN_SOFT_LIMIT", "6000")),
+        LLM_TASK_TOTAL_TOKEN_HARD_LIMIT=int(os.getenv("LLM_TASK_TOTAL_TOKEN_HARD_LIMIT", "10000")),
+        LLM_ENABLE_COST_ESTIMATION=_env_bool("LLM_ENABLE_COST_ESTIMATION", True),
+        LLM_COST_PER_1M_INPUT_TOKENS=(
+            float(os.getenv("LLM_COST_PER_1M_INPUT_TOKENS"))
+            if os.getenv("LLM_COST_PER_1M_INPUT_TOKENS") not in {None, ""}
+            else None
+        ),
+        LLM_COST_PER_1M_OUTPUT_TOKENS=(
+            float(os.getenv("LLM_COST_PER_1M_OUTPUT_TOKENS"))
+            if os.getenv("LLM_COST_PER_1M_OUTPUT_TOKENS") not in {None, ""}
+            else None
+        ),
         OPENROUTER_API_KEY=os.getenv("OPENROUTER_API_KEY") or None,
         OPENROUTER_MODEL=os.getenv("OPENROUTER_MODEL") or None,
         OPENROUTER_BASE_URL=os.getenv(

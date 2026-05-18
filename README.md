@@ -223,6 +223,15 @@ Notas:
 - Los fallbacks template siguen activos y estructurados para funcionamiento seguro sin llamadas reales.
 - La suite de tests automatizada usa template/mock y no llama a OpenRouter real.
 
+### LLM limits and observability (v0.2 Fase 4)
+
+- `LLM_REQUEST_HARD_MAX_TOKENS` limita `max_tokens` efectivo por request.
+- `LLM_RETRY_ATTEMPTS` + `LLM_RETRY_BACKOFF_SECONDS` aplican retries controlados solo a errores transitorios del provider real.
+- Si OpenRouter falla, Aegis usa fallback template seguro y registra error sanitizado en trace.
+- `execution_trace` incluye metadata LLM por paso: provider, model, tokens, estimated_cost, fallback, error, retry_count y latency.
+- Se agrega un paso `llm_usage_summary` por tarea con totales de tokens, providers/models usados, fallback global y conteo de errores.
+- `estimated_cost` solo se calcula si hay datos suficientes y precios configurados explícitamente.
+
 ## Decisiones tecnicas
 
 - Enfoque backend-first para priorizar flujo de ejecucion y trazabilidad.
