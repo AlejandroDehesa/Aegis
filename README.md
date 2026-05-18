@@ -215,6 +215,14 @@ Notas:
 - La metadata LLM (`provider`, `model`, `tokens`, `fallback/error`) se guarda en `execution_trace`.
 - `OPENROUTER_API_KEY` permanece solo en backend.
 
+### Agent prompt design
+
+- Cada agente tiene prompt especializado (comparison, analysis, planning, summary, research, general).
+- Los prompts intentan preservar idioma del usuario (ES/EN) y exigen salida estructurada.
+- `ResearchAgent` trabaja solo con contexto disponible y no finge acceso a internet ni fuentes externas.
+- Los fallbacks template siguen activos y estructurados para funcionamiento seguro sin llamadas reales.
+- La suite de tests automatizada usa template/mock y no llama a OpenRouter real.
+
 ## Decisiones tecnicas
 
 - Enfoque backend-first para priorizar flujo de ejecucion y trazabilidad.
