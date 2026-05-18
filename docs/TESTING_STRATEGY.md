@@ -18,6 +18,12 @@ cd frontend && npm run check:smoke && npm run build
 docker compose run --rm backend python -m scripts.seed_demo_data
 ```
 
+## Aislamiento LLM en tests
+- La suite backend fuerza `LLM_PROVIDER=template` y `LLM_ENABLE_REAL_CALLS=false` desde `backend/tests/__init__.py`.
+- Esto evita que los tests dependan del `.env` local y bloquea llamadas reales a OpenRouter durante `unittest discover`.
+- La validacion real de OpenRouter se realiza de forma manual y controlada en la fase 2.1, nunca en la suite automatica.
+- Nunca incluir `OPENROUTER_API_KEY` en Git, README o artefactos de test.
+
 ## Reset demo local
 ```bash
 docker compose down -v
