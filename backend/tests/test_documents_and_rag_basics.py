@@ -132,6 +132,7 @@ class DocumentsAndRagBasicsTests(unittest.TestCase):
         self.assertEqual(chunks, [])
 
     def test_retrieve_relevant_chunks_filters_by_min_score(self) -> None:
+        user_id = uuid.uuid4()
         with (
             patch("app.services.retrieval_service.generate_embedding", return_value=[0.1, 0.2]),
             patch(
@@ -140,13 +141,13 @@ class DocumentsAndRagBasicsTests(unittest.TestCase):
                     {
                         "id": "chunk-high",
                         "text": "high score chunk",
-                        "metadata": {"document_title": "Doc A", "user_id": "u1"},
+                        "metadata": {"document_title": "Doc A", "user_id": str(user_id)},
                         "score": 0.91,
                     },
                     {
                         "id": "chunk-low",
                         "text": "low score chunk",
-                        "metadata": {"document_title": "Doc B", "user_id": "u1"},
+                        "metadata": {"document_title": "Doc B", "user_id": str(user_id)},
                         "score": 0.05,
                     },
                 ],
@@ -154,7 +155,7 @@ class DocumentsAndRagBasicsTests(unittest.TestCase):
         ):
             chunks = retrieve_relevant_chunks(
                 query="deployment",
-                user_id=uuid.uuid4(),
+                user_id=user_id,
                 top_k=3,
                 min_score=0.2,
             )

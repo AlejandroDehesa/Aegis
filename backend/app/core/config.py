@@ -48,9 +48,11 @@ class Settings(BaseModel):
     OPENROUTER_APP_NAME: str | None = "Aegis"
     RAG_CHUNK_SIZE: int = 500
     RAG_CHUNK_OVERLAP: int = 50
+    RAG_ENABLED: bool = True
     RAG_TOP_K: int = 3
     RAG_MIN_SCORE: float = 0.2
     RAG_MAX_CONTEXT_CHARS: int = 1800
+    RAG_TRACE_SNIPPET_CHARS: int = 300
     MEMORY_RECENT_TASK_LIMIT: int = 3
     MEMORY_MAX_CONTEXT_CHARS: int = 1200
     FULL_CONTEXT_MAX_CHARS: int = 2600
@@ -109,9 +111,11 @@ def get_settings() -> Settings:
         OPENROUTER_APP_NAME=os.getenv("OPENROUTER_APP_NAME") or None,
         RAG_CHUNK_SIZE=int(os.getenv("RAG_CHUNK_SIZE", "500")),
         RAG_CHUNK_OVERLAP=int(os.getenv("RAG_CHUNK_OVERLAP", "50")),
+        RAG_ENABLED=_env_bool("RAG_ENABLED", True),
         RAG_TOP_K=int(os.getenv("RAG_TOP_K", "3")),
         RAG_MIN_SCORE=float(os.getenv("RAG_MIN_SCORE", "0.2")),
         RAG_MAX_CONTEXT_CHARS=int(os.getenv("RAG_MAX_CONTEXT_CHARS", "1800")),
+        RAG_TRACE_SNIPPET_CHARS=int(os.getenv("RAG_TRACE_SNIPPET_CHARS", "300")),
         MEMORY_RECENT_TASK_LIMIT=int(os.getenv("MEMORY_RECENT_TASK_LIMIT", "3")),
         MEMORY_MAX_CONTEXT_CHARS=int(os.getenv("MEMORY_MAX_CONTEXT_CHARS", "1200")),
         FULL_CONTEXT_MAX_CHARS=int(os.getenv("FULL_CONTEXT_MAX_CHARS", "2600")),

@@ -70,6 +70,13 @@ def _normalize_trace_step(raw_step: Any, fallback_agent_name: str) -> dict[str, 
         "llm_retry_count": raw_step.get("llm_retry_count"),
         "llm_latency_ms": raw_step.get("llm_latency_ms"),
         "llm_usage_summary": raw_step.get("llm_usage_summary"),
+        "rag_enabled": raw_step.get("rag_enabled"),
+        "rag_context_used": raw_step.get("rag_context_used"),
+        "rag_retrieved_chunks_count": raw_step.get("rag_retrieved_chunks_count"),
+        "rag_documents_used": raw_step.get("rag_documents_used"),
+        "rag_error": raw_step.get("rag_error"),
+        "rag_context_chars": raw_step.get("rag_context_chars"),
+        "rag_snippets": raw_step.get("rag_snippets"),
     }
     return normalized
 

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import re
 import unicodedata
@@ -87,6 +87,27 @@ class OrchestrationRagDebugInfo:
     memory_context_truncated: bool
     full_context_truncated: bool
     retrieval_error: str | None = None
+    enabled: bool = True
+    retrieved_chunks_count: int = 0
+    documents_used: list[str] = field(default_factory=list)
+    empty_reason: str | None = None
+    context_chars: int = 0
+    trace_snippets: list[str] = field(default_factory=list)
+
+
+@dataclass
+class RAGContext:
+    enabled: bool
+    query: str
+    retrieved_chunks: list[RetrievedChunk]
+    retrieved_chunks_count: int
+    documents_used: list[str]
+    empty_reason: str | None
+    context_text: str | None
+    context_chars: int
+    snippets: list[str]
+    truncated: bool
+    error: str | None = None
 
 
 @dataclass
@@ -307,11 +328,12 @@ def _prepare_combined_context(
     *,
     top_k: int | None = None,
     min_score: float | None = None,
-) -> tuple[str | None, OrchestrationRagDebugInfo]:
+) -> tuple[str | None, OrchestrationRagDebugInfo, RAGContext]:
     query = _build_retrieval_query(task)
     effective_top_k = top_k or settings.RAG_TOP_K
     effective_min_score = settings.RAG_MIN_SCORE if min_score is None else min_score
 
+    rag_enabled = bool(getattr(settings, "RAG_ENABLED", True))
     empty_debug = OrchestrationRagDebugInfo(
         query=query,
         top_k=effective_top_k,
@@ -325,13 +347,25 @@ def _prepare_combined_context(
         memory_context_truncated=False,
         full_context_truncated=False,
         retrieval_error=None,
+        enabled=rag_enabled,
+        retrieved_chunks_count=0,
+        documents_used=[],
+        empty_reason=None,
+        context_chars=0,
+        trace_snippets=[],
     )
 
     rag_context = None
     rag_chunks: list[RetrievedChunk] = []
     rag_truncated = False
+    rag_empty_reason: str | None = None
+    trace_snippets: list[str] = []
 
-    if query:
+    if not rag_enabled:
+        rag_empty_reason = "rag_disabled"
+    elif not query:
+        rag_empty_reason = "empty_query"
+    else:
         try:
             rag_chunks = retrieve_relevant_chunks(
                 query=query,
@@ -343,8 +377,19 @@ def _prepare_combined_context(
             rag_context = rag_result.text
             rag_chunks = rag_result.used_chunks
             rag_truncated = rag_result.truncated
+            if not rag_chunks:
+                rag_empty_reason = "no_results"
         except Exception as error:
             empty_debug.retrieval_error = str(error)
+            rag_empty_reason = "retrieval_failed"
+
+    rag_documents_used = sorted({chunk.document_title for chunk in rag_chunks if chunk.document_title})
+    snippet_chars = int(getattr(settings, "RAG_TRACE_SNIPPET_CHARS", 300))
+    for chunk in rag_chunks[:3]:
+        snippet = " ".join(chunk.text.split())
+        if len(snippet) > snippet_chars:
+            snippet = f"{snippet[:snippet_chars].rstrip()}..."
+        trace_snippets.append(snippet)
 
     memory_result = get_recent_task_context_result(
         db,
@@ -354,6 +399,20 @@ def _prepare_combined_context(
     full_context_result = build_full_context(
         rag_context,
         memory_result.text,
+    )
+
+    rag_context_contract = RAGContext(
+        enabled=rag_enabled,
+        query=query,
+        retrieved_chunks=rag_chunks,
+        retrieved_chunks_count=len(rag_chunks),
+        documents_used=rag_documents_used,
+        empty_reason=rag_empty_reason,
+        context_text=rag_context,
+        context_chars=len(rag_context or ""),
+        snippets=trace_snippets,
+        truncated=rag_truncated,
+        error=empty_debug.retrieval_error,
     )
 
     return full_context_result.text, OrchestrationRagDebugInfo(
@@ -369,7 +428,13 @@ def _prepare_combined_context(
         memory_context_truncated=memory_result.truncated,
         full_context_truncated=full_context_result.truncated,
         retrieval_error=empty_debug.retrieval_error,
-    )
+        enabled=rag_enabled,
+        retrieved_chunks_count=len(rag_chunks),
+        documents_used=rag_documents_used,
+        empty_reason=rag_empty_reason,
+        context_chars=len(rag_context or ""),
+        trace_snippets=trace_snippets,
+    ), rag_context_contract
 
 
 def _get_pipeline(task_type: str) -> list[tuple[str, str]]:
@@ -392,6 +457,7 @@ def _build_trace_step(
     finished_at: datetime | None,
     llm_metadata: dict[str, object] | None = None,
     llm_usage_summary: dict[str, object] | None = None,
+    rag_metadata: dict[str, object] | None = None,
 ) -> dict[str, object]:
     duration_ms = _calculate_duration_ms(started_at, finished_at)
     step = {
@@ -421,6 +487,14 @@ def _build_trace_step(
         step["llm_latency_ms"] = llm_metadata.get("latency_ms")
     if llm_usage_summary is not None:
         step["llm_usage_summary"] = llm_usage_summary
+    if rag_metadata is not None:
+        step["rag_enabled"] = rag_metadata.get("rag_enabled")
+        step["rag_context_used"] = rag_metadata.get("rag_context_used")
+        step["rag_retrieved_chunks_count"] = rag_metadata.get("rag_retrieved_chunks_count")
+        step["rag_documents_used"] = rag_metadata.get("rag_documents_used")
+        step["rag_error"] = rag_metadata.get("rag_error")
+        step["rag_context_chars"] = rag_metadata.get("rag_context_chars")
+        step["rag_snippets"] = rag_metadata.get("rag_snippets")
     return step
 
 
@@ -525,12 +599,29 @@ def orchestrate_task(
     top_k: int | None = None,
     min_score: float | None = None,
 ) -> TaskOrchestrationResult:
-    base_context, rag_debug = _prepare_combined_context(
+    prepared_context = _prepare_combined_context(
         task,
         db,
         top_k=top_k,
         min_score=min_score,
     )
+    if isinstance(prepared_context, tuple) and len(prepared_context) == 2:
+        base_context, rag_debug = prepared_context
+        rag_context = RAGContext(
+            enabled=bool(getattr(settings, "RAG_ENABLED", True)),
+            query=_build_retrieval_query(task),
+            retrieved_chunks=[],
+            retrieved_chunks_count=0,
+            documents_used=[],
+            empty_reason="compat_no_rag_context",
+            context_text=None,
+            context_chars=0,
+            snippets=[],
+            truncated=False,
+            error=None,
+        )
+    else:
+        base_context, rag_debug, rag_context = prepared_context
     pipeline = _get_pipeline(task.task_type)
     execution_trace: list[dict[str, object]] = []
     previous_output: str | None = None
@@ -568,6 +659,45 @@ def orchestrate_task(
             error_message=None,
             started_at=selection_started,
             finished_at=selection_finished,
+        )
+    )
+    step_index += 1
+
+    if not rag_context.enabled:
+        retrieval_status = "skipped"
+        retrieval_summary = "RAG retrieval skipped because RAG is disabled."
+    elif rag_context.error:
+        retrieval_status = "failed"
+        retrieval_summary = "RAG retrieval failed; continuing without document context."
+    else:
+        retrieval_status = "completed"
+        retrieval_summary = (
+            "Retrieved "
+            f"{rag_context.retrieved_chunks_count} chunks from {len(rag_context.documents_used)} documents."
+        )
+
+    retrieval_started = _utc_now()
+    retrieval_finished = _utc_now()
+    execution_trace.append(
+        _build_trace_step(
+            step_index=step_index,
+            step_name="document_retrieval",
+            agent_name="RAGRetriever",
+            status=retrieval_status,
+            used_previous_output=False,
+            short_summary=retrieval_summary,
+            error_message=rag_context.error if retrieval_status == "failed" else None,
+            started_at=retrieval_started,
+            finished_at=retrieval_finished,
+            rag_metadata={
+                "rag_enabled": rag_context.enabled,
+                "rag_context_used": bool(rag_context.context_text),
+                "rag_retrieved_chunks_count": rag_context.retrieved_chunks_count,
+                "rag_documents_used": rag_context.documents_used,
+                "rag_error": rag_context.error,
+                "rag_context_chars": rag_context.context_chars,
+                "rag_snippets": rag_context.snippets,
+            },
         )
     )
     step_index += 1
@@ -651,6 +781,15 @@ def orchestrate_task(
                 started_at=step_started_at,
                 finished_at=step_finished_at,
                 llm_metadata=llm_metadata,
+                rag_metadata={
+                    "rag_enabled": rag_context.enabled,
+                    "rag_context_used": bool(rag_context.context_text),
+                    "rag_retrieved_chunks_count": rag_context.retrieved_chunks_count,
+                    "rag_documents_used": rag_context.documents_used,
+                    "rag_error": rag_context.error,
+                    "rag_context_chars": rag_context.context_chars,
+                    "rag_snippets": None,
+                },
             )
         )
         if llm_metadata is not None:

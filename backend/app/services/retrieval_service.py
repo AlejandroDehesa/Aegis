@@ -53,24 +53,31 @@ def retrieve_relevant_chunks(
     requested_top_k = top_k or settings.RAG_TOP_K
     score_threshold = settings.RAG_MIN_SCORE if min_score is None else min_score
     query_embedding = generate_embedding(normalized_query)
+    user_id_str = str(user_id)
     raw_results = query_records(
         query_embedding=query_embedding,
-        user_id=str(user_id),
+        user_id=user_id_str,
         top_k=max(requested_top_k * 3, requested_top_k),
     )
 
-    chunks = [
-        RetrievedChunk(
-            chunk_id=result["id"],
-            document_id=result["metadata"].get("document_id"),
-            document_title=result["metadata"].get("document_title", "Untitled document"),
-            source_name=result["metadata"].get("source_name") or None,
-            chunk_index=_parse_chunk_index(result["metadata"].get("chunk_index")),
-            text=result["text"],
-            score=float(result.get("score", 0.0)),
+    chunks: list[RetrievedChunk] = []
+    for result in raw_results:
+        metadata = result.get("metadata", {}) or {}
+        record_user_id = str(metadata.get("user_id", "") or "").strip()
+        if record_user_id and record_user_id != user_id_str:
+            continue
+
+        chunks.append(
+            RetrievedChunk(
+                chunk_id=result["id"],
+                document_id=metadata.get("document_id"),
+                document_title=metadata.get("document_title", "Untitled document"),
+                source_name=metadata.get("source_name") or None,
+                chunk_index=_parse_chunk_index(metadata.get("chunk_index")),
+                text=result["text"],
+                score=float(result.get("score", 0.0)),
+            )
         )
-        for result in raw_results
-    ]
 
     filtered_chunks = [chunk for chunk in chunks if chunk.score >= score_threshold]
     return filtered_chunks[:requested_top_k]

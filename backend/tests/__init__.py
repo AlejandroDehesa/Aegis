@@ -21,6 +21,11 @@ os.environ["LLM_REQUEST_HARD_MAX_TOKENS"] = "2000"
 os.environ["LLM_TASK_TOTAL_TOKEN_SOFT_LIMIT"] = "6000"
 os.environ["LLM_TASK_TOTAL_TOKEN_HARD_LIMIT"] = "10000"
 os.environ["LLM_ENABLE_COST_ESTIMATION"] = "true"
+os.environ["RAG_ENABLED"] = "true"
+os.environ["RAG_TOP_K"] = "5"
+os.environ["RAG_MIN_SCORE"] = "0.0"
+os.environ["RAG_MAX_CONTEXT_CHARS"] = "4000"
+os.environ["RAG_TRACE_SNIPPET_CHARS"] = "300"
 
 
 def _refresh_loaded_settings_if_needed() -> None:

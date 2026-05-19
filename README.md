@@ -232,6 +232,14 @@ Notas:
 - Se agrega un paso `llm_usage_summary` por tarea con totales de tokens, providers/models usados, fallback global y conteo de errores.
 - `estimated_cost` solo se calcula si hay datos suficientes y precios configurados explícitamente.
 
+### Document RAG in task execution (v0.2 Fase 5)
+
+- Flujo: `upload document -> chunking -> embeddings/vector store -> retrieval -> agent prompt context -> execution trace`.
+- El retrieval usa `task.title + task.description` y respeta aislamiento por `user_id`.
+- El trace incluye un paso `document_retrieval` con chunks recuperados, documentos usados, errores y tamaño de contexto.
+- Si no hay resultados o falla retrieval, la tarea continúa con fallback controlado sin bloquear ejecución.
+- RAG no navega por internet ni inventa fuentes externas; usa solo documentos del usuario actual.
+
 ## Decisiones tecnicas
 
 - Enfoque backend-first para priorizar flujo de ejecucion y trazabilidad.

@@ -58,8 +58,14 @@ def _compose_prompt(
 ) -> str:
     language_hint = _detect_language_hint(title, description, retrieved_context)
     context_block = build_retrieved_context_block(retrieved_context)
+    has_document_context = bool(retrieved_context and retrieved_context.strip())
     format_lines = "\n".join(f"{index}. {item}" for index, item in enumerate(output_contract, start=1))
     rule_lines = "\n".join(f"- {rule}" for rule in extra_rules)
+    context_rule = (
+        "- Use the available document context as the primary source for claims when relevant."
+        if has_document_context
+        else "- No document context is available; explicitly state assumptions where needed."
+    )
 
     return (
         f"System role: You are {agent_name} inside Aegis.\n"
@@ -71,6 +77,7 @@ def _compose_prompt(
         "- Do not invent external facts or sources.\n"
         "- If context is missing, state assumptions explicitly.\n"
         "- Keep the answer concrete and directly useful for this task.\n"
+        f"{context_rule}\n"
         f"{rule_lines}\n\n"
         f"Task title: {title}\n"
         f"Task description: {description}\n\n"
