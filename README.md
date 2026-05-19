@@ -278,3 +278,56 @@ Notas:
   - `TASK_EXECUTION_MODE=sync` para suite de tests (determinista, sin polling extra).
 - En modo background no se reutiliza la sesion DB de la request; el worker abre su propia sesion.
 - Esta fase no usa Celery ni Redis todavia.
+
+### Production hardening foundations (v0.2 Fase 7)
+
+- Request/response hardening:
+  - middleware con `X-Request-ID` (se preserva si viene del cliente)
+  - logging estructurado basico por request (`method`, `path`, `status`, `duration_ms`)
+  - handlers globales de errores con formato consistente:
+    - `http_*`
+    - `validation_error`
+    - `internal_error`
+- Rate limiting in-memory (orientado a demo/portfolio):
+  - limite general por IP/ruta
+  - limite mas estricto para `login/signup`
+  - limite especifico para `POST /tasks/{task_id}/execute`
+- Upload hardening para documentos:
+  - validacion de tamano maximo
+  - extensiones y MIME permitidos por config
+  - rechazo de nombres peligrosos/path traversal
+  - rechazo de archivos vacios
+- Health endpoints:
+  - `GET /api/v1/health`
+  - `GET /api/v1/health/live`
+  - `GET /api/v1/health/ready` (readiness con check de DB)
+- CI basico en GitHub Actions:
+  - backend tests
+  - frontend test/build/smoke
+- Migraciones:
+  - estructura Alembic inicial incluida en repo (`alembic/`, `alembic.ini`)
+  - en produccion, preferir Alembic frente a `create_all`.
+
+Configuracion relevante:
+
+```env
+APP_ENV=development
+DEBUG=false
+LOG_LEVEL=INFO
+ENABLE_REQUEST_LOGGING=true
+
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_REQUESTS_PER_MINUTE=120
+RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE=20
+RATE_LIMIT_TASK_EXECUTE_PER_MINUTE=10
+
+DOCUMENT_MAX_UPLOAD_MB=5
+DOCUMENT_ALLOWED_EXTENSIONS=.txt,.md,.pdf
+DOCUMENT_ALLOWED_MIME_TYPES=text/plain,text/markdown,application/pdf
+```
+
+Notas de alcance:
+
+- `BackgroundTasks` no sustituye una cola distribuida.
+- El rate limit in-memory no es suficiente para despliegues con multiples replicas.
+- El almacenamiento documental actual no es un reemplazo de object storage (S3/GCS).

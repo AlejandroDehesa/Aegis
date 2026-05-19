@@ -21,6 +21,10 @@ class Settings(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     PROJECT_NAME: str = "Aegis Backend"
+    APP_ENV: str = "development"
+    DEBUG: bool = False
+    LOG_LEVEL: str = "INFO"
+    ENABLE_REQUEST_LOGGING: bool = True
     DATABASE_URL: str = Field(min_length=1)
     JWT_SECRET_KEY: str = Field(min_length=1)
     JWT_ALGORITHM: str = "HS256"
@@ -47,6 +51,13 @@ class Settings(BaseModel):
     OPENROUTER_SITE_URL: str | None = "http://localhost:5173"
     OPENROUTER_APP_NAME: str | None = "Aegis"
     TASK_EXECUTION_MODE: str = "background"
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_REQUESTS_PER_MINUTE: int = 120
+    RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE: int = 20
+    RATE_LIMIT_TASK_EXECUTE_PER_MINUTE: int = 10
+    DOCUMENT_MAX_UPLOAD_MB: int = 5
+    DOCUMENT_ALLOWED_EXTENSIONS: list[str] = [".txt", ".md"]
+    DOCUMENT_ALLOWED_MIME_TYPES: list[str] = ["text/plain", "text/markdown"]
     RAG_CHUNK_SIZE: int = 500
     RAG_CHUNK_OVERLAP: int = 50
     RAG_ENABLED: bool = True
@@ -71,6 +82,10 @@ class Settings(BaseModel):
 def get_settings() -> Settings:
     return Settings(
         PROJECT_NAME=os.getenv("PROJECT_NAME", "Aegis Backend"),
+        APP_ENV=os.getenv("APP_ENV", "development").strip().lower(),
+        DEBUG=_env_bool("DEBUG", False),
+        LOG_LEVEL=os.getenv("LOG_LEVEL", "INFO").strip().upper(),
+        ENABLE_REQUEST_LOGGING=_env_bool("ENABLE_REQUEST_LOGGING", True),
         DATABASE_URL=os.getenv("DATABASE_URL", ""),
         JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY", ""),
         JWT_ALGORITHM=os.getenv("JWT_ALGORITHM", "HS256"),
@@ -111,6 +126,28 @@ def get_settings() -> Settings:
         OPENROUTER_SITE_URL=os.getenv("OPENROUTER_SITE_URL") or None,
         OPENROUTER_APP_NAME=os.getenv("OPENROUTER_APP_NAME") or None,
         TASK_EXECUTION_MODE=os.getenv("TASK_EXECUTION_MODE", "background").strip().lower(),
+        RATE_LIMIT_ENABLED=_env_bool("RATE_LIMIT_ENABLED", True),
+        RATE_LIMIT_REQUESTS_PER_MINUTE=int(os.getenv("RATE_LIMIT_REQUESTS_PER_MINUTE", "120")),
+        RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE=int(
+            os.getenv("RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE", "20")
+        ),
+        RATE_LIMIT_TASK_EXECUTE_PER_MINUTE=int(
+            os.getenv("RATE_LIMIT_TASK_EXECUTE_PER_MINUTE", "10")
+        ),
+        DOCUMENT_MAX_UPLOAD_MB=int(os.getenv("DOCUMENT_MAX_UPLOAD_MB", "5")),
+        DOCUMENT_ALLOWED_EXTENSIONS=[
+            value.strip().lower()
+            for value in os.getenv("DOCUMENT_ALLOWED_EXTENSIONS", ".txt,.md").split(",")
+            if value.strip()
+        ],
+        DOCUMENT_ALLOWED_MIME_TYPES=[
+            value.strip().lower()
+            for value in os.getenv(
+                "DOCUMENT_ALLOWED_MIME_TYPES",
+                "text/plain,text/markdown",
+            ).split(",")
+            if value.strip()
+        ],
         RAG_CHUNK_SIZE=int(os.getenv("RAG_CHUNK_SIZE", "500")),
         RAG_CHUNK_OVERLAP=int(os.getenv("RAG_CHUNK_OVERLAP", "50")),
         RAG_ENABLED=_env_bool("RAG_ENABLED", True),

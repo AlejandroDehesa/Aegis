@@ -27,6 +27,17 @@ os.environ["RAG_MIN_SCORE"] = "0.0"
 os.environ["RAG_MAX_CONTEXT_CHARS"] = "4000"
 os.environ["RAG_TRACE_SNIPPET_CHARS"] = "300"
 os.environ["TASK_EXECUTION_MODE"] = "sync"
+os.environ["APP_ENV"] = "test"
+os.environ["DEBUG"] = "false"
+os.environ["LOG_LEVEL"] = "INFO"
+os.environ["ENABLE_REQUEST_LOGGING"] = "true"
+os.environ["RATE_LIMIT_ENABLED"] = "false"
+os.environ["RATE_LIMIT_REQUESTS_PER_MINUTE"] = "120"
+os.environ["RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE"] = "20"
+os.environ["RATE_LIMIT_TASK_EXECUTE_PER_MINUTE"] = "10"
+os.environ["DOCUMENT_MAX_UPLOAD_MB"] = "5"
+os.environ["DOCUMENT_ALLOWED_EXTENSIONS"] = ".txt,.md,.pdf"
+os.environ["DOCUMENT_ALLOWED_MIME_TYPES"] = "text/plain,text/markdown,application/pdf"
 
 
 def _refresh_loaded_settings_if_needed() -> None:

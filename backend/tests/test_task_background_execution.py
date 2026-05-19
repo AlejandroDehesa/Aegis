@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from datetime import UTC, datetime
+import uuid
 from unittest.mock import MagicMock, patch
 
 from fastapi import BackgroundTasks, HTTPException
@@ -98,6 +99,45 @@ class TaskBackgroundExecutionTests(unittest.TestCase):
 
         self.assertEqual(context.exception.status_code, 409)
         self.assertEqual(len(background_tasks.tasks), 0)
+
+    def test_execute_task_not_found(self) -> None:
+        db = MagicMock()
+        user = build_user()
+        task_id = uuid.uuid4()
+
+        with patch(
+            "app.api.v1.tasks._get_user_task",
+            side_effect=HTTPException(status_code=404, detail="Task not found"),
+        ):
+            with self.assertRaises(HTTPException) as context:
+                execute_user_task(
+                    task_id,
+                    current_user=user,
+                    db=db,
+                    background_tasks=BackgroundTasks(),
+                )
+
+        self.assertEqual(context.exception.status_code, 404)
+
+    def test_execute_task_forbidden_for_other_user(self) -> None:
+        db = MagicMock()
+        user = build_user()
+        other_user_task = build_task(user_id=uuid.uuid4(), status="pending")
+
+        with patch(
+            "app.api.v1.tasks._get_user_task",
+            side_effect=HTTPException(status_code=404, detail="Task not found"),
+        ):
+            with self.assertRaises(HTTPException) as context:
+                execute_user_task(
+                    other_user_task.id,
+                    current_user=user,
+                    db=db,
+                    background_tasks=BackgroundTasks(),
+                )
+
+        # Intentional 404 to avoid leaking ownership.
+        self.assertEqual(context.exception.status_code, 404)
 
     def test_execute_completed_task_behavior_is_stable(self) -> None:
         db = MagicMock()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
 import unittest
 import uuid
 from unittest.mock import MagicMock, patch
@@ -8,6 +9,7 @@ from unittest.mock import MagicMock, patch
 from fastapi import HTTPException, UploadFile
 
 from app.api.v1.documents import upload_document
+from app.core.config import settings
 from app.services.document_service import (
     DocumentValidationError,
     _chunk_text,
@@ -16,6 +18,16 @@ from app.services.document_service import (
 )
 from app.services.retrieval_service import build_context, retrieve_relevant_chunks
 from tests.helpers import build_user
+
+
+class _FakeUpload:
+    def __init__(self, filename: str, content_type: str, content: bytes) -> None:
+        self.filename = filename
+        self.content_type = content_type
+        self._content = content
+
+    async def read(self) -> bytes:
+        return self._content
 
 
 class DocumentsAndRagBasicsTests(unittest.TestCase):
@@ -111,6 +123,113 @@ class DocumentsAndRagBasicsTests(unittest.TestCase):
                     db=db,
                 )
             self.assertEqual(context.exception.status_code, 400)
+
+        asyncio.run(_run())
+
+    def test_document_empty_upload_rejected(self) -> None:
+        current_user = build_user()
+        db = MagicMock()
+        upload = _FakeUpload("empty.txt", "text/plain", b"")
+
+        async def _run() -> None:
+            with self.assertRaises(HTTPException) as context:
+                await upload_document(
+                    title=None,
+                    content=None,
+                    file=upload,  # type: ignore[arg-type]
+                    current_user=current_user,
+                    db=db,
+                )
+            self.assertEqual(context.exception.status_code, 400)
+
+        asyncio.run(_run())
+
+    def test_document_invalid_extension_rejected(self) -> None:
+        current_user = build_user()
+        db = MagicMock()
+        upload = _FakeUpload("malware.exe", "application/octet-stream", b"fake")
+
+        async def _run() -> None:
+            with self.assertRaises(HTTPException) as context:
+                await upload_document(
+                    title=None,
+                    content=None,
+                    file=upload,  # type: ignore[arg-type]
+                    current_user=current_user,
+                    db=db,
+                )
+            self.assertEqual(context.exception.status_code, 400)
+
+        asyncio.run(_run())
+
+    def test_document_path_traversal_filename_sanitized_or_rejected(self) -> None:
+        current_user = build_user()
+        db = MagicMock()
+        upload = _FakeUpload("../secrets.txt", "text/plain", b"hello")
+
+        async def _run() -> None:
+            with self.assertRaises(HTTPException) as context:
+                await upload_document(
+                    title=None,
+                    content=None,
+                    file=upload,  # type: ignore[arg-type]
+                    current_user=current_user,
+                    db=db,
+                )
+            self.assertEqual(context.exception.status_code, 400)
+
+        asyncio.run(_run())
+
+    def test_document_too_large_rejected(self) -> None:
+        current_user = build_user()
+        db = MagicMock()
+        original_limit = settings.DOCUMENT_MAX_UPLOAD_MB
+        settings.DOCUMENT_MAX_UPLOAD_MB = 1
+        upload = _FakeUpload("large.txt", "text/plain", b"x" * (1024 * 1024 + 1))
+
+        async def _run() -> None:
+            with self.assertRaises(HTTPException) as context:
+                await upload_document(
+                    title=None,
+                    content=None,
+                    file=upload,  # type: ignore[arg-type]
+                    current_user=current_user,
+                    db=db,
+                )
+            self.assertEqual(context.exception.status_code, 400)
+
+        try:
+            asyncio.run(_run())
+        finally:
+            settings.DOCUMENT_MAX_UPLOAD_MB = original_limit
+
+    def test_document_valid_txt_upload_still_works(self) -> None:
+        current_user = build_user()
+        db = MagicMock()
+        upload = _FakeUpload("notes.txt", "text/plain", b"Useful architecture context")
+
+        fake_document = MagicMock()
+        fake_document.id = uuid.uuid4()
+        fake_document.title = "notes.txt"
+        fake_document.source_type = "file"
+        fake_document.source_name = "notes.txt"
+        fake_document.content = "Useful architecture context"
+        fake_document.created_at = datetime.now(UTC)
+        fake_document.chunks = [MagicMock(), MagicMock()]
+
+        async def _run() -> None:
+            with patch("app.api.v1.documents.create_document", return_value=fake_document):
+                result = await upload_document(
+                    title=None,
+                    content=None,
+                    file=upload,  # type: ignore[arg-type]
+                    current_user=current_user,
+                    db=db,
+                )
+
+            self.assertEqual(result.title, "notes.txt")
+            self.assertEqual(result.source_type, "file")
+            self.assertEqual(result.chunk_count, 2)
 
         asyncio.run(_run())
 

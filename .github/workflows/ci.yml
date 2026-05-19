@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master", "v0.2-openrouter-intelligence"]
+  pull_request:
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite+pysqlite:///:memory:
+      JWT_SECRET_KEY: ci-test-secret
+      TASK_EXECUTION_MODE: sync
+      LLM_PROVIDER: template
+      LLM_ENABLE_REAL_CALLS: "false"
+      RATE_LIMIT_ENABLED: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run backend tests
+        working-directory: backend
+        run: python -m unittest discover -s tests -t . -p "test_*.py" -v
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm run test
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Smoke checks
+        working-directory: frontend
+        run: npm run check:smoke
