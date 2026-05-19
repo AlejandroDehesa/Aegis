@@ -46,6 +46,8 @@ Set these for the frontend build:
 - `VITE_API_BASE_URL=https://<your-backend-domain>/api/v1`
 
 `VITE_API_URL` is still accepted for compatibility, but `VITE_API_BASE_URL` is the preferred variable.
+In Railway, the frontend must call the backend public URL directly through this variable.
+Do not use `proxy_pass http://backend:8000` or `upstream backend` in `nginx.conf`.
 
 ## 4. Build and Start Commands
 
@@ -57,7 +59,15 @@ Backend:
 Frontend:
 
 - Build: `npm ci && npm run build`
-- Start: serve `dist/` (Nginx container in this repo Dockerfile)
+- Start: `nginx -g "daemon off;"`
+- Root Directory (Railway service): `frontend`
+- Docker runtime serves `dist/` using `frontend/nginx.conf`
+
+Nginx note for Railway:
+
+- No internal Docker Compose DNS is available between independent Railway services.
+- Keep the frontend Nginx as static SPA hosting only (`try_files ... /index.html`).
+- Frontend API routing must be done by `VITE_API_BASE_URL`, not by Nginx reverse proxy.
 
 Migrations (production):
 
@@ -91,4 +101,3 @@ Use:
 - Local/vector RAG persistence requires explicit storage strategy in multi-instance setups.
 - OpenRouter calls consume real tokens and real cost.
 - Never commit secrets (`.env`, API keys, database credentials).
-

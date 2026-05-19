@@ -71,6 +71,13 @@ class DeploymentReadinessTests(unittest.TestCase):
         content = env_example.read_text(encoding="utf-8")
         self.assertIn("VITE_API_BASE_URL=", content)
 
+    def test_frontend_env_example_documents_vite_api_base_url(self) -> None:
+        env_example = _find_repo_file("frontend/.env.example")
+        if env_example is None:
+            self.skipTest("frontend/.env.example is not mounted in this test runtime")
+        content = env_example.read_text(encoding="utf-8")
+        self.assertIn("https://your-backend-url/api/v1", content)
+
     def test_backend_env_example_contains_deployment_vars(self) -> None:
         env_example = _find_repo_file(".env.example")
         if env_example is None:
@@ -117,6 +124,14 @@ class DeploymentReadinessTests(unittest.TestCase):
         self.assertIn("local file storage can be ephemeral", content)
         self.assertIn("not a distributed job queue", content)
 
+    def test_deployment_docs_warn_against_backend_upstream_in_railway(self) -> None:
+        deployment_doc = _find_repo_file("docs/DEPLOYMENT_RAILWAY.md")
+        if deployment_doc is None:
+            self.skipTest("docs/DEPLOYMENT_RAILWAY.md is not mounted in this test runtime")
+        content = deployment_doc.read_text(encoding="utf-8")
+        self.assertIn("Do not use `proxy_pass http://backend:8000`", content)
+        self.assertIn("Do not use `proxy_pass http://backend:8000` or `upstream backend`", content)
+
     def test_deployment_doc_does_not_contain_secrets(self) -> None:
         deployment_doc = _find_repo_file("docs/DEPLOYMENT_RAILWAY.md")
         if deployment_doc is None:
@@ -131,6 +146,14 @@ class DeploymentReadinessTests(unittest.TestCase):
         if workflow_file is None:
             self.skipTest(".github/workflows/ci.yml is not mounted in this test runtime")
         self.assertTrue(workflow_file.exists())
+
+    def test_nginx_conf_does_not_reference_backend_service_name(self) -> None:
+        nginx_file = _find_repo_file("frontend/nginx.conf")
+        if nginx_file is None:
+            self.skipTest("frontend/nginx.conf is not mounted in this test runtime")
+        content = nginx_file.read_text(encoding="utf-8").lower()
+        self.assertNotIn("upstream backend", content)
+        self.assertNotIn("proxy_pass http://backend:8000", content)
 
     def test_alembic_upgrade_command_documented(self) -> None:
         readme = _find_repo_file("README.md")
