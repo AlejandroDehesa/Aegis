@@ -331,3 +331,18 @@ Notas de alcance:
 - `BackgroundTasks` no sustituye una cola distribuida.
 - El rate limit in-memory no es suficiente para despliegues con multiples replicas.
 - El almacenamiento documental actual no es un reemplazo de object storage (S3/GCS).
+
+## Deployment readiness (Fase 8A)
+
+- Backend cloud-ready:
+  - usa `PORT` con fallback seguro (`${PORT:-8000}`)
+  - endpoint de readiness disponible en `/api/v1/health/ready`
+  - CORS configurable por `CORS_ORIGINS` (CSV)
+- Frontend cloud-ready:
+  - variable recomendada `VITE_API_BASE_URL` para apuntar al backend publico
+- Migraciones:
+  - en produccion ejecutar `alembic upgrade head`
+
+Guia detallada:
+
+- `docs/DEPLOYMENT_RAILWAY.md`

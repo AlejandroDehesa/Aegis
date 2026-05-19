@@ -25,6 +25,7 @@ class Settings(BaseModel):
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     ENABLE_REQUEST_LOGGING: bool = True
+    PORT: int = 8000
     DATABASE_URL: str = Field(min_length=1)
     JWT_SECRET_KEY: str = Field(min_length=1)
     JWT_ALGORITHM: str = "HS256"
@@ -68,6 +69,11 @@ class Settings(BaseModel):
     MEMORY_RECENT_TASK_LIMIT: int = 3
     MEMORY_MAX_CONTEXT_CHARS: int = 1200
     FULL_CONTEXT_MAX_CHARS: int = 2600
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:4173",
+    ]
     FRONTEND_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -80,12 +86,25 @@ class Settings(BaseModel):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings(
+    cors_origins = [
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ORIGINS",
+            os.getenv(
+                "FRONTEND_ORIGINS",
+                "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173",
+            ),
+        ).split(",")
+        if origin.strip()
+    ]
+
+    resolved = Settings(
         PROJECT_NAME=os.getenv("PROJECT_NAME", "Aegis Backend"),
         APP_ENV=os.getenv("APP_ENV", "development").strip().lower(),
         DEBUG=_env_bool("DEBUG", False),
         LOG_LEVEL=os.getenv("LOG_LEVEL", "INFO").strip().upper(),
         ENABLE_REQUEST_LOGGING=_env_bool("ENABLE_REQUEST_LOGGING", True),
+        PORT=int(os.getenv("PORT", "8000")),
         DATABASE_URL=os.getenv("DATABASE_URL", ""),
         JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY", ""),
         JWT_ALGORITHM=os.getenv("JWT_ALGORITHM", "HS256"),
@@ -158,14 +177,8 @@ def get_settings() -> Settings:
         MEMORY_RECENT_TASK_LIMIT=int(os.getenv("MEMORY_RECENT_TASK_LIMIT", "3")),
         MEMORY_MAX_CONTEXT_CHARS=int(os.getenv("MEMORY_MAX_CONTEXT_CHARS", "1200")),
         FULL_CONTEXT_MAX_CHARS=int(os.getenv("FULL_CONTEXT_MAX_CHARS", "2600")),
-        FRONTEND_ORIGINS=[
-            origin.strip()
-            for origin in os.getenv(
-                "FRONTEND_ORIGINS",
-                "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173",
-            ).split(",")
-            if origin.strip()
-        ],
+        CORS_ORIGINS=cors_origins,
+        FRONTEND_ORIGINS=cors_origins,
         CHROMA_PERSIST_DIRECTORY=os.getenv(
             "CHROMA_PERSIST_DIRECTORY",
             str(ROOT_DIR / "backend" / "data" / "chroma"),
@@ -176,6 +189,23 @@ def get_settings() -> Settings:
             str(ROOT_DIR / "backend" / "data" / "vector_store.json"),
         ),
     )
+    _validate_runtime_settings(resolved)
+    return resolved
+
+
+def _validate_runtime_settings(config: Settings) -> None:
+    if config.APP_ENV in {"production", "prod"}:
+        weak_secret_values = {
+            "change-this-secret-in-production",
+            "changeme",
+            "secret",
+            "default",
+        }
+        normalized_secret = config.JWT_SECRET_KEY.strip().lower()
+        if len(config.JWT_SECRET_KEY) < 32 or normalized_secret in weak_secret_values:
+            raise ValueError(
+                "JWT_SECRET_KEY must be a strong secret (>=32 chars) when APP_ENV=production."
+            )
 
 
 settings = get_settings()
