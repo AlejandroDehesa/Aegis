@@ -55,7 +55,7 @@ export function TasksPage() {
     },
     {
       enabled: tasks.some((task) =>
-        ["pending", "processing"].includes(task.status),
+        ["pending", "queued", "processing"].includes(task.status),
       ),
       intervalMs: 3000,
     },
@@ -141,7 +141,7 @@ export function TasksPage() {
         ),
       );
       setNotice(
-        updatedTask.status === "processing"
+        ["queued", "processing"].includes(updatedTask.status)
           ? t("tasks.executeStarted")
           : t("tasks.executeCompleted"),
       );
@@ -154,7 +154,7 @@ export function TasksPage() {
   }
 
   const runningCount = tasks.filter((task) =>
-    ["pending", "processing"].includes(task.status),
+    ["pending", "queued", "processing"].includes(task.status),
   ).length;
 
   return (
@@ -247,6 +247,7 @@ export function TasksPage() {
             <select name="status" onChange={updateFilterField} value={filters.status}>
               <option value="">{t("common.all")}</option>
               <option value="pending">pending</option>
+              <option value="queued">queued</option>
               <option value="processing">processing</option>
               <option value="completed">completed</option>
               <option value="failed">failed</option>
@@ -346,14 +347,14 @@ export function TasksPage() {
                     <button
                       className="button button-primary"
                       disabled={
-                        executingId === task.id || task.status === "processing"
+                        executingId === task.id || ["queued", "processing"].includes(task.status)
                       }
                       onClick={() => handleExecuteTask(task.id)}
                       type="button"
                     >
                       {executingId === task.id
                         ? t("tasks.executing")
-                        : task.status === "processing"
+                        : ["queued", "processing"].includes(task.status)
                           ? t("tasks.processing")
                           : t("tasks.execute")}
                     </button>

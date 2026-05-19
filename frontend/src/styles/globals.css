@@ -564,6 +564,10 @@ pre {
   color: var(--color-warning);
 }
 
+.status-queued {
+  color: #9a6700;
+}
+
 .status-processing {
   color: var(--color-accent);
 }

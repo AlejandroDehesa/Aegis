@@ -38,6 +38,7 @@ export function formatStatusLabel(status, language = "en") {
   const labelsByLanguage = {
     en: {
       pending: "Pending",
+      queued: "Queued",
       processing: "Processing",
       completed: "Completed",
       failed: "Failed",
@@ -45,6 +46,7 @@ export function formatStatusLabel(status, language = "en") {
     },
     es: {
       pending: "Pendiente",
+      queued: "En cola",
       processing: "Procesando",
       completed: "Completada",
       failed: "Fallida",
@@ -64,9 +66,14 @@ export function sortTasksByRecent(tasks) {
 
 export function getTaskActivityLabel(task, language = "en", locale = "en-US") {
   const startedLabel = language === "es" ? "Iniciada" : "Started";
+  const queuedLabel = language === "es" ? "En cola" : "Queued";
   const finishedLabel = language === "es" ? "Finalizada" : "Finished";
   const createdLabel = language === "es" ? "Creada" : "Created";
   const noneLabel = language === "es" ? "Sin actividad reciente" : "No recent activity";
+
+  if (task?.status === "queued") {
+    return queuedLabel;
+  }
 
   if (task?.status === "processing" && task.started_at) {
     return `${startedLabel} ${formatDateTime(task.started_at, locale)}`;

@@ -46,6 +46,7 @@ class Settings(BaseModel):
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_SITE_URL: str | None = "http://localhost:5173"
     OPENROUTER_APP_NAME: str | None = "Aegis"
+    TASK_EXECUTION_MODE: str = "background"
     RAG_CHUNK_SIZE: int = 500
     RAG_CHUNK_OVERLAP: int = 50
     RAG_ENABLED: bool = True
@@ -109,6 +110,7 @@ def get_settings() -> Settings:
         ),
         OPENROUTER_SITE_URL=os.getenv("OPENROUTER_SITE_URL") or None,
         OPENROUTER_APP_NAME=os.getenv("OPENROUTER_APP_NAME") or None,
+        TASK_EXECUTION_MODE=os.getenv("TASK_EXECUTION_MODE", "background").strip().lower(),
         RAG_CHUNK_SIZE=int(os.getenv("RAG_CHUNK_SIZE", "500")),
         RAG_CHUNK_OVERLAP=int(os.getenv("RAG_CHUNK_OVERLAP", "50")),
         RAG_ENABLED=_env_bool("RAG_ENABLED", True),

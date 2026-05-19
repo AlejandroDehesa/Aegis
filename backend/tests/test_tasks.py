@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import MagicMock, patch
 
+from fastapi import BackgroundTasks
 from fastapi import HTTPException
 
 from app.api.v1.tasks import (
@@ -78,7 +79,12 @@ class TasksTests(unittest.TestCase):
             ),
         ):
             with self.assertRaises(HTTPException) as context:
-                execute_user_task(task.id, current_user=user, db=db)
+                execute_user_task(
+                    task.id,
+                    current_user=user,
+                    db=db,
+                    background_tasks=BackgroundTasks(),
+                )
 
         self.assertEqual(context.exception.status_code, 409)
 
@@ -92,7 +98,12 @@ class TasksTests(unittest.TestCase):
             patch("app.api.v1.tasks._get_user_task", return_value=task),
             patch("app.api.v1.tasks.execute_task", return_value=execution_result),
         ):
-            response = execute_user_task(task.id, current_user=user, db=db)
+            response = execute_user_task(
+                task.id,
+                current_user=user,
+                db=db,
+                background_tasks=BackgroundTasks(),
+            )
 
         self.assertEqual(response.id, task.id)
 

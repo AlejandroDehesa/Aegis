@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -26,6 +26,9 @@ from app.services.task_executor import (
     TaskExecutionResult,
     TaskExecutionStateError,
     execute_task,
+    get_task_execution_mode,
+    queue_task_for_background,
+    run_task_execution_background,
 )
 
 
@@ -255,6 +258,7 @@ def get_task_trace(
 @router.post("/tasks/{task_id}/execute", response_model=TaskRead)
 def execute_user_task(
     task_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     debug: bool = Query(default=False),
     top_k: int | None = Query(default=None, ge=1, le=10),
     min_score: float | None = Query(default=None, ge=0.0, le=1.0),
@@ -262,6 +266,27 @@ def execute_user_task(
     db: Session = Depends(get_db),
 ) -> TaskRead:
     task = _get_user_task(task_id, current_user, db)
+
+    mode = get_task_execution_mode()
+
+    if mode == "background":
+        try:
+            queued_task = queue_task_for_background(task, db)
+        except TaskExecutionStateError as error:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(error),
+            ) from error
+
+        background_tasks.add_task(
+            run_task_execution_background,
+            task_id=queued_task.id,
+            user_id=current_user.id,
+            debug=debug,
+            top_k=top_k,
+            min_score=min_score,
+        )
+        return _serialize_task(queued_task)
 
     try:
         execution = execute_task(

@@ -26,6 +26,7 @@ os.environ["RAG_TOP_K"] = "5"
 os.environ["RAG_MIN_SCORE"] = "0.0"
 os.environ["RAG_MAX_CONTEXT_CHARS"] = "4000"
 os.environ["RAG_TRACE_SNIPPET_CHARS"] = "300"
+os.environ["TASK_EXECUTION_MODE"] = "sync"
 
 
 def _refresh_loaded_settings_if_needed() -> None:

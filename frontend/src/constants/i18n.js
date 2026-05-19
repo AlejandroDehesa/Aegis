@@ -20,6 +20,7 @@ export const TRANSLATIONS = {
     "common.reset": "Reset",
 
     "status.pending": "Pending",
+    "status.queued": "Queued",
     "status.processing": "Processing",
     "status.completed": "Completed",
     "status.failed": "Failed",
@@ -115,7 +116,7 @@ export const TRANSLATIONS = {
     "tasks.listSubtitle": "Current tasks with status, summary and quick execution control.",
     "tasks.total": "{count} total",
     "tasks.active": "{count} active",
-    "tasks.autoRefreshNotice": "Aegis refreshes active tasks automatically while they are pending or processing.",
+    "tasks.autoRefreshNotice": "Aegis refreshes active tasks automatically while they are pending, queued or processing.",
     "tasks.filterStatus": "Status",
     "tasks.filterTaskType": "Task type",
     "tasks.filterAgent": "Agent",
@@ -266,6 +267,7 @@ export const TRANSLATIONS = {
     "common.reset": "Limpiar",
 
     "status.pending": "Pendiente",
+    "status.queued": "En cola",
     "status.processing": "Procesando",
     "status.completed": "Completada",
     "status.failed": "Fallida",
@@ -361,7 +363,7 @@ export const TRANSLATIONS = {
     "tasks.listSubtitle": "Tareas actuales con estado, resumen y ejecucion rapida.",
     "tasks.total": "{count} total",
     "tasks.active": "{count} activas",
-    "tasks.autoRefreshNotice": "Aegis actualiza tareas activas automaticamente mientras estan pendientes o procesando.",
+    "tasks.autoRefreshNotice": "Aegis actualiza tareas activas automaticamente mientras estan pendientes, en cola o procesando.",
     "tasks.filterStatus": "Estado",
     "tasks.filterTaskType": "Tipo de tarea",
     "tasks.filterAgent": "Agente",

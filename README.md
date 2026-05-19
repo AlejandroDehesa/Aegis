@@ -268,3 +268,13 @@ Notas:
 - Test matrix 1000+: `docs/TEST_MATRIX_1000.md`
 - Demo script (3-5 min): `docs/DEMO_SCRIPT.md`
 - Notas de entrevista tecnica: `docs/INTERVIEW_NOTES.md`
+
+### Background task execution (v0.2 Fase 6)
+
+- `POST /tasks/{task_id}/execute` soporta ejecucion en segundo plano con `FastAPI BackgroundTasks`.
+- Flujo: `pending/failed -> queued -> processing -> completed/failed`.
+- Configuracion:
+  - `TASK_EXECUTION_MODE=background` para runtime normal.
+  - `TASK_EXECUTION_MODE=sync` para suite de tests (determinista, sin polling extra).
+- En modo background no se reutiliza la sesion DB de la request; el worker abre su propia sesion.
+- Esta fase no usa Celery ni Redis todavia.

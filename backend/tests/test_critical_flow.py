@@ -3,6 +3,8 @@ from __future__ import annotations
 import unittest
 from unittest.mock import MagicMock, patch
 
+from fastapi import BackgroundTasks
+
 from app.api.v1.insights import read_insights_overview
 from app.api.v1.tasks import create_task, execute_user_task, get_task_trace, submit_task_feedback
 from app.schemas.task import TaskCreate, TaskFeedbackUpdate
@@ -54,7 +56,12 @@ class CriticalFlowTests(unittest.TestCase):
                 return_value=TaskExecutionResult(task=executed_task, rag_debug=None),
             ),
         ):
-            execute_user_task(executed_task.id, current_user=user, db=db)
+            execute_user_task(
+                executed_task.id,
+                current_user=user,
+                db=db,
+                background_tasks=BackgroundTasks(),
+            )
 
         with patch("app.api.v1.tasks._get_user_task", return_value=executed_task):
             trace = get_task_trace(executed_task.id, current_user=user, db=db)
