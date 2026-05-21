@@ -6,7 +6,9 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.config import settings
 from app.core.database import Base
+from app.core.vector_types import build_embedding_column_type
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -89,6 +91,10 @@ class DocumentChunk(Base):
     char_count: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
+    )
+    embedding: Mapped[list[float] | None] = mapped_column(
+        build_embedding_column_type(settings.RAG_VECTOR_BACKEND, settings.EMBEDDING_DIMENSION),
+        nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

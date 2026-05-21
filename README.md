@@ -234,11 +234,13 @@ Notas:
 
 ### Document RAG in task execution (v0.2 Fase 5)
 
-- Flujo: `upload document -> chunking -> embeddings/vector store -> retrieval -> agent prompt context -> execution trace`.
+- Flujo: `upload document -> chunking -> embeddings en PostgreSQL -> retrieval semantico -> agent prompt context -> execution trace`.
 - El retrieval usa `task.title + task.description` y respeta aislamiento por `user_id`.
 - El trace incluye un paso `document_retrieval` con chunks recuperados, documentos usados, errores y tamaño de contexto.
 - Si no hay resultados o falla retrieval, la tarea continúa con fallback controlado sin bloquear ejecución.
 - RAG no navega por internet ni inventa fuentes externas; usa solo documentos del usuario actual.
+- En produccion, RAG_VECTOR_BACKEND=pgvector persiste embeddings en document_chunks.embedding para sobrevivir redeploys.
+- Backfill para chunks antiguos sin embedding: python -m scripts.backfill_pgvector_embeddings.
 
 ## Decisiones tecnicas
 
@@ -346,3 +348,4 @@ Notas de alcance:
 Guia detallada:
 
 - `docs/DEPLOYMENT_RAILWAY.md`
+

@@ -93,6 +93,7 @@ class OrchestrationRagDebugInfo:
     empty_reason: str | None = None
     context_chars: int = 0
     trace_snippets: list[str] = field(default_factory=list)
+    vector_backend: str = "pgvector"
 
 
 @dataclass
@@ -107,6 +108,7 @@ class RAGContext:
     context_chars: int
     snippets: list[str]
     truncated: bool
+    vector_backend: str
     error: str | None = None
 
 
@@ -334,6 +336,7 @@ def _prepare_combined_context(
     effective_min_score = settings.RAG_MIN_SCORE if min_score is None else min_score
 
     rag_enabled = bool(getattr(settings, "RAG_ENABLED", True))
+    vector_backend = str(getattr(settings, "RAG_VECTOR_BACKEND", "pgvector"))
     empty_debug = OrchestrationRagDebugInfo(
         query=query,
         top_k=effective_top_k,
@@ -353,6 +356,7 @@ def _prepare_combined_context(
         empty_reason=None,
         context_chars=0,
         trace_snippets=[],
+        vector_backend=vector_backend,
     )
 
     rag_context = None
@@ -412,6 +416,7 @@ def _prepare_combined_context(
         context_chars=len(rag_context or ""),
         snippets=trace_snippets,
         truncated=rag_truncated,
+        vector_backend=vector_backend,
         error=empty_debug.retrieval_error,
     )
 
@@ -434,6 +439,7 @@ def _prepare_combined_context(
         empty_reason=rag_empty_reason,
         context_chars=len(rag_context or ""),
         trace_snippets=trace_snippets,
+        vector_backend=vector_backend,
     ), rag_context_contract
 
 
@@ -488,6 +494,7 @@ def _build_trace_step(
     if llm_usage_summary is not None:
         step["llm_usage_summary"] = llm_usage_summary
     if rag_metadata is not None:
+        step["rag_vector_backend"] = rag_metadata.get("rag_vector_backend")
         step["rag_enabled"] = rag_metadata.get("rag_enabled")
         step["rag_context_used"] = rag_metadata.get("rag_context_used")
         step["rag_retrieved_chunks_count"] = rag_metadata.get("rag_retrieved_chunks_count")
@@ -618,6 +625,7 @@ def orchestrate_task(
             context_chars=0,
             snippets=[],
             truncated=False,
+            vector_backend=str(getattr(settings, "RAG_VECTOR_BACKEND", "pgvector")),
             error=None,
         )
     else:
@@ -690,6 +698,7 @@ def orchestrate_task(
             started_at=retrieval_started,
             finished_at=retrieval_finished,
             rag_metadata={
+                "rag_vector_backend": rag_context.vector_backend,
                 "rag_enabled": rag_context.enabled,
                 "rag_context_used": bool(rag_context.context_text),
                 "rag_retrieved_chunks_count": rag_context.retrieved_chunks_count,
@@ -782,6 +791,7 @@ def orchestrate_task(
                 finished_at=step_finished_at,
                 llm_metadata=llm_metadata,
                 rag_metadata={
+                    "rag_vector_backend": rag_context.vector_backend,
                     "rag_enabled": rag_context.enabled,
                     "rag_context_used": bool(rag_context.context_text),
                     "rag_retrieved_chunks_count": rag_context.retrieved_chunks_count,

@@ -32,8 +32,26 @@ SessionLocal = sessionmaker(
 def create_tables() -> None:
     import app.models  # noqa: F401
 
+    _ensure_pgvector_extension()
     Base.metadata.create_all(bind=engine)
     _ensure_runtime_schema_updates()
+
+
+def _ensure_pgvector_extension() -> None:
+    if engine.dialect.name != "postgresql":
+        return
+
+    if settings.RAG_VECTOR_BACKEND != "pgvector":
+        return
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    except Exception as error:
+        raise RuntimeError(
+            "RAG_VECTOR_BACKEND=pgvector requires PostgreSQL pgvector extension "
+            "(CREATE EXTENSION vector)."
+        ) from error
 
 
 def _ensure_runtime_schema_updates() -> None:

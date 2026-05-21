@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.config import settings
 from app.models.document import Document, DocumentChunk
 from app.services.embeddings_service import generate_embeddings
-from app.services.vector_store import VectorStoreRecord, add_records, delete_records
 
 
 class DocumentIngestionError(Exception):
@@ -92,7 +91,6 @@ def create_document(
     db.flush()
 
     chunk_models: list[DocumentChunk] = []
-    vector_records: list[VectorStoreRecord] = []
 
     for index, (chunk_text, embedding) in enumerate(zip(chunks, embeddings, strict=True)):
         chunk = DocumentChunk(
@@ -101,36 +99,15 @@ def create_document(
             chunk_index=index,
             content=chunk_text,
             char_count=len(chunk_text),
+            embedding=embedding,
         )
         db.add(chunk)
-        db.flush()
         chunk_models.append(chunk)
-        vector_records.append(
-            VectorStoreRecord(
-                id=str(chunk.id),
-                text=chunk_text,
-                embedding=embedding,
-                metadata={
-                    "user_id": str(user_id),
-                    "document_id": str(document.id),
-                    "document_title": document.title,
-                    "source_name": document.source_name or "",
-                    "chunk_index": str(index),
-                },
-            )
-        )
-
-    created_ids = [record.id for record in vector_records]
 
     try:
-        add_records(vector_records)
         db.commit()
     except Exception as error:
         db.rollback()
-        try:
-            delete_records(created_ids)
-        except Exception:
-            pass
         raise DocumentIngestionError("Document ingestion failed.") from error
 
     document.chunks = chunk_models
@@ -163,15 +140,7 @@ def delete_document_for_user(
     if document is None:
         raise DocumentNotFoundError("Document not found.")
 
-    chunk_ids = [
-        str(chunk.id)
-        for chunk in db.execute(
-            select(DocumentChunk).where(DocumentChunk.document_id == document.id)
-        ).scalars().all()
-    ]
-
     try:
-        delete_records(chunk_ids)
         db.delete(document)
         db.commit()
     except Exception as error:

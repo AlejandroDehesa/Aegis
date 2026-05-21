@@ -88,6 +88,7 @@ class DeploymentReadinessTests(unittest.TestCase):
         self.assertIn("CORS_ORIGINS=", content)
         self.assertIn("TASK_EXECUTION_MODE=", content)
         self.assertIn("RAG_ENABLED=", content)
+        self.assertIn("RAG_VECTOR_BACKEND=", content)
 
     def test_deployment_railway_doc_exists(self) -> None:
         deployment_doc = _find_repo_file("docs/DEPLOYMENT_RAILWAY.md")

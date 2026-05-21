@@ -31,6 +31,8 @@ Set these in the backend service (Railway variables panel):
 - `LLM_TIMEOUT_SECONDS=30`
 - `TASK_EXECUTION_MODE=background`
 - `RAG_ENABLED=true`
+- `RAG_VECTOR_BACKEND=pgvector`
+- `EMBEDDING_DIMENSION=64`
 - `RATE_LIMIT_ENABLED=true`
 - `RATE_LIMIT_REQUESTS_PER_MINUTE=120`
 - `RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE=20`
@@ -72,6 +74,7 @@ Nginx note for Railway:
 Migrations (production):
 
 - `alembic upgrade head`
+- `python -m scripts.backfill_pgvector_embeddings` (only needed to backfill old chunks with `embedding IS NULL`)
 
 ## 5. Health and Readiness Checks
 
@@ -99,5 +102,6 @@ Use:
 - In-memory rate limiting is per instance (not shared across replicas).
 - Local file storage can be ephemeral in cloud environments without persistent volumes.
 - Local/vector RAG persistence requires explicit storage strategy in multi-instance setups.
+- Production RAG should use PostgreSQL + pgvector persistence (`document_chunks.embedding`) to survive redeploys.
 - OpenRouter calls consume real tokens and real cost.
 - Never commit secrets (`.env`, API keys, database credentials).

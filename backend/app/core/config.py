@@ -62,6 +62,8 @@ class Settings(BaseModel):
     RAG_CHUNK_SIZE: int = 500
     RAG_CHUNK_OVERLAP: int = 50
     RAG_ENABLED: bool = True
+    RAG_VECTOR_BACKEND: str = "pgvector"
+    EMBEDDING_DIMENSION: int = 64
     RAG_TOP_K: int = 3
     RAG_MIN_SCORE: float = 0.2
     RAG_MAX_CONTEXT_CHARS: int = 1800
@@ -170,6 +172,8 @@ def get_settings() -> Settings:
         RAG_CHUNK_SIZE=int(os.getenv("RAG_CHUNK_SIZE", "500")),
         RAG_CHUNK_OVERLAP=int(os.getenv("RAG_CHUNK_OVERLAP", "50")),
         RAG_ENABLED=_env_bool("RAG_ENABLED", True),
+        RAG_VECTOR_BACKEND=os.getenv("RAG_VECTOR_BACKEND", "pgvector").strip().lower(),
+        EMBEDDING_DIMENSION=int(os.getenv("EMBEDDING_DIMENSION", "64")),
         RAG_TOP_K=int(os.getenv("RAG_TOP_K", "3")),
         RAG_MIN_SCORE=float(os.getenv("RAG_MIN_SCORE", "0.2")),
         RAG_MAX_CONTEXT_CHARS=int(os.getenv("RAG_MAX_CONTEXT_CHARS", "1800")),
@@ -194,6 +198,12 @@ def get_settings() -> Settings:
 
 
 def _validate_runtime_settings(config: Settings) -> None:
+    if config.EMBEDDING_DIMENSION <= 0:
+        raise ValueError("EMBEDDING_DIMENSION must be greater than zero.")
+
+    if config.RAG_VECTOR_BACKEND not in {"pgvector", "local"}:
+        raise ValueError("RAG_VECTOR_BACKEND must be one of: pgvector, local.")
+
     if config.APP_ENV in {"production", "prod"}:
         weak_secret_values = {
             "change-this-secret-in-production",
