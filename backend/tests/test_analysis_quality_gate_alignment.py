@@ -98,6 +98,7 @@ def _rag_context_with_chunks() -> RAGContext:
         context_text="chunk a\nchunk b",
         context_chars=220,
         snippets=["chunk a", "chunk b"],
+        scores=[0.91, 0.87],
         truncated=False,
         vector_backend="pgvector",
         error=None,
@@ -206,7 +207,13 @@ class AnalysisQualityGateAlignmentTests(unittest.TestCase):
         task = _analysis_task()
         rag_debug = _rag_debug_with_chunks()
         rag_context = _rag_context_with_chunks()
-        result_output = _valid_analysis_output_es()
+        result_output = (
+            f"{_valid_analysis_output_es()}\n\n"
+            "## Evidencias usadas / Evidence used\n"
+            "1. Documento / Document: aegis_phase_report.txt\n"
+            "   Evidencia: chunk de riesgos operativos.\n"
+            "   Uso en el analisis: sustenta la recomendacion final."
+        )
 
         with (
             patch("app.services.task_orchestrator._prepare_combined_context", return_value=("chunk a\nchunk b", rag_debug, rag_context)),

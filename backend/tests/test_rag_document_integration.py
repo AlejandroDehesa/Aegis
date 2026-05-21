@@ -28,7 +28,11 @@ from tests.helpers import build_task
 def _long_valid_output(task_title: str) -> str:
     return (
         f"This response addresses {task_title} with concrete implementation guidance, practical next actions, "
-        "explicit assumptions, and enough task-specific detail to satisfy the output quality checks."
+        "explicit assumptions, and enough task-specific detail to satisfy the output quality checks.\n\n"
+        "## Evidencias usadas / Evidence used\n"
+        "1. Documento / Document: Aegis doc\n"
+        "   Evidencia: Retrieved chunk about architecture constraints.\n"
+        "   Uso en el analisis: Supports task-specific recommendation."
     )
 
 class RagDocumentIntegrationTests(unittest.TestCase):

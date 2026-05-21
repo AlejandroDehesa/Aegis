@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.agents.prompt_utils import build_retrieved_context_block
+from app.agents.prompt_utils import build_evidence_section_from_context, build_retrieved_context_block
 
 
 SPANISH_HINT_TOKENS = (
@@ -59,12 +59,23 @@ def _compose_prompt(
     language_hint = _detect_language_hint(title, description, retrieved_context)
     context_block = build_retrieved_context_block(retrieved_context)
     has_document_context = bool(retrieved_context and retrieved_context.strip())
-    format_lines = "\n".join(f"{index}. {item}" for index, item in enumerate(output_contract, start=1))
+    final_output_contract = list(output_contract)
+    if has_document_context:
+        final_output_contract.append("Evidencias usadas / Evidence used")
+    format_lines = "\n".join(
+        f"{index}. {item}" for index, item in enumerate(final_output_contract, start=1)
+    )
     rule_lines = "\n".join(f"- {rule}" for rule in extra_rules)
     context_rule = (
         "- Use the available document context as the primary source for claims when relevant."
         if has_document_context
         else "- No document context is available; explicitly state assumptions where needed."
+    )
+    evidence_rule = (
+        "- If document context exists, include a dedicated section titled 'Evidencias usadas / Evidence used' "
+        "with: Documento/Document, Fragmento breve/Snippet, and Uso en el analisis/Use in analysis."
+        if has_document_context
+        else "- If no document context exists, do not fabricate evidence."
     )
 
     return (
@@ -78,6 +89,7 @@ def _compose_prompt(
         "- If context is missing, state assumptions explicitly.\n"
         "- Keep the answer concrete and directly useful for this task.\n"
         f"{context_rule}\n"
+        f"{evidence_rule}\n"
         f"{rule_lines}\n\n"
         f"Task title: {title}\n"
         f"Task description: {description}\n\n"
@@ -224,7 +236,11 @@ def build_general_prompt(title: str, description: str, retrieved_context: str | 
     )
 
 
-def build_comparison_fallback(title: str, description: str) -> str:
+def build_comparison_fallback(
+    title: str,
+    description: str,
+    retrieved_context: str | None = None,
+) -> str:
     lowered = f"{title} {description}".lower()
     mentions_fastapi = "fastapi" in lowered
     mentions_django = "django" in lowered
@@ -232,7 +248,7 @@ def build_comparison_fallback(title: str, description: str) -> str:
     subject_a = "FastAPI" if mentions_fastapi else "Option A"
     subject_b = "Django" if mentions_django else "Option B"
 
-    return (
+    base = (
         "# Comparación técnica / Technical comparison\n\n"
         "## 1. Resumen ejecutivo / Executive summary\n"
         f"- Se comparan {subject_a} y {subject_b} para el objetivo solicitado.\n\n"
@@ -254,10 +270,15 @@ def build_comparison_fallback(title: str, description: str) -> str:
         "## 7. Supuestos o límites / Assumptions or limits\n"
         f"- Basado en el contexto disponible: {description}"
     )
+    return f"{base}{build_evidence_section_from_context(retrieved_context)}"
 
 
-def build_analysis_fallback(title: str, description: str) -> str:
-    return (
+def build_analysis_fallback(
+    title: str,
+    description: str,
+    retrieved_context: str | None = None,
+) -> str:
+    base = (
         "# Analisis tecnico / Technical analysis\n\n"
         "## 1. Executive summary / Resumen ejecutivo\n"
         f"- Evaluacion inicial de riesgos para: {title}.\n\n"
@@ -277,10 +298,15 @@ def build_analysis_fallback(title: str, description: str) -> str:
         "## 7. Assumptions and limits / Supuestos y limites\n"
         f"- Basado en el contexto disponible: {description}"
     )
+    return f"{base}{build_evidence_section_from_context(retrieved_context)}"
 
 
-def build_planning_fallback(title: str, description: str) -> str:
-    return (
+def build_planning_fallback(
+    title: str,
+    description: str,
+    retrieved_context: str | None = None,
+) -> str:
+    base = (
         "# Plan de ejecución / Execution plan\n\n"
         "## 1. Objetivo / Objective\n"
         f"- Entregar una solución accionable para: {title}.\n\n"
@@ -308,10 +334,15 @@ def build_planning_fallback(title: str, description: str) -> str:
         "Contexto considerado:\n"
         f"- {description}"
     )
+    return f"{base}{build_evidence_section_from_context(retrieved_context)}"
 
 
-def build_summary_fallback(title: str, description: str) -> str:
-    return (
+def build_summary_fallback(
+    title: str,
+    description: str,
+    retrieved_context: str | None = None,
+) -> str:
+    base = (
         "# Resumen / Summary\n\n"
         "## 1. Idea principal / Main idea\n"
         f"- La tarea se centra en: {title}.\n\n"
@@ -327,10 +358,15 @@ def build_summary_fallback(title: str, description: str) -> str:
         "## 5. Acción recomendada si aplica / Recommended action\n"
         "- Confirmar criterio de éxito y ejecutar el primer paso de mayor impacto."
     )
+    return f"{base}{build_evidence_section_from_context(retrieved_context)}"
 
 
-def build_research_fallback(title: str, description: str) -> str:
-    return (
+def build_research_fallback(
+    title: str,
+    description: str,
+    retrieved_context: str | None = None,
+) -> str:
+    base = (
         "# Investigación estructurada / Structured research\n\n"
         "## 1. Objetivo de investigación / Research objective\n"
         f"- Clarificar decisiones alrededor de: {title}.\n\n"
@@ -350,10 +386,15 @@ def build_research_fallback(title: str, description: str) -> str:
         "## 6. Recomendación / Recommendation\n"
         "- Continuar con validación dirigida de los vacíos críticos antes de decidir."
     )
+    return f"{base}{build_evidence_section_from_context(retrieved_context)}"
 
 
-def build_general_fallback(title: str, description: str) -> str:
-    return (
+def build_general_fallback(
+    title: str,
+    description: str,
+    retrieved_context: str | None = None,
+) -> str:
+    base = (
         "# Respuesta general / General response\n\n"
         "## 1. Interpretación de la tarea / Task interpretation\n"
         f"- Solicitud principal: {title}.\n"
@@ -367,3 +408,4 @@ def build_general_fallback(title: str, description: str) -> str:
         "## 4. Siguiente acción / Next action\n"
         "- Define una recomendación ejecutable para hoy y confirma criterio de éxito."
     )
+    return f"{base}{build_evidence_section_from_context(retrieved_context)}"

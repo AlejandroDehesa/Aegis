@@ -93,6 +93,7 @@ class OrchestrationRagDebugInfo:
     empty_reason: str | None = None
     context_chars: int = 0
     trace_snippets: list[str] = field(default_factory=list)
+    trace_scores: list[float] = field(default_factory=list)
     vector_backend: str = "pgvector"
 
 
@@ -107,6 +108,7 @@ class RAGContext:
     context_text: str | None
     context_chars: int
     snippets: list[str]
+    scores: list[float]
     truncated: bool
     vector_backend: str
     error: str | None = None
@@ -294,7 +296,22 @@ def _contains_any_heading_token(text: str, patterns: tuple[str, ...]) -> bool:
     return any(re.search(pattern, text) is not None for pattern in patterns)
 
 
-def _validate_output_quality(task: Task, output_text: str | None) -> str | None:
+def _contains_rag_evidence_section(normalized_output: str) -> bool:
+    evidence_markers = (
+        "evidencias usadas",
+        "evidence used",
+        "documentos usados",
+        "sources used",
+    )
+    return any(marker in normalized_output for marker in evidence_markers)
+
+
+def _validate_output_quality(
+    task: Task,
+    output_text: str | None,
+    *,
+    rag_retrieved_chunks_count: int = 0,
+) -> str | None:
     if not output_text or not output_text.strip():
         return "Generated output is empty."
 
@@ -330,6 +347,9 @@ def _validate_output_quality(task: Task, output_text: str | None) -> str | None:
     if task.task_type == "planning":
         if not re.search(r"\b1\b", normalized_output):
             return "Planning output must include numbered steps."
+
+    if rag_retrieved_chunks_count > 0 and not _contains_rag_evidence_section(normalized_output):
+        return "RAG output must include an evidence section when document chunks are retrieved."
 
     normalized_input = _normalize_text(f"{task.title} {task.description or ''}")
     tokens = [token for token in normalized_input.split() if len(token) >= 4]
@@ -371,6 +391,7 @@ def _prepare_combined_context(
         empty_reason=None,
         context_chars=0,
         trace_snippets=[],
+        trace_scores=[],
         vector_backend=vector_backend,
     )
 
@@ -379,6 +400,7 @@ def _prepare_combined_context(
     rag_truncated = False
     rag_empty_reason: str | None = None
     trace_snippets: list[str] = []
+    trace_scores: list[float] = []
 
     if not rag_enabled:
         rag_empty_reason = "rag_disabled"
@@ -409,6 +431,7 @@ def _prepare_combined_context(
         if len(snippet) > snippet_chars:
             snippet = f"{snippet[:snippet_chars].rstrip()}..."
         trace_snippets.append(snippet)
+        trace_scores.append(round(chunk.score, 4))
 
     memory_result = get_recent_task_context_result(
         db,
@@ -430,6 +453,7 @@ def _prepare_combined_context(
         context_text=rag_context,
         context_chars=len(rag_context or ""),
         snippets=trace_snippets,
+        scores=trace_scores,
         truncated=rag_truncated,
         vector_backend=vector_backend,
         error=empty_debug.retrieval_error,
@@ -454,6 +478,7 @@ def _prepare_combined_context(
         empty_reason=rag_empty_reason,
         context_chars=len(rag_context or ""),
         trace_snippets=trace_snippets,
+        trace_scores=trace_scores,
         vector_backend=vector_backend,
     ), rag_context_contract
 
@@ -517,6 +542,7 @@ def _build_trace_step(
         step["rag_error"] = rag_metadata.get("rag_error")
         step["rag_context_chars"] = rag_metadata.get("rag_context_chars")
         step["rag_snippets"] = rag_metadata.get("rag_snippets")
+        step["rag_scores"] = rag_metadata.get("rag_scores")
     return step
 
 
@@ -639,6 +665,7 @@ def orchestrate_task(
             context_text=None,
             context_chars=0,
             snippets=[],
+            scores=[],
             truncated=False,
             vector_backend=str(getattr(settings, "RAG_VECTOR_BACKEND", "pgvector")),
             error=None,
@@ -721,6 +748,7 @@ def orchestrate_task(
                 "rag_error": rag_context.error,
                 "rag_context_chars": rag_context.context_chars,
                 "rag_snippets": rag_context.snippets,
+                "rag_scores": rag_context.scores,
             },
         )
     )
@@ -813,7 +841,8 @@ def orchestrate_task(
                     "rag_documents_used": rag_context.documents_used,
                     "rag_error": rag_context.error,
                     "rag_context_chars": rag_context.context_chars,
-                    "rag_snippets": None,
+                    "rag_snippets": rag_context.snippets,
+                    "rag_scores": rag_context.scores,
                 },
             )
         )
@@ -850,7 +879,11 @@ def orchestrate_task(
         step_index += 1
         previous_output = step_output
 
-    quality_error = _validate_output_quality(task, previous_output)
+    quality_error = _validate_output_quality(
+        task,
+        previous_output,
+        rag_retrieved_chunks_count=rag_context.retrieved_chunks_count,
+    )
     if quality_error is not None:
         failed_started_at = _utc_now()
         failed_finished_at = _utc_now()

@@ -13,10 +13,11 @@ def _build_prompt(task: Task, retrieved_context: str | None = None) -> str:
     )
 
 
-def _build_fallback(task: Task) -> str:
+def _build_fallback(task: Task, retrieved_context: str | None = None) -> str:
     return build_general_fallback(
         title=task.title,
         description=task.description or "No additional context provided.",
+        retrieved_context=retrieved_context,
     )
 
 
@@ -27,6 +28,6 @@ def run_task(task: Task, retrieved_context: str | None = None) -> str:
 def run_task_with_metadata(task: Task, retrieved_context: str | None = None) -> AgentExecutionResult:
     response = generate(
         request=LLMRequest(prompt=_build_prompt(task, retrieved_context=retrieved_context)),
-        fallback_text=_build_fallback(task),
+        fallback_text=_build_fallback(task, retrieved_context=retrieved_context),
     )
     return AgentExecutionResult.from_llm_response(response)

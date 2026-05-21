@@ -86,13 +86,15 @@ def retrieve_relevant_chunks(
 def _format_chunk_section(index: int, chunk: RetrievedChunk, text: str) -> str:
     source_label = chunk.source_name or "N/A"
     chunk_index_label = chunk.chunk_index if chunk.chunk_index is not None else "N/A"
+    document_id_label = chunk.document_id or "N/A"
 
     return (
-        f"[Chunk {index}]\n"
+        f"[Document context {index}]\n"
         f"Document: {chunk.document_title}\n"
+        f"Document ID: {document_id_label}\n"
         f"Source: {source_label}\n"
-        f"Chunk Index: {chunk_index_label}\n"
-        f"Score: {chunk.score:.2f}\n"
+        f"Chunk: {chunk_index_label}\n"
+        f"Relevance score: {chunk.score:.2f}\n"
         "Content:\n"
         f"{text}"
     )
@@ -108,7 +110,7 @@ def _truncate_chunk_text(
     content_prefix = "" if header.endswith("\n") else "\n"
     header_length = len(header) + len(content_prefix)
 
-    if available_chars <= header_length + len(ellipsis) + 40:
+    if available_chars <= header_length + len(ellipsis) + 8:
         return None
 
     remaining_chars = available_chars - header_length - len(ellipsis)
@@ -175,6 +177,28 @@ def build_context(
         break
 
     if not sections:
+        if chunks:
+            first_chunk = chunks[0]
+            minimal_text = _format_chunk_section(
+                1,
+                first_chunk,
+                f"{first_chunk.text[:32].rstrip()}...",
+            )
+            return ContextBuildResult(
+                text=f"{CONTEXT_START_DELIMITER}\n{minimal_text}\n{CONTEXT_END_DELIMITER}",
+                used_chunks=[
+                    RetrievedChunk(
+                        chunk_id=first_chunk.chunk_id,
+                        document_id=first_chunk.document_id,
+                        document_title=first_chunk.document_title,
+                        source_name=first_chunk.source_name,
+                        chunk_index=first_chunk.chunk_index,
+                        text=f"{first_chunk.text[:32].rstrip()}...",
+                        score=first_chunk.score,
+                    )
+                ],
+                truncated=True,
+            )
         return ContextBuildResult(text=None, used_chunks=[], truncated=truncated)
 
     context_body = CONTEXT_SECTION_DELIMITER.join(sections)

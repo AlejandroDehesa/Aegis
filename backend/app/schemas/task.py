@@ -64,12 +64,14 @@ class TaskExecutionStepRead(BaseModel):
     llm_latency_ms: int | None = None
     llm_usage_summary: dict[str, object] | None = None
     rag_enabled: bool | None = None
+    rag_vector_backend: str | None = None
     rag_context_used: bool | None = None
     rag_retrieved_chunks_count: int | None = None
     rag_documents_used: list[str] | None = None
     rag_error: str | None = None
     rag_context_chars: int | None = None
     rag_snippets: list[str] | None = None
+    rag_scores: list[float] | None = None
 
 
 class TaskRead(BaseModel):
