@@ -57,6 +57,15 @@ Backend:
 
 - Build: `pip install -r requirements.txt`
 - Start: `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}`
+- Root Directory (Railway service): `backend`
+- Alembic files must exist inside backend image (`backend/alembic.ini`, `backend/alembic/`)
+
+Railway start command recommendations:
+
+- Temporary initialization start command:
+  `sh -c "alembic upgrade head && python -m scripts.backfill_pgvector_embeddings && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"`
+- Normal start command after initialization:
+  `sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"`
 
 Frontend:
 
@@ -75,6 +84,11 @@ Migrations (production):
 
 - `alembic upgrade head`
 - `python -m scripts.backfill_pgvector_embeddings` (only needed to backfill old chunks with `embedding IS NULL`)
+
+Legacy database bootstrap (if schema existed before Alembic versioning):
+
+- `alembic stamp 0001_initial_schema`
+- `alembic upgrade head`
 
 ## 5. Health and Readiness Checks
 

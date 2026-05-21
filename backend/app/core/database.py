@@ -1,4 +1,5 @@
 from collections.abc import Generator
+import logging
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
@@ -27,6 +28,7 @@ SessionLocal = sessionmaker(
     autoflush=False,
     expire_on_commit=False,
 )
+logger = logging.getLogger("aegis.database")
 
 
 def create_tables() -> None:
@@ -48,6 +50,12 @@ def _ensure_pgvector_extension() -> None:
         with engine.begin() as connection:
             connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
     except Exception as error:
+        if settings.APP_ENV not in {"production", "prod"}:
+            logger.warning(
+                "pgvector extension is not available; continuing in %s mode.",
+                settings.APP_ENV,
+            )
+            return
         raise RuntimeError(
             "RAG_VECTOR_BACKEND=pgvector requires PostgreSQL pgvector extension "
             "(CREATE EXTENSION vector)."

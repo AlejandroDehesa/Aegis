@@ -142,6 +142,42 @@ class DeploymentReadinessTests(unittest.TestCase):
         self.assertNotIn("OPENROUTER_API_KEY=sk-", content)
         self.assertNotIn("postgres://user:password@", content)
 
+    def test_backend_alembic_ini_exists(self) -> None:
+        alembic_ini = _find_repo_file("backend/alembic.ini")
+        if alembic_ini is None:
+            self.skipTest("backend/alembic.ini is not mounted in this test runtime")
+        self.assertTrue(alembic_ini.exists())
+
+    def test_backend_alembic_script_location_configured(self) -> None:
+        alembic_ini = _find_repo_file("backend/alembic.ini")
+        if alembic_ini is None:
+            self.skipTest("backend/alembic.ini is not mounted in this test runtime")
+        content = alembic_ini.read_text(encoding="utf-8")
+        self.assertIn("script_location = alembic", content)
+
+    def test_backend_alembic_versions_exist(self) -> None:
+        versions_dir = _find_repo_file("backend/alembic/versions")
+        if versions_dir is None:
+            self.skipTest("backend/alembic/versions is not mounted in this test runtime")
+        revisions = list(versions_dir.glob("*.py"))
+        self.assertGreaterEqual(len(revisions), 1)
+
+    def test_backfill_script_exists(self) -> None:
+        backfill_script = _find_repo_file("backend/scripts/backfill_pgvector_embeddings.py")
+        if backfill_script is None:
+            self.skipTest("backfill script is not mounted in this test runtime")
+        self.assertTrue(backfill_script.exists())
+
+    def test_pgvector_migration_available_in_backend_context(self) -> None:
+        migration_file = _find_repo_file(
+            "backend/alembic/versions/0002_pgvector_document_chunk_embeddings.py"
+        )
+        if migration_file is None:
+            self.skipTest("backend pgvector migration is not mounted in this test runtime")
+        content = migration_file.read_text(encoding="utf-8")
+        self.assertIn("CREATE EXTENSION IF NOT EXISTS vector", content)
+        self.assertIn("embedding vector", content)
+
     def test_ci_workflow_still_exists(self) -> None:
         workflow_file = _find_repo_file(".github/workflows/ci.yml")
         if workflow_file is None:

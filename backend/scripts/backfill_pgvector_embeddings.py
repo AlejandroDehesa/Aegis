@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sqlalchemy import select
+from sqlalchemy.exc import ProgrammingError
 
 from app.core.database import SessionLocal
 from app.models.document import DocumentChunk
@@ -26,12 +27,18 @@ def run_backfill(*, batch_size: int = BATCH_SIZE) -> BackfillSummary:
 
     while True:
         with SessionLocal() as session:
-            chunks = session.execute(
-                select(DocumentChunk)
-                .where(DocumentChunk.embedding.is_(None))
-                .order_by(DocumentChunk.created_at.asc())
-                .limit(max(batch_size, 1))
-            ).scalars().all()
+            try:
+                chunks = session.execute(
+                    select(DocumentChunk)
+                    .where(DocumentChunk.embedding.is_(None))
+                    .order_by(DocumentChunk.created_at.asc())
+                    .limit(max(batch_size, 1))
+                ).scalars().all()
+            except ProgrammingError as error:
+                raise RuntimeError(
+                    "Backfill requires the document_chunks.embedding column. "
+                    "Run `alembic upgrade head` first."
+                ) from error
 
             if not chunks:
                 break
@@ -58,7 +65,11 @@ def run_backfill(*, batch_size: int = BATCH_SIZE) -> BackfillSummary:
 
 
 def main() -> None:
-    summary = run_backfill()
+    try:
+        summary = run_backfill()
+    except RuntimeError as error:
+        raise SystemExit(str(error)) from error
+
     print(
         "PGVector backfill completed "
         f"(scanned={summary.scanned}, updated={summary.updated}, failed={summary.failed})."
