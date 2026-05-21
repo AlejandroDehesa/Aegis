@@ -71,9 +71,10 @@ class AgentPromptDesignTests(unittest.TestCase):
 
     def test_analysis_prompt_contains_required_sections(self) -> None:
         prompt = build_analysis_prompt("Riesgos Railway", "Necesito impacto y mitigación.")
-        self.assertIn("Riesgos principales / Key risks", prompt)
-        self.assertIn("Impacto / Impact", prompt)
-        self.assertIn("Mitigaciones recomendadas / Recommended mitigation", prompt)
+        self.assertIn("Executive summary / Resumen ejecutivo", prompt)
+        self.assertIn("Risks / Riesgos", prompt)
+        self.assertIn("Impact / Impacto", prompt)
+        self.assertIn("Mitigation / Mitigacion", prompt)
 
     def test_planning_prompt_contains_required_sections(self) -> None:
         prompt = build_planning_prompt("Plan plataforma", "Plan paso a paso.")
@@ -111,8 +112,8 @@ class AgentPromptDesignTests(unittest.TestCase):
         task = build_task(task_type="analysis", agent_name="AnalysisAgent", title="Riesgos Railway")
         with patch("app.services.llm_service.get_llm_service", return_value=service):
             output = run_analysis_task(task)
-        self.assertIn("# Análisis técnico", output)
-        self.assertIn("## 5. Mitigaciones recomendadas", output)
+        self.assertIn("# Analisis tecnico", output)
+        self.assertIn("## 4. Mitigation / Mitigacion", output)
 
     def test_planning_template_fallback_is_structured(self) -> None:
         service = LLMService(settings=_settings(LLM_PROVIDER="template"))
@@ -219,3 +220,4 @@ class AgentPromptDesignTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

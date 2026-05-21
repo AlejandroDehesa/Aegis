@@ -290,6 +290,10 @@ def _normalize_text(text: str) -> str:
     return normalized
 
 
+def _contains_any_heading_token(text: str, patterns: tuple[str, ...]) -> bool:
+    return any(re.search(pattern, text) is not None for pattern in patterns)
+
+
 def _validate_output_quality(task: Task, output_text: str | None) -> str | None:
     if not output_text or not output_text.strip():
         return "Generated output is empty."
@@ -308,8 +312,19 @@ def _validate_output_quality(task: Task, output_text: str | None) -> str | None:
             return "Comparison output must include a recommendation."
 
     if task.task_type == "analysis":
-        required = ("risk", "impact", "mitigation")
-        if not all(token in normalized_output for token in required):
+        has_risks = _contains_any_heading_token(
+            normalized_output,
+            (r"\brisk\b", r"\brisks\b", r"\briesgo\b", r"\briesgos\b"),
+        )
+        has_impact = _contains_any_heading_token(
+            normalized_output,
+            (r"\bimpact\b", r"\bimpacts\b", r"\bimpacto\b", r"\bimpactos\b"),
+        )
+        has_mitigation = _contains_any_heading_token(
+            normalized_output,
+            (r"\bmitigation\b", r"\bmitigations\b", r"\bmitigacion\b", r"\bmitigaciones\b"),
+        )
+        if not (has_risks and has_impact and has_mitigation):
             return "Analysis output must include risks, impact, and mitigation."
 
     if task.task_type == "planning":

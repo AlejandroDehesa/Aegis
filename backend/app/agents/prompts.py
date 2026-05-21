@@ -119,17 +119,17 @@ def build_analysis_prompt(title: str, description: str, retrieved_context: str |
         description=description,
         retrieved_context=retrieved_context,
         output_contract=[
-            "Resumen ejecutivo / Executive summary",
-            "Riesgos principales / Key risks",
-            "Impacto / Impact",
-            "Probabilidad y severidad / Probability and severity",
-            "Mitigaciones recomendadas / Recommended mitigation",
-            "Prioridad de acción / Action priority",
-            "Recomendación final / Final recommendation",
-            "Supuestos o límites / Assumptions or limits",
+            "Executive summary / Resumen ejecutivo",
+            "Risks / Riesgos",
+            "Impact / Impacto",
+            "Mitigation / Mitigacion",
+            "Priority / Prioridad",
+            "Final recommendation / Recomendacion final",
+            "Assumptions and limits / Supuestos y limites",
         ],
         extra_rules=[
             "Separate risk, impact, and mitigation explicitly.",
+            "For each risk, include probability and severity in concrete terms.",
             "Prioritize actions by urgency and potential effect.",
             "Avoid vague statements that cannot guide execution.",
         ],
@@ -258,26 +258,23 @@ def build_comparison_fallback(title: str, description: str) -> str:
 
 def build_analysis_fallback(title: str, description: str) -> str:
     return (
-        "# Análisis técnico / Technical analysis\n\n"
-        "## 1. Resumen ejecutivo / Executive summary\n"
-        f"- Evaluación inicial de riesgos para: {title}.\n\n"
-        "## 2. Riesgos principales / Key risks\n"
-        "- Risk 1: configuración incompleta en despliegue.\n"
-        "- Risk 2: degradación de servicio bajo picos de carga.\n\n"
-        "## 3. Impacto / Impact\n"
-        "- Posible indisponibilidad parcial y retrasos de entrega.\n\n"
-        "## 4. Probabilidad / severidad\n"
-        "- Riesgo 1: probabilidad media, severidad alta.\n"
-        "- Riesgo 2: probabilidad media, severidad media-alta.\n\n"
-        "## 5. Mitigaciones recomendadas / Mitigation\n"
+        "# Analisis tecnico / Technical analysis\n\n"
+        "## 1. Executive summary / Resumen ejecutivo\n"
+        f"- Evaluacion inicial de riesgos para: {title}.\n\n"
+        "## 2. Risks / Riesgos\n"
+        "- Risk 1: configuracion incompleta en despliegue (probabilidad media, severidad alta).\n"
+        "- Risk 2: degradacion de servicio bajo picos de carga (probabilidad media, severidad media-alta).\n\n"
+        "## 3. Impact / Impacto\n"
+        "- Posible indisponibilidad parcial, retrasos operativos y perdida de confianza.\n\n"
+        "## 4. Mitigation / Mitigacion\n"
         "- Mitigation: aplicar health checks, despliegue gradual y rollback validado.\n"
-        "- Activar alertas de capacidad y observabilidad operativa.\n\n"
-        "## 6. Prioridad de acción\n"
-        "- Prioridad 1: endurecer configuración y release checklist.\n"
-        "- Prioridad 2: reforzar monitorización y respuesta a incidentes.\n\n"
-        "## 7. Recomendación final / Final recommendation\n"
+        "- Mitigacion adicional: alertas de capacidad y observabilidad operativa.\n\n"
+        "## 5. Priority / Prioridad\n"
+        "- Prioridad 1: endurecer configuracion y checklist de release.\n"
+        "- Prioridad 2: reforzar monitorizacion y respuesta a incidentes.\n\n"
+        "## 6. Final recommendation / Recomendacion final\n"
         "- Ejecutar primero mitigaciones de confiabilidad antes de escalar alcance.\n\n"
-        "## 8. Supuestos o límites\n"
+        "## 7. Assumptions and limits / Supuestos y limites\n"
         f"- Basado en el contexto disponible: {description}"
     )
 

@@ -110,7 +110,7 @@ class AgentLLMExecutionAndTraceTests(unittest.TestCase):
         with patch("app.services.llm_service.get_llm_service", return_value=service):
             output = run_analysis_task(task).lower()
 
-        self.assertIn("key risks", output)
+        self.assertIn("risks / riesgos", output)
         self.assertIn("impact", output)
         self.assertIn("mitigation", output)
 
