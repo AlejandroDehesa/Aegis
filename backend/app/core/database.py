@@ -59,6 +59,40 @@ def _ensure_runtime_schema_updates() -> None:
         return
 
     with engine.begin() as connection:
+        # ------------------------------------------------------------------ #
+        # document_chunks — pgvector embedding column                         #
+        # ------------------------------------------------------------------ #
+        # Ensure the pgvector extension is present before adding the column.
+        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+
+        # Add the embedding column using the configured dimension.  The
+        # ADD COLUMN IF NOT EXISTS guard makes this fully idempotent.
+        connection.execute(
+            text(
+                f"ALTER TABLE document_chunks "
+                f"ADD COLUMN IF NOT EXISTS embedding vector({settings.EMBEDDING_DIMENSION})"
+            )
+        )
+
+    # Create an HNSW cosine-distance index for fast ANN search in a
+    # separate transaction so a failure on older pgvector builds that do
+    # not support HNSW does not roll back the column-addition above.
+    try:
+        with engine.begin() as index_conn:
+            index_conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_document_chunks_embedding_cosine "
+                    "ON document_chunks USING hnsw (embedding vector_cosine_ops)"
+                )
+            )
+    except Exception:
+        pass  # HNSW not supported on this pgvector build — IVFFlat or exact scan used instead.
+
+    with engine.begin() as connection:
+
+        # ------------------------------------------------------------------ #
+        # tasks — incremental columns added after initial schema              #
+        # ------------------------------------------------------------------ #
         connection.execute(
             text(
                 "ALTER TABLE tasks "
