@@ -1,6 +1,6 @@
 """add pgvector embeddings to document chunks
 
-Revision ID: 0002_pgvector_document_chunk_embeddings
+Revision ID: 0002_pgvector_embeddings
 Revises: 0001_initial_schema
 Create Date: 2026-05-21 18:10:00
 """
@@ -9,10 +9,9 @@ from __future__ import annotations
 import os
 
 from alembic import op
-import sqlalchemy as sa
 
 
-revision = "0002_pgvector_document_chunk_embeddings"
+revision = "0002_pgvector_embeddings"
 down_revision = "0001_initial_schema"
 branch_labels = None
 depends_on = None

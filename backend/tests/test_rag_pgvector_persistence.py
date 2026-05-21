@@ -231,7 +231,7 @@ class RagPgvectorPersistenceTests(unittest.TestCase):
         self.assertNotIn("chromadb", content)
 
     def test_pgvector_migration_exists(self) -> None:
-        migration_file = _find_repo_file("alembic/versions/0002_pgvector_document_chunk_embeddings.py")
+        migration_file = _find_repo_file("alembic/versions/0002_pgvector_embeddings.py")
         if migration_file is None:
             self.skipTest("pgvector migration is not mounted in this test runtime")
         self.assertTrue(migration_file.exists())

@@ -170,13 +170,31 @@ class DeploymentReadinessTests(unittest.TestCase):
 
     def test_pgvector_migration_available_in_backend_context(self) -> None:
         migration_file = _find_repo_file(
-            "backend/alembic/versions/0002_pgvector_document_chunk_embeddings.py"
+            "backend/alembic/versions/0002_pgvector_embeddings.py"
         )
         if migration_file is None:
             self.skipTest("backend pgvector migration is not mounted in this test runtime")
         content = migration_file.read_text(encoding="utf-8")
         self.assertIn("CREATE EXTENSION IF NOT EXISTS vector", content)
         self.assertIn("embedding vector", content)
+        self.assertIn('revision = "0002_pgvector_embeddings"', content)
+
+    def test_alembic_revision_ids_fit_varchar_32(self) -> None:
+        versions_dir = _find_repo_file("backend/alembic/versions")
+        if versions_dir is None:
+            self.skipTest("backend/alembic/versions is not mounted in this test runtime")
+
+        for migration_file in versions_dir.glob("*.py"):
+            content = migration_file.read_text(encoding="utf-8")
+            for line in content.splitlines():
+                line = line.strip()
+                if line.startswith("revision = "):
+                    revision_id = line.split("=", maxsplit=1)[1].strip().strip("\"'")
+                    self.assertLessEqual(
+                        len(revision_id),
+                        32,
+                        msg=f"{migration_file.name} revision id exceeds VARCHAR(32): {revision_id}",
+                    )
 
     def test_ci_workflow_still_exists(self) -> None:
         workflow_file = _find_repo_file(".github/workflows/ci.yml")
