@@ -11,11 +11,11 @@ Maximizar confianza de demo y estabilidad con foco en regresiones criticas sin s
 
 ## Comandos recomendados
 ```bash
-docker compose build
-docker compose up -d
-docker compose run --rm backend python -m unittest discover -s tests -t . -p "test_*.py" -v
-cd frontend && npm run check:smoke && npm run build
-docker compose run --rm backend python -m scripts.seed_demo_data
+docker compose --env-file .env.example config
+cd backend && python -m unittest discover -s tests -t . -p "test_*.py" -v
+cd ../frontend && npm ci && npm run test && npm run build && npm run check:smoke
+docker compose --env-file .env up --build -d
+docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```
 
 ## Aislamiento LLM en tests
@@ -26,9 +26,9 @@ docker compose run --rm backend python -m scripts.seed_demo_data
 
 ## Reset demo local
 ```bash
-docker compose down -v
-docker compose up -d
-docker compose run --rm backend python -m scripts.seed_demo_data
+docker compose --env-file .env down -v
+docker compose --env-file .env up -d
+docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```
 
 ## Distribucion de la matriz ideal

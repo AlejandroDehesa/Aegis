@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: sqlite+pysqlite:///:memory:
-      JWT_SECRET_KEY: ci-test-secret
+      JWT_SECRET_KEY: ci-test-secret-minimum-32-characters
       TASK_EXECUTION_MODE: sync
       LLM_PROVIDER: template
       LLM_ENABLE_REAL_CALLS: "false"
@@ -33,6 +33,15 @@ jobs:
       - name: Run backend tests
         working-directory: backend
         run: python -m unittest discover -s tests -t . -p "test_*.py" -v
+
+  docker-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate docker compose config
+        run: docker compose --env-file .env.example config
 
   frontend-tests:
     runs-on: ubuntu-latest

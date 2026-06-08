@@ -90,7 +90,7 @@ Agrega screenshots reales para portfolio en `docs/screenshots/` y enlazalos aqui
 ```bash
 cp .env.example .env
 cp frontend/.env.example frontend/.env
-docker compose up --build -d
+docker compose --env-file .env up --build -d
 ```
 
 URLs:
@@ -102,7 +102,7 @@ URLs:
 ### Opcion local (sin contenedores completos)
 
 ```bash
-docker compose up -d db
+docker compose --env-file .env up -d db
 
 cd backend
 python -m venv .venv
@@ -120,16 +120,24 @@ npm run dev
 ### Backend
 
 ```bash
-docker compose run --rm backend python -m unittest discover -s tests -t . -p "test_*.py" -v
+cd backend
+python -m unittest discover -s tests -t . -p "test_*.py" -v
 ```
 
 ### Frontend
 
 ```bash
 cd frontend
+npm ci
 npm run test
 npm run build
 npm run check:smoke
+```
+
+### Docker config
+
+```bash
+docker compose --env-file .env.example config
 ```
 
 ## Seed demo y reset
@@ -137,15 +145,15 @@ npm run check:smoke
 ### Seed demo
 
 ```bash
-docker compose run --rm backend python -m scripts.seed_demo_data
+docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```
 
 ### Reset demo limpio
 
 ```bash
-docker compose down -v
-docker compose up -d
-docker compose run --rm backend python -m scripts.seed_demo_data
+docker compose --env-file .env down -v
+docker compose --env-file .env up -d
+docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```
 
 ### Usuario demo
@@ -157,11 +165,11 @@ docker compose run --rm backend python -m scripts.seed_demo_data
 
 Estado: **MVP tecnico estable para demo y portfolio**.
 
-- backend tests: passing
+- backend tests: verificados con `cd backend && python -m unittest discover -s tests -t . -p "test_*.py" -v`
 - frontend tests: passing
 - frontend build: passing
 - smoke checks: passing
-- docker compose: healthy
+- docker compose config: verificado con `docker compose --env-file .env.example config`
 - seed demo: funcional
 
 No se presenta como "production-ready". Se presenta como base solida demostrable.

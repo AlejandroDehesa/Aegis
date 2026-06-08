@@ -3,6 +3,7 @@ import logging
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.core.config import settings
 
@@ -18,9 +19,23 @@ class Base(DeclarativeBase):
     pass
 
 
+def _build_engine_options(database_url: str) -> dict[str, object]:
+    options: dict[str, object] = {
+        "pool_pre_ping": True,
+    }
+
+    if database_url.startswith("sqlite"):
+        options["connect_args"] = {"check_same_thread": False}
+        if ":memory:" in database_url:
+            options["poolclass"] = StaticPool
+
+    return options
+
+
+normalized_database_url = _normalize_database_url(settings.DATABASE_URL)
 engine = create_engine(
-    _normalize_database_url(settings.DATABASE_URL),
-    pool_pre_ping=True,
+    normalized_database_url,
+    **_build_engine_options(normalized_database_url),
 )
 
 SessionLocal = sessionmaker(

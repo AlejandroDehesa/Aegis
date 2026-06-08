@@ -58,7 +58,7 @@ if errorlevel 1 (
 
 if /I "%~1"=="--seed" (
   echo [Aegis] Cargando datos demo...
-  docker compose run --rm backend python -m scripts.seed_demo_data
+  docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
   if errorlevel 1 (
     echo [WARN] No se pudo cargar seed demo. El sistema sigue levantado.
   )
@@ -83,8 +83,8 @@ if errorlevel 1 (
 
 if /I not "%SERVICES_OK%"=="1" (
   echo [ERROR] Los servicios no quedaron listos a tiempo.
-  echo         Revisa estado con: docker compose ps
-  echo         Revisa logs con:   docker compose logs --no-color --tail 100
+  echo         Revisa estado con: docker compose --env-file .env ps
+  echo         Revisa logs con:   docker compose --env-file .env logs --no-color --tail 100
   exit /b 1
 )
 
