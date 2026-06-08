@@ -29,7 +29,7 @@ if errorlevel 1 (
 if not exist ".env" (
   if exist ".env.example" (
     copy /Y ".env.example" ".env" >nul
-    echo [Aegis] .env creado desde .env.example
+    echo [Aegis] .env local creado desde .env.example
   ) else (
     echo [ERROR] Falta .env y .env.example
     exit /b 1
@@ -47,10 +47,10 @@ if not exist "frontend\.env" (
 )
 
 echo [Aegis] Levantando servicios (db, backend, frontend)...
-docker compose up --build -d
+docker compose --env-file .env up --build -d
 if errorlevel 1 (
   echo [WARN] Primer intento de docker compose fallo. Reintentando con --remove-orphans...
-  docker compose up --build -d --remove-orphans
+  docker compose --env-file .env up --build -d --remove-orphans
   if errorlevel 1 (
     echo [WARN] Compose devolvio error otra vez. Verificando disponibilidad real de servicios...
   )

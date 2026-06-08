@@ -7,7 +7,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
-load_dotenv(ROOT_DIR / ".env")
+ENV_FILE = os.getenv("AEGIS_ENV_FILE")
+if ENV_FILE:
+    env_path = Path(ENV_FILE)
+    if not env_path.is_absolute():
+        env_path = ROOT_DIR / env_path
+    load_dotenv(env_path)
 
 
 def _env_bool(name: str, default: bool) -> bool:
