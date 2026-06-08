@@ -57,8 +57,9 @@ Backend:
 
 - Build: `pip install -r requirements.txt`
 - Start: `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}`
-- Root Directory (Railway service): `backend`
-- Alembic files must exist inside backend image (`backend/alembic.ini`, `backend/alembic/`)
+- Dockerfile path: `backend/Dockerfile`
+- Build context / Root Directory: repository root
+- Alembic files must exist inside backend image (`alembic.ini`, `alembic/`)
 
 Railway start command recommendations:
 

@@ -91,6 +91,7 @@ Agrega screenshots reales para portfolio en `docs/screenshots/` y enlazalos aqui
 cp .env.example .env
 cp frontend/.env.example frontend/.env
 docker compose --env-file .env up --build -d
+docker compose --env-file .env run --rm backend alembic upgrade head
 ```
 
 URLs:
@@ -108,6 +109,8 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
+$env:AEGIS_ENV_FILE=".env"
+python -m alembic -c ..\alembic.ini upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 cd ../frontend
@@ -140,11 +143,19 @@ npm run check:smoke
 docker compose --env-file .env.example config
 ```
 
+### Migraciones
+
+```powershell
+$env:AEGIS_ENV_FILE=".env"
+python -m alembic -c alembic.ini upgrade head
+```
+
 ## Seed demo y reset
 
 ### Seed demo
 
 ```bash
+docker compose --env-file .env run --rm backend alembic upgrade head
 docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```
 
@@ -153,6 +164,7 @@ docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```bash
 docker compose --env-file .env down -v
 docker compose --env-file .env up -d
+docker compose --env-file .env run --rm backend alembic upgrade head
 docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```
 

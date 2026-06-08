@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 
-from app.core.database import SessionLocal, create_tables
+from app.core.database import SessionLocal
 from app.core.security import hash_password
 from app.models.task import Task
 from app.models.user import User
@@ -308,8 +308,18 @@ def seed_demo_tasks(user: User) -> None:
         print(f"Seed complete. Created {created} demo task(s), updated {updated}.")
 
 
+def ensure_schema_ready() -> None:
+    try:
+        with SessionLocal() as db:
+            db.execute(select(User.id).limit(1))
+    except Exception as error:
+        raise RuntimeError(
+            "Database schema is not ready. Run `alembic upgrade head` before seeding demo data."
+        ) from error
+
+
 def main() -> None:
-    create_tables()
+    ensure_schema_ready()
     user = get_or_create_demo_user()
     seed_demo_tasks(user)
     print("Demo credentials:")

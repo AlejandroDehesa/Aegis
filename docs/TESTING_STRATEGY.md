@@ -15,6 +15,7 @@ docker compose --env-file .env.example config
 cd backend && python -m unittest discover -s tests -t . -p "test_*.py" -v
 cd ../frontend && npm ci && npm run test && npm run build && npm run check:smoke
 docker compose --env-file .env up --build -d
+docker compose --env-file .env run --rm backend alembic upgrade head
 docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```
 
@@ -28,6 +29,7 @@ docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```bash
 docker compose --env-file .env down -v
 docker compose --env-file .env up -d
+docker compose --env-file .env run --rm backend alembic upgrade head
 docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```
 

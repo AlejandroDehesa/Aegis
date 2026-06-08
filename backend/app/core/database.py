@@ -1,5 +1,4 @@
 from collections.abc import Generator
-import logging
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
@@ -43,88 +42,24 @@ SessionLocal = sessionmaker(
     autoflush=False,
     expire_on_commit=False,
 )
-logger = logging.getLogger("aegis.database")
 
 
-def create_tables() -> None:
+def create_test_schema() -> None:
+    if settings.APP_ENV != "test":
+        raise RuntimeError("create_test_schema() is only available when APP_ENV=test.")
+
     import app.models  # noqa: F401
 
-    _ensure_pgvector_extension()
     Base.metadata.create_all(bind=engine)
-    _ensure_runtime_schema_updates()
 
+def reset_test_schema() -> None:
+    if settings.APP_ENV != "test":
+        raise RuntimeError("reset_test_schema() is only available when APP_ENV=test.")
 
-def _ensure_pgvector_extension() -> None:
-    if engine.dialect.name != "postgresql":
-        return
+    import app.models  # noqa: F401
 
-    if settings.RAG_VECTOR_BACKEND != "pgvector":
-        return
-
-    try:
-        with engine.begin() as connection:
-            connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-    except Exception as error:
-        if settings.APP_ENV not in {"production", "prod"}:
-            logger.warning(
-                "pgvector extension is not available; continuing in %s mode.",
-                settings.APP_ENV,
-            )
-            return
-        raise RuntimeError(
-            "RAG_VECTOR_BACKEND=pgvector requires PostgreSQL pgvector extension "
-            "(CREATE EXTENSION vector)."
-        ) from error
-
-
-def _ensure_runtime_schema_updates() -> None:
-    if engine.dialect.name != "postgresql":
-        return
-
-    with engine.begin() as connection:
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS execution_trace JSONB "
-                "NOT NULL DEFAULT '[]'::jsonb"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS finished_at TIMESTAMPTZ"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS duration_ms INTEGER"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS feedback_rating INTEGER"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS feedback_comment TEXT"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS feedback_submitted_at TIMESTAMPTZ"
-            )
-        )
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
 
 
 def get_db() -> Generator[Session, None, None]:

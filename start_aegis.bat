@@ -56,6 +56,14 @@ if errorlevel 1 (
   )
 )
 
+echo [Aegis] Aplicando migraciones Alembic...
+docker compose --env-file .env run --rm backend alembic upgrade head
+if errorlevel 1 (
+  echo [ERROR] No se pudieron aplicar migraciones Alembic.
+  echo         Revisa logs con: docker compose --env-file .env logs --no-color --tail 100
+  exit /b 1
+)
+
 if /I "%~1"=="--seed" (
   echo [Aegis] Cargando datos demo...
   docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data

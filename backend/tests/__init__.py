@@ -5,6 +5,13 @@ This module forcefully isolates test execution from local runtime .env values.
 
 import os
 import sys
+from pathlib import Path
+
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+backend_root_text = str(BACKEND_ROOT)
+if backend_root_text not in sys.path:
+    sys.path.insert(0, backend_root_text)
 
 
 # Force deterministic LLM behavior in tests regardless of local .env.
@@ -64,3 +71,7 @@ def _refresh_loaded_settings_if_needed() -> None:
 
 
 _refresh_loaded_settings_if_needed()
+
+from app.core.database import reset_test_schema
+
+reset_test_schema()

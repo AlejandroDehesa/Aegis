@@ -142,23 +142,23 @@ class DeploymentReadinessTests(unittest.TestCase):
         self.assertNotIn("OPENROUTER_API_KEY=sk-", content)
         self.assertNotIn("postgres://user:password@", content)
 
-    def test_backend_alembic_ini_exists(self) -> None:
-        alembic_ini = _find_repo_file("backend/alembic.ini")
+    def test_root_alembic_ini_exists(self) -> None:
+        alembic_ini = _find_repo_file("alembic.ini")
         if alembic_ini is None:
-            self.skipTest("backend/alembic.ini is not mounted in this test runtime")
+            self.skipTest("alembic.ini is not mounted in this test runtime")
         self.assertTrue(alembic_ini.exists())
 
-    def test_backend_alembic_script_location_configured(self) -> None:
-        alembic_ini = _find_repo_file("backend/alembic.ini")
+    def test_root_alembic_script_location_configured(self) -> None:
+        alembic_ini = _find_repo_file("alembic.ini")
         if alembic_ini is None:
-            self.skipTest("backend/alembic.ini is not mounted in this test runtime")
+            self.skipTest("alembic.ini is not mounted in this test runtime")
         content = alembic_ini.read_text(encoding="utf-8")
         self.assertIn("script_location = alembic", content)
 
-    def test_backend_alembic_versions_exist(self) -> None:
-        versions_dir = _find_repo_file("backend/alembic/versions")
+    def test_root_alembic_versions_exist(self) -> None:
+        versions_dir = _find_repo_file("alembic/versions")
         if versions_dir is None:
-            self.skipTest("backend/alembic/versions is not mounted in this test runtime")
+            self.skipTest("alembic/versions is not mounted in this test runtime")
         revisions = list(versions_dir.glob("*.py"))
         self.assertGreaterEqual(len(revisions), 1)
 
@@ -168,21 +168,21 @@ class DeploymentReadinessTests(unittest.TestCase):
             self.skipTest("backfill script is not mounted in this test runtime")
         self.assertTrue(backfill_script.exists())
 
-    def test_pgvector_migration_available_in_backend_context(self) -> None:
+    def test_pgvector_migration_available_in_root_context(self) -> None:
         migration_file = _find_repo_file(
-            "backend/alembic/versions/0002_pgvector_embeddings.py"
+            "alembic/versions/0002_pgvector_embeddings.py"
         )
         if migration_file is None:
-            self.skipTest("backend pgvector migration is not mounted in this test runtime")
+            self.skipTest("root pgvector migration is not mounted in this test runtime")
         content = migration_file.read_text(encoding="utf-8")
         self.assertIn("CREATE EXTENSION IF NOT EXISTS vector", content)
         self.assertIn("embedding vector", content)
         self.assertIn('revision = "0002_pgvector_embeddings"', content)
 
     def test_alembic_revision_ids_fit_varchar_32(self) -> None:
-        versions_dir = _find_repo_file("backend/alembic/versions")
+        versions_dir = _find_repo_file("alembic/versions")
         if versions_dir is None:
-            self.skipTest("backend/alembic/versions is not mounted in this test runtime")
+            self.skipTest("alembic/versions is not mounted in this test runtime")
 
         for migration_file in versions_dir.glob("*.py"):
             content = migration_file.read_text(encoding="utf-8")
@@ -216,6 +216,22 @@ class DeploymentReadinessTests(unittest.TestCase):
             self.skipTest("README.md is not mounted in this test runtime")
         content = readme.read_text(encoding="utf-8")
         self.assertIn("alembic upgrade head", content)
+
+    def test_runtime_startup_does_not_create_schema(self) -> None:
+        main_file = _find_repo_file("backend/app/main.py")
+        if main_file is None:
+            self.skipTest("backend/app/main.py is not mounted in this test runtime")
+        content = main_file.read_text(encoding="utf-8")
+        self.assertNotIn("create_tables()", content)
+        self.assertNotIn("@app.on_event(\"startup\")", content)
+
+    def test_database_module_does_not_run_runtime_ddl(self) -> None:
+        database_file = _find_repo_file("backend/app/core/database.py")
+        if database_file is None:
+            self.skipTest("backend/app/core/database.py is not mounted in this test runtime")
+        content = database_file.read_text(encoding="utf-8")
+        self.assertNotIn("ALTER TABLE", content)
+        self.assertNotIn("CREATE EXTENSION IF NOT EXISTS vector", content)
 
     def test_no_env_file_tracked(self) -> None:
         repo_root = next((candidate for candidate in REPO_CANDIDATES if (candidate / ".git").exists()), None)
