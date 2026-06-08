@@ -19,6 +19,14 @@ export function listTasks(filters = {}) {
     params.set("feedback_rating", String(filters.feedbackRating));
   }
 
+  if (filters.limit !== undefined && filters.limit !== null && filters.limit !== "") {
+    params.set("limit", String(filters.limit));
+  }
+
+  if (filters.offset !== undefined && filters.offset !== null && filters.offset !== "") {
+    params.set("offset", String(filters.offset));
+  }
+
   const suffix = params.toString() ? `?${params.toString()}` : "";
 
   return apiRequest(`/tasks${suffix}`);

@@ -49,8 +49,8 @@ os.environ["RATE_LIMIT_REQUESTS_PER_MINUTE"] = "120"
 os.environ["RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE"] = "20"
 os.environ["RATE_LIMIT_TASK_EXECUTE_PER_MINUTE"] = "10"
 os.environ["DOCUMENT_MAX_UPLOAD_MB"] = "5"
-os.environ["DOCUMENT_ALLOWED_EXTENSIONS"] = ".txt,.md,.pdf"
-os.environ["DOCUMENT_ALLOWED_MIME_TYPES"] = "text/plain,text/markdown,application/pdf"
+os.environ["DOCUMENT_ALLOWED_EXTENSIONS"] = ".txt,.md,.csv,.json"
+os.environ["DOCUMENT_ALLOWED_MIME_TYPES"] = "text/plain,text/markdown,text/csv,application/json"
 
 
 def _refresh_loaded_settings_if_needed() -> None:

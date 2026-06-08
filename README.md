@@ -66,6 +66,7 @@ Aegis demuestra un flujo de producto mas profesional:
 
 - Auth basada en JWT con cookie HttpOnly para sesion web (`signup/login/me/logout`)
 - Task lifecycle con estado y metadatos
+- Listados principales con paginacion minima por `limit`/`offset`
 - Clasificacion multilenguaje ES/EN para tipos clave
 - Seleccion de agente coherente por `task_type`
 - Quality gate basico para evitar outputs placeholder
@@ -141,6 +142,34 @@ Notas:
 
 - En `APP_ENV=production`, `JWT_SECRET_KEY` debe ser fuerte (>=32 chars) y no puede ser placeholder.
 - En `APP_ENV=production`, `AUTH_COOKIE_SECURE` debe mantenerse en `true` salvo override consciente.
+
+## Contratos API basicos
+
+- `GET /tasks` soporta `limit` y `offset`.
+- `GET /documents` soporta `limit` y `offset`.
+- Valores actuales recomendados:
+  - `limit`: default `20`, min `1`, max `100`
+  - `offset`: default `0`, min `0`
+- Orden estable en listados:
+  - `created_at desc`
+  - `id desc` como desempate
+
+Validaciones principales:
+
+- tareas:
+  - `title`: min `1`, max `160`, no solo espacios
+  - `description`: max `5000`, whitespace-only => `null`
+- feedback:
+  - `feedback_rating`: `1-5`
+  - `feedback_comment`: max `1200`, whitespace-only => `null`
+- documentos:
+  - formatos soportados reales: `.txt`, `.md`, `.csv`, `.json`
+  - PDF no se declara como soportado en este runtime
+
+Rate limiting:
+
+- sigue siendo **in-memory**, orientado a demo/MVP
+- no sustituye una solucion distribuida para multiples replicas
 
 ## Como ejecutar tests
 
@@ -368,8 +397,8 @@ RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE=20
 RATE_LIMIT_TASK_EXECUTE_PER_MINUTE=10
 
 DOCUMENT_MAX_UPLOAD_MB=5
-DOCUMENT_ALLOWED_EXTENSIONS=.txt,.md,.pdf
-DOCUMENT_ALLOWED_MIME_TYPES=text/plain,text/markdown,application/pdf
+DOCUMENT_ALLOWED_EXTENSIONS=.txt,.md,.csv,.json
+DOCUMENT_ALLOWED_MIME_TYPES=text/plain,text/markdown,text/csv,application/json
 ```
 
 Notas de alcance:

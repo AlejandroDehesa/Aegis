@@ -38,8 +38,8 @@ Set these in the backend service (Railway variables panel):
 - `RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE=20`
 - `RATE_LIMIT_TASK_EXECUTE_PER_MINUTE=10`
 - `DOCUMENT_MAX_UPLOAD_MB=5`
-- `DOCUMENT_ALLOWED_EXTENSIONS=.txt,.md,.pdf`
-- `DOCUMENT_ALLOWED_MIME_TYPES=text/plain,text/markdown,application/pdf`
+- `DOCUMENT_ALLOWED_EXTENSIONS=.txt,.md,.csv,.json`
+- `DOCUMENT_ALLOWED_MIME_TYPES=text/plain,text/markdown,text/csv,application/json`
 
 ## 3. Frontend Environment Variables
 

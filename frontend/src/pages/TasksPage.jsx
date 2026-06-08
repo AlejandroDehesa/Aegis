@@ -24,6 +24,7 @@ const EMPTY_FILTERS = {
   agentName: "",
   feedbackRating: "",
 };
+const PAGE_LIMIT = 50;
 
 export function TasksPage() {
   const { t, language, locale } = useI18n();
@@ -69,7 +70,11 @@ export function TasksPage() {
     setListError("");
 
     try {
-      const taskList = await listTasks(activeFilters);
+      const taskList = await listTasks({
+        ...activeFilters,
+        limit: PAGE_LIMIT,
+        offset: 0,
+      });
       setTasks(sortTasksByRecent(taskList));
     } catch (loadError) {
       setListError(getErrorMessage(loadError, t("tasks.loading")));

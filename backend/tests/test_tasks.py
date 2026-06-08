@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from fastapi import BackgroundTasks
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from app.api.v1.tasks import (
     create_task,
@@ -65,6 +66,25 @@ class TasksTests(unittest.TestCase):
         self.assertIn("tasks.agent_name", query_text)
         self.assertIn("tasks.feedback_rating", query_text)
         self.assertEqual(len(tasks), 1)
+
+    def test_list_tasks_applies_pagination_and_stable_order(self) -> None:
+        db = MagicMock()
+        user = build_user()
+        db.execute.return_value = FakeExecuteResult(
+            scalar_values=[build_task(user_id=user.id)],
+        )
+
+        list_tasks(
+            current_user=user,
+            db=db,
+            limit=20,
+            offset=40,
+        )
+
+        query_text = str(db.execute.call_args[0][0])
+        self.assertIn("ORDER BY tasks.created_at DESC, tasks.id DESC", query_text)
+        self.assertIn("LIMIT", query_text)
+        self.assertIn("OFFSET", query_text)
 
     def test_execute_user_task_maps_state_error_to_http_409(self) -> None:
         db = MagicMock()
@@ -141,6 +161,22 @@ class TasksTests(unittest.TestCase):
         self.assertIsNotNone(updated.feedback_submitted_at)
         db.commit.assert_called_once()
         db.refresh.assert_called_once_with(task)
+
+    def test_task_create_rejects_blank_title(self) -> None:
+        with self.assertRaises(ValidationError):
+            TaskCreate(title="   ", description="Anything")
+
+    def test_task_create_limits_description_length(self) -> None:
+        with self.assertRaises(ValidationError):
+            TaskCreate(title="Valid title", description="x" * 5001)
+
+    def test_task_create_normalizes_blank_description_to_none(self) -> None:
+        task = TaskCreate(title="Valid title", description="   ")
+        self.assertIsNone(task.description)
+
+    def test_feedback_comment_blank_is_normalized_to_none(self) -> None:
+        feedback = TaskFeedbackUpdate(feedback_rating=4, feedback_comment="   ")
+        self.assertIsNone(feedback.feedback_comment)
 
 
 if __name__ == "__main__":

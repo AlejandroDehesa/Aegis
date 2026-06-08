@@ -10,6 +10,8 @@ import { useI18n } from "../hooks/useI18n";
 import { getErrorMessage } from "../utils/errors";
 import { formatDateTime, truncateText } from "../utils/formatters";
 
+const PAGE_LIMIT = 50;
+
 export function DocumentsPage() {
   const { t, locale } = useI18n();
   const [documents, setDocuments] = useState([]);
@@ -35,7 +37,7 @@ export function DocumentsPage() {
     setListError("");
 
     try {
-      const items = await listDocuments();
+      const items = await listDocuments({ limit: PAGE_LIMIT, offset: 0 });
       setDocuments(items);
     } catch (loadError) {
       setListError(getErrorMessage(loadError, t("documents.loading")));

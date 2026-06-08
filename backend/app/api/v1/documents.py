@@ -1,7 +1,9 @@
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.v1.auth import get_current_user
@@ -21,6 +23,8 @@ from app.services.document_service import (
 
 
 router = APIRouter()
+DEFAULT_PAGE_LIMIT = 20
+MAX_PAGE_LIMIT = 100
 
 
 def _sanitize_filename(raw_filename: str | None) -> str | None:
@@ -82,7 +86,7 @@ def _validate_upload_file(file: UploadFile, file_bytes: bytes) -> str:
     if extension == ".pdf":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="PDF uploads are reserved for future parser support.",
+            detail="PDF uploads are not supported in the current runtime.",
         )
 
     return file_name
@@ -164,12 +168,16 @@ async def upload_document(
 
 @router.get("/documents", response_model=list[DocumentRead])
 def get_documents(
+    limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
+    offset: Annotated[int, Query(ge=0)] = 0,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[DocumentRead]:
     documents = list_documents_for_user(
         db=db,
         user_id=current_user.id,
+        limit=limit,
+        offset=offset,
     )
     return [_serialize_document(document) for document in documents]
 

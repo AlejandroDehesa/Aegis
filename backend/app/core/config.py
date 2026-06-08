@@ -67,8 +67,13 @@ class Settings(BaseModel):
     RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE: int = 20
     RATE_LIMIT_TASK_EXECUTE_PER_MINUTE: int = 10
     DOCUMENT_MAX_UPLOAD_MB: int = 5
-    DOCUMENT_ALLOWED_EXTENSIONS: list[str] = [".txt", ".md"]
-    DOCUMENT_ALLOWED_MIME_TYPES: list[str] = ["text/plain", "text/markdown"]
+    DOCUMENT_ALLOWED_EXTENSIONS: list[str] = [".txt", ".md", ".csv", ".json"]
+    DOCUMENT_ALLOWED_MIME_TYPES: list[str] = [
+        "text/plain",
+        "text/markdown",
+        "text/csv",
+        "application/json",
+    ]
     RAG_CHUNK_SIZE: int = 500
     RAG_CHUNK_OVERLAP: int = 50
     RAG_ENABLED: bool = True
@@ -181,14 +186,14 @@ def get_settings() -> Settings:
         DOCUMENT_MAX_UPLOAD_MB=int(os.getenv("DOCUMENT_MAX_UPLOAD_MB", "5")),
         DOCUMENT_ALLOWED_EXTENSIONS=[
             value.strip().lower()
-            for value in os.getenv("DOCUMENT_ALLOWED_EXTENSIONS", ".txt,.md").split(",")
+            for value in os.getenv("DOCUMENT_ALLOWED_EXTENSIONS", ".txt,.md,.csv,.json").split(",")
             if value.strip()
         ],
         DOCUMENT_ALLOWED_MIME_TYPES=[
             value.strip().lower()
             for value in os.getenv(
                 "DOCUMENT_ALLOWED_MIME_TYPES",
-                "text/plain,text/markdown",
+                "text/plain,text/markdown,text/csv,application/json",
             ).split(",")
             if value.strip()
         ],

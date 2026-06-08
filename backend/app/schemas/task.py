@@ -1,17 +1,54 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+def _normalize_required_text(value: object) -> object:
+    if isinstance(value, str):
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("This field cannot be empty or only whitespace.")
+        return normalized
+    return value
+
+
+def _normalize_optional_text(value: object) -> object:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        normalized = value.strip()
+        return normalized or None
+    return value
 
 
 class TaskCreate(BaseModel):
-    title: str = Field(min_length=1, max_length=255)
-    description: str | None = None
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    title: str = Field(min_length=1, max_length=160)
+    description: str | None = Field(default=None, max_length=5000)
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def normalize_title(cls, value: object) -> object:
+        return _normalize_required_text(value)
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def normalize_description(cls, value: object) -> object:
+        return _normalize_optional_text(value)
 
 
 class TaskFeedbackUpdate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     feedback_rating: int = Field(ge=1, le=5)
     feedback_comment: str | None = Field(default=None, max_length=1200)
+
+    @field_validator("feedback_comment", mode="before")
+    @classmethod
+    def normalize_feedback_comment(cls, value: object) -> object:
+        return _normalize_optional_text(value)
 
 
 class TaskRagChunkRead(BaseModel):

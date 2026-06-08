@@ -29,6 +29,11 @@ docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 - La sesion web usa cookie `HttpOnly`; el frontend no debe persistir JWT en `localStorage`.
 - Mantener `Authorization: Bearer` solo como compatibilidad de tests/API manual cuando sea necesario.
 
+## API/product hardening
+- `GET /tasks` y `GET /documents` usan paginacion minima por `limit`/`offset`.
+- El rate limiting sigue siendo in-memory en esta fase; se valida como contrato de demo, no como solucion distribuida.
+- Los formatos documentales soportados en runtime son `.txt`, `.md`, `.csv`, `.json`.
+
 ## Reset demo local
 ```bash
 docker compose --env-file .env down -v

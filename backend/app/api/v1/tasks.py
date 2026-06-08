@@ -1,6 +1,6 @@
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import select
@@ -33,6 +33,8 @@ from app.services.task_executor import (
 
 
 router = APIRouter()
+DEFAULT_PAGE_LIMIT = 20
+MAX_PAGE_LIMIT = 100
 
 
 def _normalize_trace_step(raw_step: Any, fallback_agent_name: str) -> dict[str, Any]:
@@ -205,6 +207,8 @@ def list_tasks(
     task_type: str | None = Query(default=None),
     agent_name: str | None = Query(default=None),
     feedback_rating: int | None = Query(default=None, ge=1, le=5),
+    limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
+    offset: Annotated[int, Query(ge=0)] = 0,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[TaskRead]:
@@ -223,7 +227,7 @@ def list_tasks(
         query = query.where(Task.feedback_rating == feedback_rating)
 
     tasks = db.execute(
-        query.order_by(Task.created_at.desc())
+        query.order_by(Task.created_at.desc(), Task.id.desc()).offset(offset).limit(limit)
     ).scalars().all()
 
     return [_serialize_task(task) for task in tasks]

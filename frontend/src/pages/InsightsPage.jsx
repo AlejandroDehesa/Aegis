@@ -11,6 +11,8 @@ import { useI18n } from "../hooks/useI18n";
 import { getErrorMessage } from "../utils/errors";
 import { formatDateTime, truncateText } from "../utils/formatters";
 
+const INSIGHTS_PAGE_LIMIT = 50;
+
 export function InsightsPage() {
   const { t, locale } = useI18n();
   const [overview, setOverview] = useState(null);
@@ -26,7 +28,7 @@ export function InsightsPage() {
       try {
         const [overviewResponse, tasksResponse] = await Promise.all([
           getInsightsOverview(),
-          listTasks(),
+          listTasks({ limit: INSIGHTS_PAGE_LIMIT, offset: 0 }),
         ]);
         setOverview(overviewResponse);
         setTasks(tasksResponse);

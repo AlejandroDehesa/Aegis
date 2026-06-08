@@ -20,6 +20,10 @@ class DocumentNotFoundError(DocumentIngestionError):
     pass
 
 
+DOCUMENT_TITLE_MAX_LENGTH = 160
+DOCUMENT_CONTENT_MAX_CHARS = 50_000
+
+
 def _normalize_content(content: str) -> str:
     return content.strip()
 
@@ -66,12 +70,23 @@ def create_document(
 ) -> Document:
     normalized_title = title.strip()
     normalized_content = _normalize_content(content)
+    normalized_source_name = source_name.strip() if source_name else None
 
     if not normalized_title:
         raise DocumentValidationError("Document title is required.")
 
+    if len(normalized_title) > DOCUMENT_TITLE_MAX_LENGTH:
+        raise DocumentValidationError(
+            f"Document title must be at most {DOCUMENT_TITLE_MAX_LENGTH} characters."
+        )
+
     if not normalized_content:
         raise DocumentValidationError("Document content cannot be empty.")
+
+    if len(normalized_content) > DOCUMENT_CONTENT_MAX_CHARS:
+        raise DocumentValidationError(
+            f"Document content must be at most {DOCUMENT_CONTENT_MAX_CHARS} characters."
+        )
 
     chunks = _chunk_text(normalized_content)
 
@@ -83,7 +98,7 @@ def create_document(
         user_id=user_id,
         title=normalized_title,
         source_type=source_type,
-        source_name=source_name,
+        source_name=normalized_source_name,
         content=normalized_content,
     )
 
@@ -115,12 +130,20 @@ def create_document(
     return document
 
 
-def list_documents_for_user(*, db: Session, user_id: uuid.UUID) -> list[Document]:
+def list_documents_for_user(
+    *,
+    db: Session,
+    user_id: uuid.UUID,
+    limit: int,
+    offset: int,
+) -> list[Document]:
     return db.execute(
         select(Document)
         .options(selectinload(Document.chunks))
         .where(Document.user_id == user_id)
-        .order_by(Document.created_at.desc())
+        .order_by(Document.created_at.desc(), Document.id.desc())
+        .offset(offset)
+        .limit(limit)
     ).scalars().all()
 
 

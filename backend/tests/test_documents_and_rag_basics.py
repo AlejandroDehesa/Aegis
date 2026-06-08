@@ -7,16 +7,21 @@ import uuid
 from unittest.mock import MagicMock, patch
 
 from fastapi import HTTPException, UploadFile
+from sqlalchemy.sql import Select
 
-from app.api.v1.documents import upload_document
+from app.api.v1.documents import get_documents, upload_document
 from app.core.config import settings
 from app.services.document_service import (
     DocumentValidationError,
+    DOCUMENT_CONTENT_MAX_CHARS,
+    DOCUMENT_TITLE_MAX_LENGTH,
     _chunk_text,
     _normalize_content,
     create_document,
+    list_documents_for_user,
 )
 from app.services.retrieval_service import build_context, retrieve_relevant_chunks
+from tests.helpers import FakeExecuteResult
 from tests.helpers import build_user
 
 
@@ -68,6 +73,26 @@ class DocumentsAndRagBasicsTests(unittest.TestCase):
                 user_id=uuid.uuid4(),
                 title="My document",
                 content=" ",
+                source_type="text",
+            )
+
+    def test_create_document_rejects_too_long_title(self) -> None:
+        with self.assertRaises(DocumentValidationError):
+            create_document(
+                db=MagicMock(),
+                user_id=uuid.uuid4(),
+                title="x" * (DOCUMENT_TITLE_MAX_LENGTH + 1),
+                content="Some content",
+                source_type="text",
+            )
+
+    def test_create_document_rejects_too_long_content(self) -> None:
+        with self.assertRaises(DocumentValidationError):
+            create_document(
+                db=MagicMock(),
+                user_id=uuid.uuid4(),
+                title="Valid title",
+                content="x" * (DOCUMENT_CONTENT_MAX_CHARS + 1),
                 source_type="text",
             )
 
@@ -232,6 +257,45 @@ class DocumentsAndRagBasicsTests(unittest.TestCase):
             self.assertEqual(result.chunk_count, 2)
 
         asyncio.run(_run())
+
+    def test_list_documents_service_applies_pagination_and_stable_order(self) -> None:
+        db = MagicMock()
+        user_id = uuid.uuid4()
+        db.execute.return_value = FakeExecuteResult(scalar_values=[])
+
+        list_documents_for_user(
+            db=db,
+            user_id=user_id,
+            limit=10,
+            offset=20,
+        )
+
+        query = db.execute.call_args[0][0]
+        self.assertIsInstance(query, Select)
+        query_text = str(query)
+        self.assertIn("ORDER BY documents.created_at DESC, documents.id DESC", query_text)
+        self.assertIn("LIMIT", query_text)
+        self.assertIn("OFFSET", query_text)
+
+    def test_get_documents_passes_limit_and_offset(self) -> None:
+        current_user = build_user()
+        db = MagicMock()
+
+        with patch("app.api.v1.documents.list_documents_for_user", return_value=[] ) as list_mock:
+            response = get_documents(
+                limit=15,
+                offset=30,
+                current_user=current_user,
+                db=db,
+            )
+
+        self.assertEqual(response, [])
+        list_mock.assert_called_once_with(
+            db=db,
+            user_id=current_user.id,
+            limit=15,
+            offset=30,
+        )
 
     def test_retrieve_relevant_chunks_returns_empty_for_blank_query(self) -> None:
         chunks = retrieve_relevant_chunks(query=" ", user_id=uuid.uuid4())

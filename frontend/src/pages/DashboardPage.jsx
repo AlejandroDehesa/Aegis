@@ -13,6 +13,7 @@ import { useI18n } from "../hooks/useI18n";
 import { getErrorMessage } from "../utils/errors";
 import { formatDateTime } from "../utils/formatters";
 
+const DASHBOARD_PAGE_LIMIT = 50;
 
 export function DashboardPage() {
   const { t, locale } = useI18n();
@@ -31,8 +32,8 @@ export function DashboardPage() {
 
       try {
         const [tasks, documents, agents] = await Promise.all([
-          listTasks(),
-          listDocuments(),
+          listTasks({ limit: DASHBOARD_PAGE_LIMIT, offset: 0 }),
+          listDocuments({ limit: DASHBOARD_PAGE_LIMIT, offset: 0 }),
           listAgents(),
         ]);
         setSummary({ tasks, documents, agents });
