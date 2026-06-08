@@ -72,6 +72,7 @@ def error_response(
         ),
     )
     response.headers[REQUEST_ID_HEADER] = request_id
+    _apply_security_headers(response)
     return response
 
 
@@ -146,6 +147,16 @@ def _resolve_rate_limit(path: str) -> tuple[str, int] | None:
 rate_limiter = InMemoryRateLimiter()
 
 
+def _apply_security_headers(response) -> None:  # type: ignore[no-untyped-def]
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault(
+        "Permissions-Policy",
+        "geolocation=(), microphone=(), camera=()",
+    )
+
+
 class RequestContextMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):  # type: ignore[no-untyped-def]
         super().__init__(app)
@@ -177,6 +188,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 
         response = await call_next(request)
         response.headers[REQUEST_ID_HEADER] = request_id
+        _apply_security_headers(response)
 
         if settings.ENABLE_REQUEST_LOGGING:
             duration_ms = max(int((time.perf_counter() - started_at) * 1000), 0)

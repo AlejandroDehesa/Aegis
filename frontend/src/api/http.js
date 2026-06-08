@@ -1,5 +1,4 @@
 import { API_BASE_URL } from "../constants/env";
-import { clearStoredToken, getStoredToken } from "../utils/storage";
 
 let unauthorizedHandler = null;
 
@@ -83,7 +82,6 @@ async function parseResponse(response) {
 
 export async function apiRequest(path, options = {}) {
   const { ignoreUnauthorized = false, ...requestOptions } = options;
-  const token = getStoredToken();
   const headers = new Headers(requestOptions.headers || {});
   const body = requestOptions.body;
 
@@ -91,15 +89,12 @@ export async function apiRequest(path, options = {}) {
     headers.set("Content-Type", "application/json");
   }
 
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
   let response;
 
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...requestOptions,
+      credentials: "include",
       headers,
       body:
         body instanceof FormData || body === undefined || typeof body === "string"
@@ -114,7 +109,6 @@ export async function apiRequest(path, options = {}) {
 
   if (!response.ok) {
     if (response.status === 401) {
-      clearStoredToken();
       if (!ignoreUnauthorized && unauthorizedHandler) {
         unauthorizedHandler();
       }

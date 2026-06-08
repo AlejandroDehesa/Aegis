@@ -35,6 +35,11 @@ class Settings(BaseModel):
     JWT_SECRET_KEY: str = Field(min_length=1)
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    AUTH_COOKIE_NAME: str = "aegis_access_token"
+    AUTH_COOKIE_SECURE: bool = False
+    AUTH_COOKIE_SAMESITE: str = "lax"
+    AUTH_COOKIE_DOMAIN: str | None = None
+    AUTH_COOKIE_PATH: str = "/"
     OPENAI_API_KEY: str | None = None
     OPENAI_MODEL: str = "gpt-5-mini"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
@@ -93,6 +98,7 @@ class Settings(BaseModel):
 
 @lru_cache
 def get_settings() -> Settings:
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
     cors_origins = [
         origin.strip()
         for origin in os.getenv(
@@ -104,10 +110,17 @@ def get_settings() -> Settings:
         ).split(",")
         if origin.strip()
     ]
+    auth_cookie_secure_value = os.getenv("AUTH_COOKIE_SECURE")
+    auth_cookie_secure = (
+        _env_bool("AUTH_COOKIE_SECURE", False)
+        if auth_cookie_secure_value is not None
+        else app_env in {"production", "prod"}
+    )
+    auth_cookie_domain = os.getenv("AUTH_COOKIE_DOMAIN")
 
     resolved = Settings(
         PROJECT_NAME=os.getenv("PROJECT_NAME", "Aegis Backend"),
-        APP_ENV=os.getenv("APP_ENV", "development").strip().lower(),
+        APP_ENV=app_env,
         DEBUG=_env_bool("DEBUG", False),
         LOG_LEVEL=os.getenv("LOG_LEVEL", "INFO").strip().upper(),
         ENABLE_REQUEST_LOGGING=_env_bool("ENABLE_REQUEST_LOGGING", True),
@@ -116,6 +129,11 @@ def get_settings() -> Settings:
         JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY", ""),
         JWT_ALGORITHM=os.getenv("JWT_ALGORITHM", "HS256"),
         ACCESS_TOKEN_EXPIRE_MINUTES=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")),
+        AUTH_COOKIE_NAME=os.getenv("AUTH_COOKIE_NAME", "aegis_access_token").strip(),
+        AUTH_COOKIE_SECURE=auth_cookie_secure,
+        AUTH_COOKIE_SAMESITE=os.getenv("AUTH_COOKIE_SAMESITE", "lax").strip().lower(),
+        AUTH_COOKIE_DOMAIN=auth_cookie_domain.strip() if auth_cookie_domain else None,
+        AUTH_COOKIE_PATH=os.getenv("AUTH_COOKIE_PATH", "/").strip() or "/",
         OPENAI_API_KEY=os.getenv("OPENAI_API_KEY") or None,
         OPENAI_MODEL=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
         OPENAI_EMBEDDING_MODEL=os.getenv(
@@ -209,12 +227,29 @@ def _validate_runtime_settings(config: Settings) -> None:
     if config.RAG_VECTOR_BACKEND not in {"pgvector", "local"}:
         raise ValueError("RAG_VECTOR_BACKEND must be one of: pgvector, local.")
 
+    if not config.AUTH_COOKIE_NAME.strip():
+        raise ValueError("AUTH_COOKIE_NAME cannot be empty.")
+
+    if config.AUTH_COOKIE_SAMESITE not in {"lax", "strict", "none"}:
+        raise ValueError("AUTH_COOKIE_SAMESITE must be one of: lax, strict, none.")
+
+    if config.AUTH_COOKIE_SAMESITE == "none" and not config.AUTH_COOKIE_SECURE:
+        raise ValueError("AUTH_COOKIE_SECURE must be true when AUTH_COOKIE_SAMESITE=none.")
+
+    if not config.AUTH_COOKIE_PATH.startswith("/"):
+        raise ValueError("AUTH_COOKIE_PATH must start with '/'.")
+
+    if "*" in config.CORS_ORIGINS:
+        raise ValueError("CORS_ORIGINS cannot contain '*' when cookies/credentials are enabled.")
+
     if config.APP_ENV in {"production", "prod"}:
         weak_secret_values = {
             "change-this-secret-in-production",
+            "replace-with-a-long-random-jwt-secret-min-32-chars",
             "changeme",
             "secret",
             "default",
+            "",
         }
         normalized_secret = config.JWT_SECRET_KEY.strip().lower()
         if len(config.JWT_SECRET_KEY) < 32 or normalized_secret in weak_secret_values:

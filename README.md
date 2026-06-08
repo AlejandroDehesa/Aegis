@@ -64,7 +64,7 @@ Aegis demuestra un flujo de producto mas profesional:
 
 ## Funcionalidades principales
 
-- Auth basica por JWT (signup/login/me)
+- Auth basada en JWT con cookie HttpOnly para sesion web (`signup/login/me/logout`)
 - Task lifecycle con estado y metadatos
 - Clasificacion multilenguaje ES/EN para tipos clave
 - Seleccion de agente coherente por `task_type`
@@ -117,6 +117,30 @@ cd ../frontend
 npm install
 npm run dev
 ```
+
+## Auth y sesion
+
+- El frontend ya no debe guardar JWT de sesion en `localStorage`.
+- La sesion web usa cookie `HttpOnly` enviada por backend.
+- El frontend usa `fetch` con `credentials: "include"` y reconstruye sesion con `GET /me`.
+- `Authorization: Bearer` se mantiene solo como compatibilidad para tests/API manual.
+
+Variables relevantes:
+
+```env
+JWT_SECRET_KEY=replace-with-a-long-random-jwt-secret-min-32-chars
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+AUTH_COOKIE_NAME=aegis_access_token
+AUTH_COOKIE_SECURE=false
+AUTH_COOKIE_SAMESITE=lax
+AUTH_COOKIE_DOMAIN=
+AUTH_COOKIE_PATH=/
+```
+
+Notas:
+
+- En `APP_ENV=production`, `JWT_SECRET_KEY` debe ser fuerte (>=32 chars) y no puede ser placeholder.
+- En `APP_ENV=production`, `AUTH_COOKIE_SECURE` debe mantenerse en `true` salvo override consciente.
 
 ## Como ejecutar tests
 

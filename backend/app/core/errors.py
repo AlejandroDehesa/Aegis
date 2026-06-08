@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 
+from fastapi.encoders import jsonable_encoder
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -71,7 +72,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             code="validation_error",
             message="Request validation failed.",
             request_id=request_id,
-            details=exc.errors(),
+            details=jsonable_encoder(exc.errors()),
         )
         response = JSONResponse(status_code=422, content=payload)
         response.headers[REQUEST_ID_HEADER] = request_id

@@ -45,6 +45,21 @@ class ApiHardeningTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.headers.get("X-Request-ID"))
 
+    def test_security_headers_are_added(self) -> None:
+        with TestClient(app) as client:
+            response = client.get("/api/v1/health/live")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("X-Content-Type-Options"), "nosniff")
+        self.assertEqual(response.headers.get("X-Frame-Options"), "DENY")
+        self.assertEqual(
+            response.headers.get("Referrer-Policy"),
+            "strict-origin-when-cross-origin",
+        )
+        self.assertEqual(
+            response.headers.get("Permissions-Policy"),
+            "geolocation=(), microphone=(), camera=()",
+        )
+
     def test_request_id_header_is_preserved(self) -> None:
         expected_id = "req-explicit-id"
         with TestClient(app) as client:
@@ -139,15 +154,15 @@ class ApiHardeningTests(unittest.TestCase):
         with TestClient(app) as client:
             auth_attempt_1 = client.post(
                 "/api/v1/login",
-                json={"email": "none@example.com", "password": "bad-password"},
+                json={"email": "none@example.com", "password": "badpass123"},
             )
             auth_attempt_2 = client.post(
                 "/api/v1/login",
-                json={"email": "none@example.com", "password": "bad-password"},
+                json={"email": "none@example.com", "password": "badpass123"},
             )
             auth_attempt_3 = client.post(
                 "/api/v1/login",
-                json={"email": "none@example.com", "password": "bad-password"},
+                json={"email": "none@example.com", "password": "badpass123"},
             )
             general = client.get("/api/v1/agents")
 

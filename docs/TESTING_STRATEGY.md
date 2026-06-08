@@ -25,6 +25,10 @@ docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 - La validacion real de OpenRouter se realiza de forma manual y controlada en la fase 2.1, nunca en la suite automatica.
 - Nunca incluir `OPENROUTER_API_KEY` en Git, README o artefactos de test.
 
+## Auth/session
+- La sesion web usa cookie `HttpOnly`; el frontend no debe persistir JWT en `localStorage`.
+- Mantener `Authorization: Bearer` solo como compatibilidad de tests/API manual cuando sea necesario.
+
 ## Reset demo local
 ```bash
 docker compose --env-file .env down -v
