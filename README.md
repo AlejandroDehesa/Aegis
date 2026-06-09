@@ -93,31 +93,31 @@ Esto permite trabajar aspectos importantes en aplicaciones con IA:
 
 ### Login
 
-![Login](docs/screenshots/Login.PNG)
+![Login](docs/screenshots/login.png)
 
 ### Dashboard
 
-![Dashboard](docs/screenshots/Dashboard.PNG)
+![Dashboard](docs/screenshots/dashboard.png)
 
 ### Crear tarea
 
-![Crear tarea](docs/screenshots/CrearTarea.PNG)
+![Crear tarea](docs/screenshots/create-task.png)
 
 ### Listado de tareas
 
-![Listado de tareas](docs/screenshots/ListadoDeTareas.PNG)
+![Listado de tareas](docs/screenshots/tasks-list.png)
 
 ### Detalle de tarea con resultado y traza
 
-![Detalle de tarea](docs/screenshots/DetallesDeTarea.PNG)
+![Detalle de tarea](docs/screenshots/task-detail-trace.png)
 
 ### Biblioteca documental
 
-![Documentos](docs/screenshots/Documentos.PNG)
+![Documentos](docs/screenshots/documents-library.png)
 
 ### Insights
 
-![Insights](docs/screenshots/Insights.PNG)
+![Insights](docs/screenshots/insights.png)
 
 ---
 
