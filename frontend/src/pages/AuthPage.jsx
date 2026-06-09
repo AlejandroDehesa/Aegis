@@ -8,6 +8,40 @@ import { useAuth } from "../hooks/useAuth";
 import { useI18n } from "../hooks/useI18n";
 import { getErrorMessage } from "../utils/errors";
 
+function getAuthFieldValidationMessage(field, backendMessage, t) {
+  if (field === "email") {
+    return t("auth.validation.email");
+  }
+
+  if (field === "password") {
+    return t("auth.validation.passwordRequirements");
+  }
+
+  if (typeof backendMessage === "string" && backendMessage.trim()) {
+    return backendMessage.trim();
+  }
+
+  return "";
+}
+
+function getAuthSubmitErrorMessage(error, t) {
+  if (error?.status === 422 && Array.isArray(error?.payload?.detail)) {
+    const validationMessages = error.payload.detail
+      .map((item) =>
+        getAuthFieldValidationMessage(item?.loc?.[item?.loc?.length - 1], item?.msg, t),
+      )
+      .filter(Boolean);
+
+    const uniqueMessages = [...new Set(validationMessages)];
+
+    if (uniqueMessages.length) {
+      return uniqueMessages.join(" ");
+    }
+  }
+
+  return getErrorMessage(error, t("auth.authFallbackError"));
+}
+
 export function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,7 +94,7 @@ export function AuthPage() {
 
       navigate(redirectTo, { replace: true });
     } catch (submitError) {
-      setError(getErrorMessage(submitError, t("auth.authFallbackError")));
+      setError(getAuthSubmitErrorMessage(submitError, t));
     } finally {
       setLoading(false);
     }
@@ -101,6 +135,7 @@ export function AuthPage() {
           <label className="form-field">
             <span>{t("auth.email")}</span>
             <input
+              aria-describedby="auth-email-help"
               name="email"
               onChange={updateField}
               placeholder={t("auth.emailPlaceholder")}
@@ -108,11 +143,15 @@ export function AuthPage() {
               type="email"
               value={form.email}
             />
+            <span className="form-help" id="auth-email-help">
+              {t("auth.emailRequirements")}
+            </span>
           </label>
 
           <label className="form-field">
             <span>{t("auth.password")}</span>
             <input
+              aria-describedby="auth-password-help"
               name="password"
               onChange={updateField}
               placeholder={t("auth.passwordPlaceholder")}
@@ -120,6 +159,9 @@ export function AuthPage() {
               type="password"
               value={form.password}
             />
+            <span className="form-help" id="auth-password-help">
+              {t("auth.passwordRequirements")}
+            </span>
           </label>
 
           <FeedbackMessage tone="info">{authNotice}</FeedbackMessage>

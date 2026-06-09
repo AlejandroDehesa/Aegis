@@ -405,6 +405,12 @@ pre {
   font-weight: 600;
 }
 
+.form-help {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
 .filter-grid {
   display: grid;
   gap: 0.9rem;
