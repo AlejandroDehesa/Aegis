@@ -54,7 +54,7 @@ Carpeta recomendada:
 - Qué debe verse:
   - lista de tareas
   - badges de estado
-  - indicadores de tiempo / valoracion
+  - indicadores de tiempo / valoración
   - acciones rápidas
 - Datos demo:
   - una tarea completada
@@ -81,14 +81,14 @@ Carpeta recomendada:
 - Qué debe verse:
   - resumen de tarea
   - resultado final
-  - traza de ejecucion
+  - execution trace
   - bloque de evaluación
 - Datos demo:
   - una tarea completada con resultado útil
   - entradas de traza para clasificación, selección y ejecución
 - No debe verse:
   - salida placeholder
-  - bloques tecnicos colapsados como foco principal
+  - bloques técnicos colapsados como foco principal
 
 ## 6. Subida De Documentos Y Biblioteca
 

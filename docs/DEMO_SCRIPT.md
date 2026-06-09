@@ -52,7 +52,7 @@ Ve a `Tareas` y crea una solicitud realista.
 Ejemplo recomendado:
 
 - título: `Comparar FastAPI y Django para una plataforma interna de IA`
-- descripción: `Haz una comparativa practica para un producto de orquestacion con IA: arquitectura, mantenibilidad, rendimiento y velocidad de implementacion. Termina con una recomendacion.`
+- descripción: `Haz una comparativa práctica para un producto de orquestación con IA: arquitectura, mantenibilidad, rendimiento y velocidad de implementación. Termina con una recomendación.`
 
 Qué decir:
 
@@ -80,7 +80,7 @@ Qué enseñar:
 
 - resumen de tarea
 - resultado final
-- traza de ejecucion
+- execution trace
 - bloque de evaluación
 
 Qué remarcar:

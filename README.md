@@ -3,7 +3,7 @@
 Orquestación backend-first de tareas con IA, trazabilidad, contexto documental y resultados revisables.
 
 > Aegis es un MVP técnico orientado a portfolio y entrevistas técnicas.  
-> Su valor está en demostrar un flujo completo - `tarea -> clasificacion -> seleccion de agente -> ejecucion -> traza -> feedback -> insights` - y no solo una respuesta aislada de chat.
+> Su valor está en demostrar un flujo completo — `tarea -> clasificación -> selección de agente -> ejecución -> traza -> feedback -> insights` — y no solo una respuesta aislada de chat.
 
 ## Qué Es Aegis
 
@@ -42,7 +42,7 @@ Eso permite hablar con más profundidad sobre arquitectura, estado, control de c
 - frontend React + Vite con flujo autenticado
 - sesión web vía cookie `HttpOnly`
 - creación, listado, ejecución y detalle de tareas
-- traza de ejecucion persistida con metadatos de tarea
+- traza de ejecución persistida con metadatos de tarea
 - evaluación ligera del resultado con rating + comentario
 - subida de documentos y contexto orientado a retrieval
 - vista de insights para ejecuciones fallidas, débiles o fuertes
@@ -55,7 +55,7 @@ Recorrido recomendado para una demo de 3 a 5 minutos:
 1. Iniciar sesión con el usuario demo.
 2. Crear una tarea realista desde la vista de Tareas.
 3. Ejecutarla y enseñar los cambios de estado.
-4. Abrir el detalle y revisar resultado + traza de ejecucion.
+4. Abrir el detalle y revisar resultado + traza de ejecución.
 5. Enviar feedback sobre la calidad de la salida.
 6. Subir un documento y explicar el contexto asistido por recuperación.
 7. Abrir Insights y mostrar ejecuciones débiles y fuertes.
@@ -101,7 +101,13 @@ Guion detallado:
 ## Flujo Principal
 
 ```txt
-tarea`r`n  -> clasificacion`r`n  -> seleccion de agente`r`n  -> ejecucion`r`n  -> persistencia de traza`r`n  -> feedback`r`n  -> insights
+tarea
+  -> clasificación
+  -> selección de agente
+  -> ejecución
+  -> persistencia de traza
+  -> feedback
+  -> insights
 ```
 
 Ésta es la parte más importante del proyecto: Aegis está pensado para enseñar un flujo auditable de tareas, no solo generación de texto.
@@ -114,15 +120,17 @@ Carpeta esperada:
 
 - `docs/screenshots/`
 
-Placeholders preparados:
+Capturas previstas mientras se preparan las imágenes reales:
 
-![Login](docs/screenshots/login.png)
-![Dashboard](docs/screenshots/dashboard.png)
-![Listado de tareas](docs/screenshots/tasks-list.png)
-![Crear tarea](docs/screenshots/create-task.png)
-![Detalle de tarea](docs/screenshots/task-detail-trace.png)
-![Documentos](docs/screenshots/documents-library.png)
-![Insights](docs/screenshots/insights.png)
+| Captura | Archivo esperado | Estado |
+| --- | --- | --- |
+| Login | `docs/screenshots/login.png` | Pendiente |
+| Dashboard | `docs/screenshots/dashboard.png` | Pendiente |
+| Listado de tareas | `docs/screenshots/tasks-list.png` | Pendiente |
+| Crear tarea | `docs/screenshots/create-task.png` | Pendiente |
+| Detalle con traza | `docs/screenshots/task-detail-trace.png` | Pendiente |
+| Documentos | `docs/screenshots/documents-library.png` | Pendiente |
+| Insights | `docs/screenshots/insights.png` | Pendiente |
 
 Guía de capturas:
 
@@ -272,7 +280,7 @@ Para recruiters, hiring managers y revisores técnicos, Aegis demuestra:
 Versión corta:
 
 > Aegis es un proyecto backend-first de orquestación de tareas con IA.  
-> En lugar de quedarse en prompt/respuesta, muestra un flujo completo con entrada de tareas, enrutamiento, traza de ejecucion, feedback e insights.
+> En lugar de quedarse en prompt/respuesta, muestra un flujo completo con entrada de tareas, enrutamiento, traza de ejecución, feedback e insights.
 
 Puntos de conversación útiles:
 

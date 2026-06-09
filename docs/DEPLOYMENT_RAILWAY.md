@@ -26,7 +26,7 @@ Configura estas variables en el servicio backend (panel de variables de Railway)
 - `OPENROUTER_API_KEY` (secreto)
 - `OPENROUTER_MODEL` (por ejemplo: `openai/gpt-4o-mini`)
 - `OPENROUTER_BASE_URL=https://openrouter.ai/api/v1`
-- `LLM_MAX_TOKENS=1200`
+- `LLM_MAX_TOKENS=2000`
 - `LLM_TEMPERATURE=0.3`
 - `LLM_TIMEOUT_SECONDS=30`
 - `TASK_EXECUTION_MODE=background`
@@ -40,6 +40,10 @@ Configura estas variables en el servicio backend (panel de variables de Railway)
 - `DOCUMENT_MAX_UPLOAD_MB=5`
 - `DOCUMENT_ALLOWED_EXTENSIONS=.txt,.md,.csv,.json`
 - `DOCUMENT_ALLOWED_MIME_TYPES=text/plain,text/markdown,text/csv,application/json`
+
+Nota:
+
+- Para tareas largas de comparación o demo, `2000` tokens evita que la respuesta se corte antes de la recomendación final.
 
 ## 3. Variables De Entorno Del Frontend
 
@@ -106,7 +110,7 @@ Usa:
 1. Signup y login funcionan.
 2. Crear una tarea.
 3. Ejecutar una tarea de comparación.
-4. Verificar resultado y la traza de ejecucion.
+4. Verificar resultado y la traza de ejecución.
 5. Subir un documento.
 6. Ejecutar una tarea que deba usar contexto RAG.
 7. Verificar que el endpoint de insights sigue devolviendo datos.

@@ -69,7 +69,7 @@ Esa combinación crea una historia de flujo, no solo formularios y tablas.
 - arranque rápido sin complicar el frontend
 - gran velocidad de iteración para pantallas de producto
 - permite centrar la UI en el flujo y no en la ceremonia del framework
-- suficiente flexibilidad para páginas con estado como tareas, revision de traza e insights
+- suficiente flexibilidad para páginas con estado como tareas, revisión de traza e insights
 
 ## Por Qué Cookies HttpOnly En La Sesión Web
 
@@ -121,7 +121,7 @@ Puntos importantes de honestidad:
 ## Qué Aprendí Construyéndolo
 
 - `completed` no significa necesariamente `útil` si no hay quality checks
-- la traza de ejecucion cambia mucho la capacidad de depurar y revisar el sistema
+- la traza de ejecución cambia mucho la capacidad de depurar y revisar el sistema
 - documentar limitaciones con honestidad fortalece el proyecto en una entrevista
 - la documentación, la demo y la estrategia de tests pesan casi tanto como el código en un portfolio
 
@@ -136,7 +136,7 @@ Puntos importantes de honestidad:
 
 ## Pitch Corto De Entrevista
 
-> "Aegis es un proyecto backend-first de orquestación de tareas con IA. En lugar de quedarse en prompt y respuesta, muestra clasificación, enrutamiento, traza de ejecucion, feedback e insights dentro de un flujo de producto real."
+> "Aegis es un proyecto backend-first de orquestación de tareas con IA. En lugar de quedarse en prompt y respuesta, muestra clasificación, enrutamiento, traza de ejecución, feedback e insights dentro de un flujo de producto real."
 
 ## Pitch Largo De Entrevista
 
