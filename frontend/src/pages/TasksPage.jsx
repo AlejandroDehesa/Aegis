@@ -216,6 +216,7 @@ export function TasksPage() {
         </form>
         <p className="inline-helper">
           {t("tasks.demoPathHelper")}
+          {" "}
           <Link className="inline-link" to={ROUTES.DOCUMENTS}>{t("tasks.addDocuments")}</Link>
           {t("tasks.addDocumentsSuffix")}
         </p>

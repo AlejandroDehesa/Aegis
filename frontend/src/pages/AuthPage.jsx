@@ -80,6 +80,7 @@ export function AuthPage() {
 
         <div className="auth-tabs">
           <button
+            aria-pressed={mode === "login"}
             className={mode === "login" ? "auth-tab auth-tab-active" : "auth-tab"}
             onClick={() => setMode("login")}
             type="button"
@@ -87,6 +88,7 @@ export function AuthPage() {
             {t("auth.tabLogin")}
           </button>
           <button
+            aria-pressed={mode === "register"}
             className={mode === "register" ? "auth-tab auth-tab-active" : "auth-tab"}
             onClick={() => setMode("register")}
             type="button"
@@ -121,7 +123,7 @@ export function AuthPage() {
           </label>
 
           <FeedbackMessage tone="info">{authNotice}</FeedbackMessage>
-          {error ? <p className="form-error">{error}</p> : null}
+          <FeedbackMessage tone="error">{error}</FeedbackMessage>
 
           <button className="button button-primary" disabled={loading} type="submit">
             {loading

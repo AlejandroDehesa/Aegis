@@ -32,7 +32,7 @@ export function AppLayout() {
           <p className="sidebar-callout-copy">{t("layout.demoPathCopy")}</p>
         </div>
 
-        <nav className="nav-list">
+        <nav aria-label={t("layout.primaryNav")} className="nav-list">
           {navItems.map((item) => (
             <NavLink
               key={item.to}

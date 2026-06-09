@@ -122,6 +122,7 @@ export function DocumentsPage() {
 
       <FeedbackMessage tone="info">
         {t("documents.helper")}
+        {" "}
         <Link className="inline-link" to={ROUTES.TASKS}>{t("documents.goToTasks")}</Link>
       </FeedbackMessage>
 

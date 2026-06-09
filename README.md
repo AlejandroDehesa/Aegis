@@ -1,107 +1,156 @@
 # Aegis
 
-Plataforma backend-first para orquestar tareas con agentes IA, con trazabilidad completa de ejecucion.
+Backend-first AI task orchestration with traceability, document context and reviewable outputs.
 
-> Aegis no es un chatbot.  
-> Es un MVP tecnico orientado a ejecucion real de tareas: `task -> classification -> agent selection -> execution -> result -> trace -> feedback -> insights`.
+> Aegis is a technical MVP built for portfolio demos and technical interviews.  
+> It focuses on a full workflow - `task -> classification -> agent selection -> execution -> trace -> feedback -> insights` - instead of a single chat response.
 
-## Problema que resuelve
+## What Is Aegis
 
-Muchas demos IA se quedan en "prompt -> respuesta".  
-Aegis demuestra un flujo de producto mas profesional:
+Aegis is a full-stack project that shows how an AI-assisted workflow can look when it is treated like product software instead of a chat window.
 
-- entrada estructurada de trabajo
-- clasificacion de intencion de tarea
-- seleccion de agente por tipo
-- ejecucion con estado y metadatos
-- resultado util para usuario final
-- execution trace persistida
-- feedback de calidad e insights operativos
+The core idea is simple:
 
-## Arquitectura
+- a user creates a structured task
+- the backend classifies the request
+- an agent or execution path is selected
+- the run is persisted with status and trace data
+- the result can be reviewed, rated and inspected later
+- insights aggregate quality signals across runs
 
-### Backend (`backend/app/`)
+It is not presented as a fully production-ready platform. It is presented as a solid, honest portfolio project with real engineering scope.
 
-- `api/`: endpoints REST (`auth`, `tasks`, `documents`, `agents`, `insights`, `health`)
-- `core/`: configuracion, seguridad y base de datos
-- `models/`: entidades SQLAlchemy
-- `schemas/`: contratos Pydantic
-- `services/`: clasificacion, seleccion, orquestacion, RAG, memoria
-- `agents/`: implementaciones de agentes especializados
+## Problem It Solves
 
-### Frontend (`frontend/src/`)
+Many AI demos stop at `prompt -> response`.
 
-- `pages/`: dashboard, tasks, task detail, documents, insights, agents, auth
-- `api/`: cliente HTTP y wrappers por recurso
-- `context` + `hooks`: auth, i18n y polling
-- `components/`: layout, estados async, trace, feedback
+Aegis shows a more product-oriented workflow:
 
-### Infra
+- structured task intake instead of free-form chat only
+- task classification and routing
+- persisted execution lifecycle
+- visible execution trace
+- output review and lightweight quality scoring
+- document upload for retrieval-assisted context
+- insights for operational review
 
-- Docker Compose con `backend`, `frontend` (Nginx) y `db` (PostgreSQL)
-- healthchecks para servicios principales
+That makes it easier to discuss architecture, state, quality control and observability in interviews.
 
-## Stack tecnico
+## Core Features
 
-- Backend: Python, FastAPI, Pydantic, SQLAlchemy 2.0
-- Database: PostgreSQL
-- Auth: JWT
-- Frontend: React + Vite
-- Infra: Docker Compose + Nginx
-- Testing backend: `unittest`
-- Testing frontend: Vitest + React Testing Library
+- FastAPI backend with layered service structure
+- React + Vite frontend with authenticated product workflow
+- session auth for the web app via `HttpOnly` cookie
+- task creation, listing, execution and detail views
+- persisted execution trace and task metadata
+- lightweight output evaluation with rating + comment
+- document upload and retrieval-oriented context ingestion
+- insights view for failed, low-rated and strong runs
+- Docker-based local setup plus backend/frontend test coverage
 
-## Flujo principal
+## Demo Flow
 
-1. El usuario crea una tarea.
-2. El backend clasifica la tarea (comparison, analysis, planning, etc.).
-3. Se selecciona agente o pipeline.
-4. Se ejecuta y se guarda resultado.
-5. Se persiste execution trace por pasos.
-6. El usuario revisa detalle, resultado y trace.
-7. El usuario valora la calidad (rating + comentario).
-8. Insights agrega metricas operativas por usuario.
+Recommended walkthrough for a 3-5 minute demo:
 
-## Funcionalidades principales
+1. Sign in with the demo user.
+2. Create a realistic task from the Tasks page.
+3. Execute the task and show state transitions.
+4. Open task detail and review the result plus execution trace.
+5. Submit feedback on the output quality.
+6. Upload a document and explain retrieval-assisted context.
+7. Open Insights and show failed vs strong runs.
 
-- Auth basada en JWT con cookie HttpOnly para sesion web (`signup/login/me/logout`)
-- Task lifecycle con estado y metadatos
-- Listados principales con paginacion minima por `limit`/`offset`
-- Clasificacion multilenguaje ES/EN para tipos clave
-- Seleccion de agente coherente por `task_type`
-- Quality gate basico para evitar outputs placeholder
-- Execution trace compatible con formato actual y legacy
-- Subida de documentos + chunking + retrieval/fallback
-- Insights por usuario para quality review
+Detailed script:
 
-## Capturas (placeholders)
+- `docs/DEMO_SCRIPT.md`
 
-Agrega screenshots reales para portfolio en `docs/screenshots/` y enlazalos aqui:
+## Technical Stack
 
-- `[Placeholder] Dashboard overview`
-- `[Placeholder] Tasks list + execute`
-- `[Placeholder] Task detail (result + trace + feedback)`
-- `[Placeholder] Insights quality queue`
-- `[Placeholder] Documents upload and library`
+| Layer | Technology |
+| --- | --- |
+| Backend | Python, FastAPI, Pydantic, SQLAlchemy 2.x |
+| Database | PostgreSQL |
+| Migrations | Alembic |
+| Auth | JWT-based session flow for web app via `HttpOnly` cookie |
+| Frontend | React, Vite |
+| Infra | Docker Compose, Nginx |
+| Testing | `unittest`, Vitest, React Testing Library |
+| AI layer | task classification, agent routing, optional LLM provider abstraction |
 
-## Como ejecutar localmente
+## Architecture
 
-### Opcion recomendada: Docker
+### Backend
+
+- `backend/app/api/` exposes REST endpoints for auth, tasks, documents, insights, agents and health.
+- `backend/app/services/` contains orchestration, classification, selection and document-context logic.
+- `backend/app/models/` and `backend/app/schemas/` define persistence and API contracts.
+- `backend/app/core/` centralizes config, security and database setup.
+
+### Frontend
+
+- `frontend/src/pages/` contains the product views: auth, dashboard, tasks, task detail, documents and insights.
+- `frontend/src/components/` contains shared UI building blocks such as async states, trace rendering and layout.
+- `frontend/src/context/` and `frontend/src/hooks/` handle auth, i18n and polling behavior.
+
+### Runtime
+
+- `docker-compose.yml` runs `backend`, `frontend` and `db`.
+- `alembic/` is the single migration source of truth.
+- local validation uses backend tests, frontend tests, build checks and compose config validation.
+
+## Main Workflow
+
+```txt
+task
+  -> classification
+  -> agent selection
+  -> execution
+  -> trace persistence
+  -> feedback
+  -> insights
+```
+
+This is the most important part of the project story: Aegis is designed to show an auditable task workflow, not only text generation.
+
+## Screenshots
+
+Screenshot paths are prepared below, but real images still need to be added before publishing the portfolio publicly.
+
+Expected folder:
+
+- `docs/screenshots/`
+
+Prepared placeholders:
+
+![Login](docs/screenshots/login.png)
+![Dashboard](docs/screenshots/dashboard.png)
+![Tasks List](docs/screenshots/tasks-list.png)
+![Create Task](docs/screenshots/create-task.png)
+![Task Detail](docs/screenshots/task-detail-trace.png)
+![Documents](docs/screenshots/documents-library.png)
+![Insights](docs/screenshots/insights.png)
+
+Screenshot capture guide:
+
+- `docs/SCREENSHOT_GUIDE.md`
+
+## Run Locally
+
+### Docker
 
 ```bash
 cp .env.example .env
-cp frontend/.env.example frontend/.env
 docker compose --env-file .env up --build -d
 docker compose --env-file .env run --rm backend alembic upgrade head
 ```
 
-URLs:
+Main URLs:
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:8000`
-- Health: `http://localhost:8000/api/v1/health`
+- frontend: `http://localhost:5173`
+- backend: `http://localhost:8000`
+- health: `http://localhost:8000/api/v1/health`
 
-### Opcion local (sin contenedores completos)
+### Local Backend + Frontend
 
 ```bash
 docker compose --env-file .env up -d db
@@ -119,59 +168,7 @@ npm install
 npm run dev
 ```
 
-## Auth y sesion
-
-- El frontend ya no debe guardar JWT de sesion en `localStorage`.
-- La sesion web usa cookie `HttpOnly` enviada por backend.
-- El frontend usa `fetch` con `credentials: "include"` y reconstruye sesion con `GET /me`.
-- `Authorization: Bearer` se mantiene solo como compatibilidad para tests/API manual.
-
-Variables relevantes:
-
-```env
-JWT_SECRET_KEY=replace-with-a-long-random-jwt-secret-min-32-chars
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-AUTH_COOKIE_NAME=aegis_access_token
-AUTH_COOKIE_SECURE=false
-AUTH_COOKIE_SAMESITE=lax
-AUTH_COOKIE_DOMAIN=
-AUTH_COOKIE_PATH=/
-```
-
-Notas:
-
-- En `APP_ENV=production`, `JWT_SECRET_KEY` debe ser fuerte (>=32 chars) y no puede ser placeholder.
-- En `APP_ENV=production`, `AUTH_COOKIE_SECURE` debe mantenerse en `true` salvo override consciente.
-
-## Contratos API basicos
-
-- `GET /tasks` soporta `limit` y `offset`.
-- `GET /documents` soporta `limit` y `offset`.
-- Valores actuales recomendados:
-  - `limit`: default `20`, min `1`, max `100`
-  - `offset`: default `0`, min `0`
-- Orden estable en listados:
-  - `created_at desc`
-  - `id desc` como desempate
-
-Validaciones principales:
-
-- tareas:
-  - `title`: min `1`, max `160`, no solo espacios
-  - `description`: max `5000`, whitespace-only => `null`
-- feedback:
-  - `feedback_rating`: `1-5`
-  - `feedback_comment`: max `1200`, whitespace-only => `null`
-- documentos:
-  - formatos soportados reales: `.txt`, `.md`, `.csv`, `.json`
-  - PDF no se declara como soportado en este runtime
-
-Rate limiting:
-
-- sigue siendo **in-memory**, orientado a demo/MVP
-- no sustituye una solucion distribuida para multiples replicas
-
-## Como ejecutar tests
+## Run Tests
 
 ### Backend
 
@@ -190,235 +187,115 @@ npm run build
 npm run check:smoke
 ```
 
-### Docker config
+### Compose Config
 
 ```bash
 docker compose --env-file .env.example config
 ```
 
-### Migraciones
+## Demo Seed
 
-```powershell
-$env:AEGIS_ENV_FILE=".env"
-python -m alembic -c alembic.ini upgrade head
-```
-
-## Seed demo y reset
-
-### Seed demo
+To load the local demo user and sample data:
 
 ```bash
 docker compose --env-file .env run --rm backend alembic upgrade head
 docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```
 
-### Reset demo limpio
+## Environment Variables
 
-```bash
-docker compose --env-file .env down -v
-docker compose --env-file .env up -d
-docker compose --env-file .env run --rm backend alembic upgrade head
-docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
-```
+Keep real secrets only in your local `.env`. Do not commit or share it.
 
-### Usuario demo
-
-- email: `demo@aegis.local`
-- password: `Demo12345!`
-
-## Estado actual
-
-Estado: **MVP tecnico estable para demo y portfolio**.
-
-- backend tests: verificados con `cd backend && python -m unittest discover -s tests -t . -p "test_*.py" -v`
-- frontend tests: passing
-- frontend build: passing
-- smoke checks: passing
-- docker compose config: verificado con `docker compose --env-file .env.example config`
-- seed demo: funcional
-
-No se presenta como "production-ready". Se presenta como base solida demostrable.
-
-## LLM Providers (v0.2 Fase 1)
-
-Aegis incorpora una capa `LLMService -> LLMProvider` con tres providers:
-
-- `template`: provider por defecto, sin llamadas externas, usa fallback seguro.
-- `mock`: provider determinista para pruebas unitarias.
-- `openrouter`: provider real preparado para OpenRouter (sin activacion por defecto).
-
-Variables recomendadas en `.env` local:
-
-```env
-LLM_PROVIDER=template
-LLM_ENABLE_REAL_CALLS=false
-LLM_TIMEOUT_SECONDS=30
-LLM_MAX_TOKENS=1200
-LLM_TEMPERATURE=0.3
-
-OPENROUTER_API_KEY=
-OPENROUTER_MODEL=
-OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
-OPENROUTER_SITE_URL=http://localhost:5173
-OPENROUTER_APP_NAME=Aegis
-```
-
-Notas de seguridad y alcance:
-
-- `OPENROUTER_API_KEY` solo vive en backend, nunca en frontend.
-- Los tests no realizan llamadas reales a OpenRouter.
-- Esta fase no implementa RAG nuevo ni ejecucion async.
-
-### Using OpenRouter for real agent intelligence
-
-Por defecto, Aegis usa `LLM_PROVIDER=template` para un modo seguro y sin consumo de tokens.
-
-Para activar inteligencia real en agentes con OpenRouter:
-
-```env
-LLM_PROVIDER=openrouter
-LLM_ENABLE_REAL_CALLS=true
-OPENROUTER_API_KEY=tu_clave
-OPENROUTER_MODEL=tu_modelo
-```
-
-Notas:
-
-- Los tests siguen usando template/mock y no deben gastar tokens.
-- La metadata LLM (`provider`, `model`, `tokens`, `fallback/error`) se guarda en `execution_trace`.
-- `OPENROUTER_API_KEY` permanece solo en backend.
-
-### Agent prompt design
-
-- Cada agente tiene prompt especializado (comparison, analysis, planning, summary, research, general).
-- Los prompts intentan preservar idioma del usuario (ES/EN) y exigen salida estructurada.
-- `ResearchAgent` trabaja solo con contexto disponible y no finge acceso a internet ni fuentes externas.
-- Los fallbacks template siguen activos y estructurados para funcionamiento seguro sin llamadas reales.
-- La suite de tests automatizada usa template/mock y no llama a OpenRouter real.
-
-### LLM limits and observability (v0.2 Fase 4)
-
-- `LLM_REQUEST_HARD_MAX_TOKENS` limita `max_tokens` efectivo por request.
-- `LLM_RETRY_ATTEMPTS` + `LLM_RETRY_BACKOFF_SECONDS` aplican retries controlados solo a errores transitorios del provider real.
-- Si OpenRouter falla, Aegis usa fallback template seguro y registra error sanitizado en trace.
-- `execution_trace` incluye metadata LLM por paso: provider, model, tokens, estimated_cost, fallback, error, retry_count y latency.
-- Se agrega un paso `llm_usage_summary` por tarea con totales de tokens, providers/models usados, fallback global y conteo de errores.
-- `estimated_cost` solo se calcula si hay datos suficientes y precios configurados explícitamente.
-
-### Document RAG in task execution (v0.2 Fase 5)
-
-- Flujo: `upload document -> chunking -> embeddings en PostgreSQL -> retrieval semantico -> agent prompt context -> execution trace`.
-- El retrieval usa `task.title + task.description` y respeta aislamiento por `user_id`.
-- El trace incluye un paso `document_retrieval` con chunks recuperados, documentos usados, errores y tamaño de contexto.
-- Si no hay resultados o falla retrieval, la tarea continúa con fallback controlado sin bloquear ejecución.
-- RAG no navega por internet ni inventa fuentes externas; usa solo documentos del usuario actual.
-- En produccion, RAG_VECTOR_BACKEND=pgvector persiste embeddings en document_chunks.embedding para sobrevivir redeploys.
-- Backfill para chunks antiguos sin embedding: python -m scripts.backfill_pgvector_embeddings.
-
-## Decisiones tecnicas
-
-- Enfoque backend-first para priorizar flujo de ejecucion y trazabilidad.
-- Agentes simples y deterministas para demo estable (sin sobrearquitectura).
-- Quality gate minimo para evitar "completed" con output inutil.
-- Compatibilidad de trace legacy para no romper datos existentes.
-- Test strategy por fases para escalar calidad sin frenar velocidad.
-
-## Limitaciones conocidas
-
-- No hay e2e browser completo (Playwright/Cypress) en este alcance.
-- Seguridad hardening de produccion no completo (headers/rate-limit/observabilidad avanzada).
-- RAG implementado a nivel MVP (sin evaluacion semantica profunda en CI).
-- Sin multi-tenant enterprise ni orquestacion distribuida compleja.
-
-## Roadmap (realista)
-
-- P1: consolidar script/capturas de demo para portfolio.
-- P2: sumar e2e frontend critico y contratos API adicionales.
-- P3: reforzar seguridad y observabilidad para entorno preproduccion.
-
-## Documentacion complementaria
-
-- Guia de uso: `GUIA_USUARIO_NUEVO.md`
-- Test strategy: `docs/TESTING_STRATEGY.md`
-- Test matrix 1000+: `docs/TEST_MATRIX_1000.md`
-- Demo script (3-5 min): `docs/DEMO_SCRIPT.md`
-- Notas de entrevista tecnica: `docs/INTERVIEW_NOTES.md`
-
-### Background task execution (v0.2 Fase 6)
-
-- `POST /tasks/{task_id}/execute` soporta ejecucion en segundo plano con `FastAPI BackgroundTasks`.
-- Flujo: `pending/failed -> queued -> processing -> completed/failed`.
-- Configuracion:
-  - `TASK_EXECUTION_MODE=background` para runtime normal.
-  - `TASK_EXECUTION_MODE=sync` para suite de tests (determinista, sin polling extra).
-- En modo background no se reutiliza la sesion DB de la request; el worker abre su propia sesion.
-- Esta fase no usa Celery ni Redis todavia.
-
-### Production hardening foundations (v0.2 Fase 7)
-
-- Request/response hardening:
-  - middleware con `X-Request-ID` (se preserva si viene del cliente)
-  - logging estructurado basico por request (`method`, `path`, `status`, `duration_ms`)
-  - handlers globales de errores con formato consistente:
-    - `http_*`
-    - `validation_error`
-    - `internal_error`
-- Rate limiting in-memory (orientado a demo/portfolio):
-  - limite general por IP/ruta
-  - limite mas estricto para `login/signup`
-  - limite especifico para `POST /tasks/{task_id}/execute`
-- Upload hardening para documentos:
-  - validacion de tamano maximo
-  - extensiones y MIME permitidos por config
-  - rechazo de nombres peligrosos/path traversal
-  - rechazo de archivos vacios
-- Health endpoints:
-  - `GET /api/v1/health`
-  - `GET /api/v1/health/live`
-  - `GET /api/v1/health/ready` (readiness con check de DB)
-- CI basico en GitHub Actions:
-  - backend tests
-  - frontend test/build/smoke
-- Migraciones:
-  - estructura Alembic inicial incluida en repo (`alembic/`, `alembic.ini`)
-  - en produccion, preferir Alembic frente a `create_all`.
-
-Configuracion relevante:
+Important variables:
 
 ```env
 APP_ENV=development
-DEBUG=false
-LOG_LEVEL=INFO
-ENABLE_REQUEST_LOGGING=true
+JWT_SECRET_KEY=replace-with-a-long-random-jwt-secret-min-32-chars
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_REQUESTS_PER_MINUTE=120
-RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE=20
-RATE_LIMIT_TASK_EXECUTE_PER_MINUTE=10
+AUTH_COOKIE_NAME=aegis_access_token
+AUTH_COOKIE_SECURE=false
+AUTH_COOKIE_SAMESITE=lax
 
-DOCUMENT_MAX_UPLOAD_MB=5
+DATABASE_URL=postgresql+psycopg://...
+
 DOCUMENT_ALLOWED_EXTENSIONS=.txt,.md,.csv,.json
 DOCUMENT_ALLOWED_MIME_TYPES=text/plain,text/markdown,text/csv,application/json
+
+LLM_PROVIDER=template
+LLM_ENABLE_REAL_CALLS=false
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=
 ```
 
-Notas de alcance:
+Reference template:
 
-- `BackgroundTasks` no sustituye una cola distribuida.
-- El rate limit in-memory no es suficiente para despliegues con multiples replicas.
-- El almacenamiento documental actual no es un reemplazo de object storage (S3/GCS).
+- `.env.example`
 
-## Deployment readiness (Fase 8A)
+## Security And Hardening Applied
 
-- Backend cloud-ready:
-  - usa `PORT` con fallback seguro (`${PORT:-8000}`)
-  - endpoint de readiness disponible en `/api/v1/health/ready`
-  - CORS configurable por `CORS_ORIGINS` (CSV)
-- Frontend cloud-ready:
-  - variable recomendada `VITE_API_BASE_URL` para apuntar al backend publico
-- Migraciones:
-  - en produccion ejecutar `alembic upgrade head`
+- no real `.env` should be committed or shared
+- `.env.example` kept as the safe template
+- web session moved away from `localStorage` to `HttpOnly` cookie flow
+- Alembic used as the migration path instead of runtime schema mutation
+- pagination added to core list endpoints
+- input validation tightened for auth, tasks and documents
+- basic HTTP security headers added
+- document upload restrictions and safer defaults added
 
-Guia detallada:
+## Known Limitations
 
-- `docs/DEPLOYMENT_RAILWAY.md`
+- Aegis is **not** presented as fully production-ready.
+- rate limiting is still **in-memory**
+- background execution does **not** use a durable queue yet
+- Docker runtime still needs to be validated in an environment with a working daemon
+- RAG is still MVP-level and does not yet include deep semantic evaluation
+- there is no full browser E2E suite such as Playwright or Cypress in the current scope
+- current document handling is designed for demo and portfolio flows, not enterprise-scale storage
 
+These are documented intentionally because they show engineering judgment, not weakness.
+
+## Roadmap
+
+- add real portfolio screenshots and a polished public demo path
+- expand browser-level E2E coverage for the main workflow
+- improve observability and pre-production runtime validation
+- evolve background execution toward a durable queue if the project grows
+
+## What This Project Demonstrates
+
+For recruiters, hiring managers and technical reviewers, Aegis demonstrates:
+
+- full-stack product thinking across backend, frontend and docs
+- API design and stateful workflow handling
+- persistence, traceability and quality review patterns
+- pragmatic security hardening for a portfolio-grade app
+- documentation discipline and demo preparation
+- the ability to scope a project honestly without overselling it
+
+## How To Explain It In An Interview
+
+Short version:
+
+> Aegis is a backend-first AI task orchestration project.  
+> Instead of stopping at prompt/response, it shows a full workflow with task intake, routing, execution trace, feedback and insights.
+
+Good talking points:
+
+- why structured tasks are different from a generic chatbot
+- why traceability improves trust and debugging
+- why feedback and insights make the system more reviewable
+- what was hardened already vs what would change before production
+
+Detailed interview notes:
+
+- `docs/INTERVIEW_NOTES.md`
+
+## Additional Documentation
+
+- user guide: `GUIA_USUARIO_NUEVO.md`
+- demo script: `docs/DEMO_SCRIPT.md`
+- interview notes: `docs/INTERVIEW_NOTES.md`
+- screenshot guide: `docs/SCREENSHOT_GUIDE.md`
+- testing strategy: `docs/TESTING_STRATEGY.md`
+- Railway deployment notes: `docs/DEPLOYMENT_RAILWAY.md`

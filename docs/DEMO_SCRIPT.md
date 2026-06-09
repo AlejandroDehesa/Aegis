@@ -1,84 +1,158 @@
 # Aegis Demo Script (3-5 min)
 
-Objetivo: mostrar que Aegis es una plataforma de orquestacion de tareas con agentes, no un simple chatbot.
+Goal: show Aegis as a traceable task workflow, not just a chat response.
 
-## 0) Preparacion (30s)
+## Before You Start
 
-Verificar rapidamente:
+Quick checks:
 
-- `docker compose ps` en estado healthy
-- frontend en `http://localhost:5173`
-- backend health en `http://localhost:8000/api/v1/health`
+- `docker compose ps` shows healthy services
+- frontend available at `http://localhost:5173`
+- backend health available at `http://localhost:8000/api/v1/health`
+- demo user ready:
+  - email: `demo@aegis.local`
+  - password: `Demo12345!`
 
-## 1) Login y contexto (30s)
+Suggested framing sentence:
 
-1. Abrir `http://localhost:5173/login`.
-2. Entrar con:
-   - email: `demo@aegis.local`
-   - password: `Demo12345!`
-3. Frase sugerida:
-   - "Aegis ejecuta tareas con trazabilidad completa; no es un chat de respuesta unica."
+> "Aegis is a backend-first AI task orchestration demo. The point is not only to generate text, but to show a full execution workflow with traceability, persistence and review."
 
-## 2) Crear y ejecutar tarea comparison (60-90s)
+## 1. Login (20-30s)
 
-Crear tarea:
+Open `http://localhost:5173/login` and sign in.
 
-- Title: `Compara FastAPI y Django`
-- Description: `Compara FastAPI y Django para crear una API backend moderna. Dame ventajas, desventajas y recomendacion final.`
+What to say:
 
-Ejecutar tarea desde `Tasks`.
+- "The web session uses a normal product-style auth flow so I can move through tasks, documents and insights as an authenticated user."
 
-Puntos a remarcar:
+What to show:
 
-- `task_type = comparison`
-- `agent_name = ComparisonAgent`
-- status cambia y termina en `completed`
+- login screen
+- optional demo credentials
+- transition into the application shell
 
-## 3) Abrir Task Detail y mostrar trace (60-90s)
+## 2. Dashboard (20-30s)
 
-Abrir el detalle de esa tarea.
+Land on the dashboard and set the context.
 
-Mostrar:
+What to say:
 
-- resultado util (no placeholder)
-- trace con pasos:
-  - `classification`
-  - `agent_selection`
-  - `execution`
-- metadata de ejecucion (timestamps, duracion)
+- "This view gives me the high-level demo path: tasks, execution, review, document context and insights."
 
-Frase sugerida:
+What to show:
 
-- "Aqui se ve el pipeline completo y no solo una salida de texto."
+- stats cards
+- recent tasks
+- recommended walkthrough actions
 
-## 4) Feedback + Insights (45-60s)
+## 3. Create A Task (40-60s)
 
-1. Enviar rating (por ejemplo 5) y comentario corto.
-2. Ir a `Insights`.
-3. Mostrar:
-   - metricas por estado
-   - distribucion por tipo/agent
-   - quality queue (si hay fallidas o low-rated)
+Go to `Tasks` and create a realistic request.
 
-## 5) Documents (30-45s)
+Recommended example:
 
-1. Ir a `Documents`.
-2. Mostrar carga de documento o libreria existente.
-3. Frase sugerida:
-   - "El sistema permite enriquecer tareas futuras con contexto documental."
+- title: `Compare FastAPI and Django for an internal AI platform`
+- description: `Provide a practical comparison for an AI orchestration product: architecture, maintainability, performance and implementation speed. End with a recommendation.`
 
-## 6) Cierre (15-20s)
+What to say:
 
-Mensaje final recomendado:
+- "I start from a structured task, not from a generic chat prompt. That gives the backend enough context to classify, route and persist the workflow."
 
-- "Aegis es un MVP tecnico estable: clasifica tareas, selecciona agente, ejecuta, traza, recoge feedback y consolida insights."
+## 4. Execute The Task (40-60s)
 
-## Checklist rapido de demo
+Run the task from the list or detail view.
 
-- Login OK
-- Crear tarea OK
-- Ejecutar tarea OK
-- Detail + Trace OK
-- Feedback OK
-- Insights OK
-- Documents OK
+What to show:
+
+- status transition
+- quick execution control
+- automatic refresh while the task is queued or processing
+
+What to say:
+
+- "The important part here is not only the final answer. The system tracks execution state and keeps the run reviewable."
+
+## 5. Open Task Detail And Trace (60-90s)
+
+Open the completed task detail.
+
+What to show:
+
+- task overview
+- final result
+- execution trace
+- evaluation block
+
+Call out:
+
+- `task_type`
+- `agent_name`
+- timestamps and duration
+- trace steps such as classification, selection and execution
+
+Suggested sentence:
+
+> "This is where Aegis becomes more than a text demo. I can inspect what happened during the run, not only what the model returned."
+
+## 6. Submit Feedback (20-30s)
+
+Rate the output and optionally leave a short comment.
+
+What to say:
+
+- "The rating step is intentionally lightweight, but it creates a feedback signal that can later be aggregated in Insights."
+
+## 7. Show Documents / Retrieval Context (30-45s)
+
+Open `Documents`.
+
+What to show:
+
+- upload form
+- existing document library
+- file or text-based ingestion
+
+What to say:
+
+- "Aegis can ingest supporting context so future tasks can run with retrieval-assisted input instead of relying only on the prompt."
+
+Keep the explanation honest:
+
+- no claims of deep semantic evaluation
+- no claims of internet browsing
+
+## 8. Show Insights (30-45s)
+
+Open `Insights`.
+
+What to show:
+
+- top metrics
+- distribution snapshot
+- quality review queue
+- strong results section
+
+What to say:
+
+- "This closes the loop. The system does not only execute work; it also surfaces weak and strong runs so the workflow can be reviewed."
+
+## 9. Closing Statement (15-20s)
+
+Suggested close:
+
+> "Aegis is a technical MVP for portfolio and interviews. It demonstrates a full-stack, backend-first AI workflow with task intake, routing, traceability, feedback and operational review."
+
+Optional follow-up sentence:
+
+> "If this moved toward production, the next steps would be stronger observability, a durable queue and deeper runtime validation."
+
+## Demo Checklist
+
+- login works
+- dashboard loads
+- task gets created
+- task executes
+- detail view shows result and trace
+- feedback is saved
+- document library is visible
+- insights page reflects quality signals

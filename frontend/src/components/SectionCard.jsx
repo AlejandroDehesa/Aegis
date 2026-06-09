@@ -3,7 +3,7 @@ export function SectionCard({ title, subtitle, actions, children }) {
     <section className="section-card">
       <div className="section-card-header">
         <div>
-          <p className="section-eyebrow">{title}</p>
+          <h3 className="section-title">{title}</h3>
           {subtitle ? <p className="section-subtitle">{subtitle}</p> : null}
         </div>
         {actions ? <div className="section-actions">{actions}</div> : null}

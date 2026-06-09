@@ -283,6 +283,8 @@ export function TaskDetailPage() {
           <div className="feedback-rating-group">
             {[1, 2, 3, 4, 5].map((value) => (
               <button
+                aria-label={t("taskDetail.rateOption", { value })}
+                aria-pressed={feedbackForm.feedback_rating === value}
                 className={
                   feedbackForm.feedback_rating === value
                     ? "rating-button rating-button-active"

@@ -4,10 +4,15 @@ export function LanguageSwitcher({ compact = false }) {
   const { language, setLanguage, t } = useI18n();
 
   return (
-    <div className={`language-switch ${compact ? "language-switch-compact" : ""}`}>
+    <div
+      aria-label={t("common.language")}
+      className={`language-switch ${compact ? "language-switch-compact" : ""}`}
+      role="group"
+    >
       <span className="language-switch-label">{t("common.language")}</span>
       <div className="language-switch-buttons">
         <button
+          aria-pressed={language === "es"}
           className={language === "es" ? "language-btn language-btn-active" : "language-btn"}
           onClick={() => setLanguage("es")}
           type="button"
@@ -15,6 +20,7 @@ export function LanguageSwitcher({ compact = false }) {
           {t("common.spanish")}
         </button>
         <button
+          aria-pressed={language === "en"}
           className={language === "en" ? "language-btn language-btn-active" : "language-btn"}
           onClick={() => setLanguage("en")}
           type="button"

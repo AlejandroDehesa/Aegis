@@ -27,7 +27,7 @@ describe("DocumentsPage", () => {
 
     renderWithProviders(<DocumentsPage />);
 
-    expect(await screen.findByText("Context ingestion for retrieval and better outputs")).toBeInTheDocument();
+    expect(await screen.findByText("Document context for retrieval-assisted tasks")).toBeInTheDocument();
     expect(screen.getByText("Architecture Notes")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Upload document" })).toBeInTheDocument();
   });

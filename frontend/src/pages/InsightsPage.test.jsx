@@ -31,7 +31,7 @@ describe("InsightsPage", () => {
 
     renderWithProviders(<InsightsPage />);
 
-    expect(await screen.findByText("Operational visibility and quality review")).toBeInTheDocument();
+    expect(await screen.findByText("Execution quality and operational visibility")).toBeInTheDocument();
     const totalTasksCard = screen.getByText("Total Tasks").closest("article");
     expect(totalTasksCard).not.toBeNull();
     expect(within(totalTasksCard).getByText("3")).toBeInTheDocument();
