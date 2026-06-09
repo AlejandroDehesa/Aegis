@@ -58,6 +58,31 @@ export function formatStatusLabel(status, language = "en") {
   return labels[normalizedStatus] || normalizedStatus;
 }
 
+export function formatTaskTypeLabel(taskType, language = "en") {
+  const normalizedTaskType = taskType || "general";
+  const labelsByLanguage = {
+    en: {
+      general: "General",
+      research: "Research",
+      summary: "Summary",
+      comparison: "Comparison",
+      analysis: "Analysis",
+      planning: "Planning",
+    },
+    es: {
+      general: "General",
+      research: "Investigacion",
+      summary: "Resumen",
+      comparison: "Comparacion",
+      analysis: "Analisis",
+      planning: "Planificacion",
+    },
+  };
+  const labels = labelsByLanguage[language] || labelsByLanguage.en;
+
+  return labels[normalizedTaskType] || normalizedTaskType;
+}
+
 export function sortTasksByRecent(tasks) {
   return [...tasks].sort((left, right) => {
     return resolveTaskTimestamp(right) - resolveTaskTimestamp(left);

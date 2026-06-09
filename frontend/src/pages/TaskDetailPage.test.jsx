@@ -100,8 +100,8 @@ describe("TaskDetailPage", () => {
     });
 
     expect(await screen.findByText("Plan platform rollout")).toBeInTheDocument();
-    expect(screen.getByText("No result available yet.")).toBeInTheDocument();
-    expect(screen.getByText("Task is still running. Aegis is refreshing this page automatically.")).toBeInTheDocument();
+    expect(screen.getByText("Aun no hay resultado.")).toBeInTheDocument();
+    expect(screen.getByText("La tarea sigue en ejecucion. Aegis esta refrescando esta pagina automaticamente.")).toBeInTheDocument();
   });
 
   test("renders rag and llm metadata in execution trace", async () => {
@@ -161,9 +161,9 @@ describe("TaskDetailPage", () => {
     });
 
     expect(await screen.findByText("RAG evidence audit")).toBeInTheDocument();
-    expect(screen.getByText("backend=pgvector, chunks=2")).toBeInTheDocument();
+    expect(screen.getByText("backend=pgvector, fragmentos=2")).toBeInTheDocument();
     expect(screen.getByText("aegis_report.md, railway_notes.md")).toBeInTheDocument();
-    expect(screen.getByText("RAG snippets")).toBeInTheDocument();
-    expect(screen.getByText("Snippet one (score: 0.91)")).toBeInTheDocument();
+    expect(screen.getByText("Fragmentos RAG")).toBeInTheDocument();
+    expect(screen.getByText("Snippet one (puntuacion: 0.91)")).toBeInTheDocument();
   });
 });

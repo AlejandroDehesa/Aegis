@@ -9,12 +9,12 @@ import { SectionCard } from "../components/SectionCard";
 import { StatusBadge } from "../components/StatusBadge";
 import { useI18n } from "../hooks/useI18n";
 import { getErrorMessage } from "../utils/errors";
-import { formatDateTime, truncateText } from "../utils/formatters";
+import { formatDateTime, formatTaskTypeLabel, truncateText } from "../utils/formatters";
 
 const INSIGHTS_PAGE_LIMIT = 50;
 
 export function InsightsPage() {
-  const { t, locale } = useI18n();
+  const { t, language, locale } = useI18n();
   const [overview, setOverview] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,7 +92,7 @@ export function InsightsPage() {
           >
             <div className="insights-grid">
               <DistributionList title={t("insights.byStatus")} items={overview?.tasks_by_status} noDataLabel={t("insights.noData")} />
-              <DistributionList title={t("insights.byTaskType")} items={overview?.tasks_by_task_type} noDataLabel={t("insights.noData")} />
+              <DistributionList title={t("insights.byTaskType")} items={overview?.tasks_by_task_type} noDataLabel={t("insights.noData")} formatKey={(key) => formatTaskTypeLabel(key, language)} />
               <DistributionList title={t("insights.byAgent")} items={overview?.tasks_by_agent_name} noDataLabel={t("insights.noData")} />
               <DistributionList title={t("insights.byRating")} items={overview?.feedback_rating_distribution} noDataLabel={t("insights.noData")} />
             </div>
@@ -111,7 +111,7 @@ export function InsightsPage() {
                     <div>
                       <strong>{task.title}</strong>
                       <p className="list-item-subtitle">
-                        {task.task_type} / {task.agent_name}
+                        {formatTaskTypeLabel(task.task_type, language)} / {task.agent_name}
                       </p>
                       <p className="list-item-copy">
                         {truncateText(task.feedback_comment || task.result_text || task.description, 180, t("common.noData"))}
@@ -146,7 +146,7 @@ export function InsightsPage() {
                     <div>
                       <strong>{task.title}</strong>
                       <p className="list-item-subtitle">
-                        {task.task_type} / {task.agent_name}
+                        {formatTaskTypeLabel(task.task_type, language)} / {task.agent_name}
                       </p>
                       <p className="list-item-copy">
                         {truncateText(task.feedback_comment || task.result_text || task.description, 180, t("common.noData"))}
@@ -177,7 +177,7 @@ function StatCard({ label, value }) {
   );
 }
 
-function DistributionList({ title, items, noDataLabel }) {
+function DistributionList({ title, items, noDataLabel, formatKey = (key) => key }) {
   const entries = Object.entries(items || {});
 
   return (
@@ -189,7 +189,7 @@ function DistributionList({ title, items, noDataLabel }) {
         <div className="insight-list">
           {entries.map(([key, count]) => (
             <div className="insight-list-row" key={`${title}-${key}`}>
-              <span>{key}</span>
+              <span>{formatKey(key)}</span>
               <strong>{count}</strong>
             </div>
           ))}

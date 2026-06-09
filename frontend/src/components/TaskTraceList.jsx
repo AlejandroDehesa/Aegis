@@ -6,6 +6,36 @@ import { useI18n } from "../hooks/useI18n";
 export function TaskTraceList({ trace }) {
   const { t, locale } = useI18n();
 
+  function formatTokenUsage(step) {
+    const parts = [`total=${step.llm_total_tokens}`];
+
+    if (typeof step.llm_prompt_tokens === "number") {
+      parts.push(`prompt=${step.llm_prompt_tokens}`);
+    }
+
+    if (typeof step.llm_completion_tokens === "number") {
+      parts.push(`completion=${step.llm_completion_tokens}`);
+    }
+
+    if (typeof step.llm_fallback_used === "boolean") {
+      parts.push(`fallback=${step.llm_fallback_used ? t("trace.yes") : t("trace.no")}`);
+    }
+
+    return parts.join(", ");
+  }
+
+  function formatRagMeta(step) {
+    const parts = [
+      `${t("trace.ragBackend")}=${step.rag_vector_backend || t("common.notAvailable")}`,
+    ];
+
+    if (typeof step.rag_retrieved_chunks_count === "number") {
+      parts.push(`${t("trace.ragChunks")}=${step.rag_retrieved_chunks_count}`);
+    }
+
+    return parts.join(", ");
+  }
+
   if (!trace?.length) {
     return (
       <EmptyState
@@ -53,7 +83,7 @@ export function TaskTraceList({ trace }) {
             </div>
             {step.llm_provider ? (
               <div>
-                <dt>LLM</dt>
+                <dt>{t("trace.llm")}</dt>
                 <dd>
                   {step.llm_provider}
                   {step.llm_model ? ` / ${step.llm_model}` : ""}
@@ -62,33 +92,19 @@ export function TaskTraceList({ trace }) {
             ) : null}
             {typeof step.llm_total_tokens === "number" ? (
               <div>
-                <dt>LLM tokens</dt>
-                <dd>
-                  total={step.llm_total_tokens}
-                  {typeof step.llm_prompt_tokens === "number" ? `, prompt=${step.llm_prompt_tokens}` : ""}
-                  {typeof step.llm_completion_tokens === "number"
-                    ? `, completion=${step.llm_completion_tokens}`
-                    : ""}
-                  {typeof step.llm_fallback_used === "boolean"
-                    ? `, fallback=${step.llm_fallback_used ? "yes" : "no"}`
-                    : ""}
-                </dd>
+                <dt>{t("trace.llmTokens")}</dt>
+                <dd>{formatTokenUsage(step)}</dd>
               </div>
             ) : null}
             {step.rag_enabled !== null && step.rag_enabled !== undefined ? (
               <div>
-                <dt>RAG</dt>
-                <dd>
-                  backend={step.rag_vector_backend || "n/a"}
-                  {typeof step.rag_retrieved_chunks_count === "number"
-                    ? `, chunks=${step.rag_retrieved_chunks_count}`
-                    : ""}
-                </dd>
+                <dt>{t("trace.rag")}</dt>
+                <dd>{formatRagMeta(step)}</dd>
               </div>
             ) : null}
             {Array.isArray(step.rag_documents_used) && step.rag_documents_used.length ? (
               <div>
-                <dt>RAG documents</dt>
+                <dt>{t("trace.ragDocuments")}</dt>
                 <dd>{step.rag_documents_used.join(", ")}</dd>
               </div>
             ) : null}
@@ -96,13 +112,13 @@ export function TaskTraceList({ trace }) {
 
           {Array.isArray(step.rag_snippets) && step.rag_snippets.length ? (
             <div className="content-block">
-              <h3>RAG snippets</h3>
+              <h3>{t("trace.ragSnippets")}</h3>
               <ul>
                 {step.rag_snippets.map((snippet, snippetIndex) => (
                   <li key={`${step.agent_name}-${snippetIndex}`}>
                     {snippet}
                     {Array.isArray(step.rag_scores) && typeof step.rag_scores[snippetIndex] === "number"
-                      ? ` (score: ${step.rag_scores[snippetIndex].toFixed(2)})`
+                      ? ` (${t("trace.score")}: ${step.rag_scores[snippetIndex].toFixed(2)})`
                       : ""}
                   </li>
                 ))}

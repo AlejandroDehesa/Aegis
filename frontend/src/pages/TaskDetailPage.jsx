@@ -12,7 +12,7 @@ import { ROUTES } from "../constants/routes";
 import { useI18n } from "../hooks/useI18n";
 import { usePolling } from "../hooks/usePolling";
 import { getErrorMessage } from "../utils/errors";
-import { formatDateTime, formatDuration } from "../utils/formatters";
+import { formatDateTime, formatDuration, formatTaskTypeLabel } from "../utils/formatters";
 
 function createFeedbackForm(task) {
   return {
@@ -22,7 +22,7 @@ function createFeedbackForm(task) {
 }
 
 export function TaskDetailPage() {
-  const { t, locale } = useI18n();
+  const { t, language, locale } = useI18n();
   const { taskId } = useParams();
   const [task, setTask] = useState(null);
   const [trace, setTrace] = useState(null);
@@ -223,7 +223,7 @@ export function TaskDetailPage() {
           </div>
           <div>
             <dt>{t("taskDetail.taskType")}</dt>
-            <dd>{task.task_type}</dd>
+            <dd>{formatTaskTypeLabel(task.task_type, language)}</dd>
           </div>
           <div>
             <dt>{t("taskDetail.agent")}</dt>

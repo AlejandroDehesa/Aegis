@@ -17,7 +17,7 @@ describe("TasksPage", () => {
     mockListTasks.mockResolvedValueOnce([
       {
         id: "task-1",
-        title: "Compare FastAPI and Django",
+        title: "Comparar FastAPI y Django",
         description: "Need recommendation",
         status: "completed",
         task_type: "comparison",
@@ -31,7 +31,7 @@ describe("TasksPage", () => {
 
     renderWithProviders(<TasksPage />);
 
-    expect(await screen.findByText("Compare FastAPI and Django")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Execute" })).toBeInTheDocument();
+    expect(await screen.findByText("Comparar FastAPI y Django")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ejecutar" })).toBeInTheDocument();
   });
 });

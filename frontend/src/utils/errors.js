@@ -1,4 +1,4 @@
-export function getErrorMessage(error, fallback = "Unexpected error. Please try again.") {
+export function getErrorMessage(error, fallback = "Error inesperado. Intentalo de nuevo.") {
   if (typeof error === "string" && error.trim()) {
     return error.trim();
   }

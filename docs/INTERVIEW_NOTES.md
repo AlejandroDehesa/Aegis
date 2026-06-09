@@ -1,143 +1,145 @@
-# Aegis Interview Notes
+﻿# Notas De Entrevista De Aegis
 
-## What Is Aegis
+## Qué Es Aegis
 
-Aegis is a backend-first AI task orchestration project built to demonstrate a full workflow instead of a one-shot chat response.
+Aegis es un proyecto backend-first de orquestación de tareas con IA construido para demostrar un flujo completo, no una respuesta aislada de chat.
 
-The main story is:
+La historia principal es:
 
-- structured task intake
-- classification
-- agent selection
-- execution
-- persisted trace
+- entrada estructurada de tareas
+- clasificación
+- selección de agente
+- ejecución
+- traza persistida
 - feedback
 - insights
 
-That makes it a stronger portfolio piece than a simple CRUD or chatbot UI.
+Eso lo convierte en una pieza de portfolio más fuerte que un CRUD simple o una UI de chatbot.
 
-## How I Explain The Architecture
+## Cómo Explico La Arquitectura
 
 ### Backend
 
-- FastAPI exposes endpoints for auth, tasks, documents, insights, agents and health.
-- Services handle orchestration concerns such as classification, routing, execution and document-context support.
-- SQLAlchemy models persist tasks, documents and execution metadata.
-- Pydantic schemas define the API contract and validation layer.
+- FastAPI expone endpoints para auth, tasks, documents, insights, agents y health.
+- Los servicios encapsulan preocupaciones de orquestación como clasificación, routing, ejecución y contexto documental.
+- Los modelos SQLAlchemy persisten tareas, documentos y metadatos de ejecución.
+- Los schemas Pydantic definen el contrato API y la capa de validación.
 
 ### Frontend
 
-- React + Vite provides the authenticated product workflow.
-- The main views are dashboard, tasks, task detail, documents and insights.
-- Shared components handle async states, layout, feedback messages and trace rendering.
+- React + Vite ofrece el flujo autenticado del producto.
+- Las vistas principales son dashboard, tasks, task detail, documents e insights.
+- Los componentes compartidos gestionan estados async, layout, feedback y render de traza.
 
-### Data Flow
+### Flujo de datos
 
 ```txt
-user creates task
-  -> backend classifies request
-  -> selects agent
-  -> executes task
-  -> persists result + trace
-  -> user reviews output
-  -> user submits feedback
-  -> insights aggregates quality signals
+usuario crea tarea
+  -> backend clasifica solicitud
+  -> selecciona agente
+  -> ejecuta tarea
+  -> persiste resultado + traza
+  -> usuario revisa salida
+  -> usuario envía feedback
+  -> insights agrega señales de calidad
 ```
 
-## Why It Is Not Just A CRUD
+## Por Qué No Es Solo Un CRUD
 
-A CRUD app stores records. Aegis does more than that:
+Un CRUD almacena registros. Aegis hace más que eso:
 
-- it routes work by task type
-- it tracks execution state over time
-- it stores step-by-step trace information
-- it supports lightweight quality review
-- it uses document context to enrich future runs
+- enruta trabajo por tipo de tarea
+- sigue el estado de ejecución a lo largo del tiempo
+- almacena trazabilidad paso a paso
+- soporta revisión ligera de calidad
+- usa contexto documental para enriquecer futuras ejecuciones
 
-That combination creates a workflow story, not just forms and tables.
+Esa combinación crea una historia de flujo, no solo formularios y tablas.
 
-## Why FastAPI
+## Por Qué FastAPI
 
-- clean developer experience
-- fast iteration speed
-- strong fit for typed request/response contracts
-- easy to structure around services and routers
-- a good match for backend-heavy portfolio work
+- experiencia de desarrollo limpia
+- velocidad alta de iteración
+- buen encaje con contratos tipados request/response
+- fácil de estructurar por servicios y routers
+- muy adecuado para un portfolio con peso backend
 
-## Why React + Vite
+## Por Qué React + Vite
 
-- quick setup without overcomplicating the frontend
-- strong iteration speed for product screens
-- easy to keep the UI focused on workflow instead of framework ceremony
-- enough flexibility for stateful pages like tasks, trace review and insights
+- arranque rápido sin complicar el frontend
+- gran velocidad de iteración para pantallas de producto
+- permite centrar la UI en el flujo y no en la ceremonia del framework
+- suficiente flexibilidad para páginas con estado como tareas, revision de traza e insights
 
-## Why HttpOnly Cookies For The Web Session
+## Por Qué Cookies HttpOnly En La Sesión Web
 
-- they reduce the exposure of session tokens to browser-side JavaScript
-- they fit a more realistic product auth model than storing JWTs in `localStorage`
-- they make the portfolio story stronger from a security perspective
+- reducen la exposición del token de sesión a JavaScript en navegador
+- encajan mejor con un modelo de auth más realista que guardar JWT en `localStorage`
+- fortalecen la narrativa de seguridad del proyecto
 
-I still keep Bearer compatibility for manual API work and tests, but the web flow is cookie-based.
+Se mantiene compatibilidad Bearer para tests y uso manual de API, pero el flujo web es cookie-based.
 
-## Why Alembic
+## Por Qué Alembic
 
-- schema changes should be explicit and reviewable
-- migration history is easier to reason about than runtime DDL
-- it is the correct step away from demo shortcuts toward professional repo hygiene
+- los cambios de esquema deben ser explícitos y revisables
+- el historial de migraciones es más razonable que DDL en runtime
+- es el paso correcto para salir de atajos de demo y acercarse a higiene profesional de repositorio
 
-## Why Not Celery Yet
+## Por Qué Aún No Hay Celery
 
-- the current goal is a solid portfolio MVP, not a distributed job platform
-- `BackgroundTasks` is enough to demonstrate workflow state transitions and traceability
-- adding Celery or Redis right now would increase operational complexity more than demo value
+- el objetivo actual es un MVP sólido de portfolio, no una plataforma distribuida de jobs
+- `BackgroundTasks` basta para demostrar transiciones de estado y trazabilidad
+- meter Celery o Redis ahora mismo aumentaría la complejidad operativa más de lo que aporta a la demo
 
-If I were preparing for production-like workloads, a durable queue would be the next step.
+Si el proyecto evolucionara hacia una carga más cercana a producción, una cola durable sería el siguiente paso lógico.
 
-## Why Rate Limiting Is Still In-Memory
+## Por Qué El Rate Limiting Sigue Siendo In-Memory
 
-- it was enough for local demos and a single-instance portfolio scope
-- it keeps the implementation simple and easy to explain
-- it is also a good example of an intentional limitation I would revisit before multi-instance deployment
+- era suficiente para demos locales y un scope de portfolio monoinstancia
+- mantiene la implementación simple y fácil de explicar
+- también sirve como ejemplo honesto de limitación que revisaría antes de múltiples réplicas
 
-## How I Explain The RAG Layer Honestly
+## Cómo Explico RAG De Forma Honesta
 
-- users can upload documents
-- documents are chunked and stored for retrieval-oriented context
-- future tasks can use that context during execution
+- el usuario puede subir documentos
+- los documentos se trocean y quedan almacenados para retrieval
+- futuras tareas pueden usar ese contexto durante la ejecución
 
-Important honesty points:
+Puntos importantes de honestidad:
 
-- this is an MVP RAG workflow
-- it is not presented as a deeply evaluated retrieval system
-- it does not pretend to browse the internet or fabricate external sources
+- esto es un flujo RAG de nivel MVP
+- no se presenta como un sistema de retrieval profundamente evaluado
+- no finge navegar por internet ni inventar fuentes externas
 
-## Tradeoffs I Made
+## Tradeoffs Que Tomé
 
-- kept the architecture layered, but not over-engineered
-- prioritized traceability and workflow clarity over autonomous-agent complexity
-- hardened auth/config/docs before chasing advanced production infra
-- accepted in-memory rate limiting and non-durable background work as portfolio-scope tradeoffs
+- mantuve una arquitectura por capas, pero sin sobre-ingeniería
+- prioricé trazabilidad y claridad del flujo sobre complejidad de agentes autónomos
+- endurecí auth, configuración y documentación antes de perseguir infraestructura avanzada
+- acepté rate limiting in-memory y background no durable como tradeoffs razonables de portfolio
 
-## What I Learned Building It
+## Qué Aprendí Construyéndolo
 
-- "completed" is not the same as "useful" without output quality checks
-- execution trace changes how debuggable and reviewable the system feels
-- honest limitations make a project stronger in interviews
-- docs, test flows and demo clarity matter almost as much as the code for portfolio impact
+- `completed` no significa necesariamente `útil` si no hay quality checks
+- la traza de ejecucion cambia mucho la capacidad de depurar y revisar el sistema
+- documentar limitaciones con honestidad fortalece el proyecto en una entrevista
+- la documentación, la demo y la estrategia de tests pesan casi tanto como el código en un portfolio
 
-## What I Would Improve Before Production
+## Qué Mejoraría Antes De Producción
 
-- durable background execution
-- distributed rate limiting
-- stronger observability and alerting
-- browser E2E coverage
-- deeper RAG evaluation and retrieval monitoring
-- real deployment validation with daemon/runtime checks
+- ejecución en background durable
+- rate limiting distribuido
+- observabilidad y alerting más fuertes
+- cobertura E2E de navegador
+- evaluación RAG y monitorización de retrieval más profundas
+- validación real de despliegue con daemon/runtime disponibles
 
-## Short Interview Pitch
+## Pitch Corto De Entrevista
 
-> "Aegis is a backend-first AI task orchestration project. Instead of stopping at prompt and response, it shows classification, routing, execution trace, feedback and insights inside a real product workflow."
+> "Aegis es un proyecto backend-first de orquestación de tareas con IA. En lugar de quedarse en prompt y respuesta, muestra clasificación, enrutamiento, traza de ejecucion, feedback e insights dentro de un flujo de producto real."
 
-## Longer Interview Pitch
+## Pitch Largo De Entrevista
 
-> "I built Aegis to demonstrate how an AI-assisted workflow looks when you treat it like product software. A user creates a structured task, the backend classifies it, selects an execution path, persists the result and trace, then the UI supports feedback and insights. It is not marketed as fully production-ready, but it is intentionally hardened enough to be a serious portfolio project."
+> "Construí Aegis para demostrar cómo se ve un flujo asistido por IA cuando lo tratas como software de producto. Una persona crea una tarea estructurada, el backend la clasifica, selecciona una ruta de ejecución, persiste resultado y traza, y después la UI soporta feedback e insights. No se vende como completamente production-ready, pero sí como un proyecto endurecido lo suficiente para ser una pieza seria de portfolio."
+
+

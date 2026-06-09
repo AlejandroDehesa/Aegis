@@ -1,4 +1,4 @@
-export const DEFAULT_LANGUAGE = "en";
+export const DEFAULT_LANGUAGE = "es";
 
 export const SUPPORTED_LANGUAGES = ["en", "es"];
 
@@ -251,6 +251,16 @@ export const TRANSLATIONS = {
     "trace.started": "Started",
     "trace.finished": "Finished",
     "trace.noSummary": "No summary available",
+    "trace.llm": "LLM",
+    "trace.llmTokens": "LLM tokens",
+    "trace.rag": "RAG",
+    "trace.ragDocuments": "RAG documents",
+    "trace.ragSnippets": "RAG snippets",
+    "trace.ragBackend": "backend",
+    "trace.ragChunks": "chunks",
+    "trace.score": "score",
+    "trace.yes": "yes",
+    "trace.no": "no",
 
     "debug.topK": "Top K",
     "debug.minScore": "Min score",
@@ -504,6 +514,16 @@ export const TRANSLATIONS = {
     "trace.started": "Inicio",
     "trace.finished": "Fin",
     "trace.noSummary": "Sin resumen disponible",
+    "trace.llm": "LLM",
+    "trace.llmTokens": "Tokens LLM",
+    "trace.rag": "RAG",
+    "trace.ragDocuments": "Documentos RAG",
+    "trace.ragSnippets": "Fragmentos RAG",
+    "trace.ragBackend": "backend",
+    "trace.ragChunks": "fragmentos",
+    "trace.score": "puntuacion",
+    "trace.yes": "si",
+    "trace.no": "no",
 
     "debug.topK": "Top K",
     "debug.minScore": "Puntuacion minima",

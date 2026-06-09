@@ -1,136 +1,139 @@
-# Aegis Screenshot Guide
+﻿# Guía De Capturas De Aegis
 
-Use this guide to capture consistent, portfolio-ready screenshots once the demo data is available locally.
+Usa esta guía para sacar capturas consistentes y con buena presencia de portfolio cuando los datos demo estén disponibles en local.
 
-Do not create fake screenshots. Only capture the real running UI.
+No generes capturas falsas. Solo captura la UI real en ejecución.
 
-## General Rules
+## Reglas Generales
 
-- Use a clean browser window.
-- Prefer desktop width around `1440px`.
-- Keep the UI in a single language for the whole README set.
-- Use realistic demo data, not lorem ipsum.
-- Avoid exposing local file paths, secrets, browser extensions or unrelated tabs.
-- Keep the sidebar visible unless the screenshot would be clearer without it.
-- Save images as `.png`.
+- Usa una ventana de navegador limpia.
+- Prioriza un ancho de escritorio alrededor de `1440px`.
+- Mantén la UI en un único idioma para todo el set del README.
+- Usa datos demo realistas, no lorem ipsum.
+- Evita exponer rutas locales, secretos, extensiones del navegador o pestañas irrelevantes.
+- Mantén la sidebar visible salvo que la captura gane mucha claridad sin ella.
+- Guarda las imágenes en `.png`.
 
-Recommended size:
+Tamaño recomendado:
 
-- `1440x900` or `1600x1000`
+- `1440x900` o `1600x1000`
 
-Recommended folder:
+Carpeta recomendada:
 
 - `docs/screenshots/`
 
 ## 1. Login
 
-- File name: `login.png`
-- What should be visible:
-  - hero panel
-  - login form
-  - optional demo credentials note
-- Demo data:
+- Nombre de archivo: `login.png`
+- Qué debe verse:
+  - panel hero
+  - formulario de login
+  - nota opcional con credenciales demo
+- Datos demo:
   - `demo@aegis.local`
-- Do not show:
-  - typed password in plain view
-  - browser password managers
+- No debe verse:
+  - contraseña escrita en claro
+  - gestores de contraseñas del navegador
 
 ## 2. Dashboard
 
-- File name: `dashboard.png`
-- What should be visible:
-  - stats cards
-  - recommended demo flow
-  - recent tasks
-- Demo data:
-  - at least 3 seeded tasks
-  - at least 1 rated task
-- Do not show:
-  - empty dashboard unless the README explicitly discusses empty-state UX
+- Nombre de archivo: `dashboard.png`
+- Qué debe verse:
+  - tarjetas de métricas
+  - flujo demo recomendado
+  - tareas recientes
+- Datos demo:
+  - al menos 3 tareas seed
+  - al menos 1 tarea valorada
+- No debe verse:
+  - dashboard vacío, salvo que quieras enseñar explícitamente ese empty state
 
-## 3. Tasks List
+## 3. Listado De Tareas
 
-- File name: `tasks-list.png`
-- What should be visible:
-  - task list
-  - status badges
-  - timing / rating pills
-  - quick actions
-- Demo data:
-  - one completed task
-  - one processing or queued task if possible
-  - one failed or unrated task if possible
-- Do not show:
-  - unrealistic or repetitive task titles
+- Nombre de archivo: `tasks-list.png`
+- Qué debe verse:
+  - lista de tareas
+  - badges de estado
+  - indicadores de tiempo / valoracion
+  - acciones rápidas
+- Datos demo:
+  - una tarea completada
+  - una tarea en cola o procesando si es posible
+  - una tarea fallida o sin valorar si es posible
+- No debe verse:
+  - títulos irreales o repetitivos
 
-## 4. Create Task
+## 4. Crear Tarea
 
-- File name: `create-task.png`
-- What should be visible:
-  - create task form
-  - realistic task title and description
-- Demo data:
-  - example title: `Compare FastAPI and Django for an internal AI platform`
-  - example description focused on architecture, maintainability and speed
-- Do not show:
-  - empty placeholder-only form if you can avoid it
+- Nombre de archivo: `create-task.png`
+- Qué debe verse:
+  - formulario de creación
+  - título y descripción realistas
+- Datos demo:
+  - título ejemplo: `Comparar FastAPI y Django para una plataforma interna de IA`
+  - descripción orientada a arquitectura, mantenibilidad y velocidad
+- No debe verse:
+  - formulario completamente vacío si puedes evitarlo
 
-## 5. Task Detail With Result And Trace
+## 5. Detalle De Tarea Con Resultado Y Traza
 
-- File name: `task-detail-trace.png`
-- What should be visible:
-  - task summary
-  - final result
-  - execution trace
-  - evaluation block
-- Demo data:
-  - a completed task with a useful result
-  - trace entries for classification, selection and execution
-- Do not show:
-  - placeholder output
-  - collapsed debug-only content as the main focus
+- Nombre de archivo: `task-detail-trace.png`
+- Qué debe verse:
+  - resumen de tarea
+  - resultado final
+  - traza de ejecucion
+  - bloque de evaluación
+- Datos demo:
+  - una tarea completada con resultado útil
+  - entradas de traza para clasificación, selección y ejecución
+- No debe verse:
+  - salida placeholder
+  - bloques tecnicos colapsados como foco principal
 
-## 6. Documents Upload And Library
+## 6. Subida De Documentos Y Biblioteca
 
-- File name: `documents-library.png`
-- What should be visible:
-  - upload panel
-  - existing document list
-  - chunk count or source metadata
-- Demo data:
-  - one architecture note
-  - one product or deployment note
-- Do not show:
-  - local absolute file paths
-  - unsupported file types
+- Nombre de archivo: `documents-library.png`
+- Qué debe verse:
+  - panel de subida
+  - lista documental existente
+  - conteo de chunks o metadatos de origen
+- Datos demo:
+  - una nota de arquitectura
+  - una nota de producto o despliegue
+- No debe verse:
+  - rutas absolutas locales
+  - tipos de archivo no soportados
 
 ## 7. Insights
 
-- File name: `insights.png`
-- What should be visible:
-  - top metrics
-  - distribution snapshot
-  - quality review queue or strong results
-- Demo data:
-  - at least one rated task
-  - ideally one weak and one strong output
-- Do not show:
-  - all-zero cards if you can avoid them
+- Nombre de archivo: `insights.png`
+- Qué debe verse:
+  - métricas superiores
+  - resumen de distribuciones
+  - cola de revisión de calidad o resultados fuertes
+- Datos demo:
+  - al menos una tarea valorada
+  - idealmente una salida débil y otra fuerte
+- No debe verse:
+  - tarjetas todo a cero, salvo que no haya otra opción
 
-## 8. Optional Health Or CI
+## 8. Opcional: Health O CI
 
-- File name: `health-or-ci.png`
-- What should be visible:
-  - health endpoint response, or
-  - GitHub Actions green checks if already available
-- Demo data:
-  - only real local output or real repository CI
-- Do not show:
-  - redacted fake dashboards
-  - unrelated terminal noise
+- Nombre de archivo: `health-or-ci.png`
+- Qué debe verse:
+  - respuesta del health endpoint, o
+  - checks verdes de GitHub Actions si ya existen
+- Datos demo:
+  - solo salida local real o CI real del repositorio
+- No debe verse:
+  - dashboards falsos o recortados artificialmente
+  - ruido irrelevante de terminal
 
-## Final Check Before Publishing
+## Revisión Final Antes De Publicar
 
-- Confirm all screenshots match the final README wording.
-- Check that file names match the README image paths exactly.
-- Open the rendered `README.md` in GitHub preview and verify image layout.
+- Confirma que todas las capturas encajan con el wording final del README.
+- Revisa que los nombres de archivo coincidan exactamente con las rutas usadas en el README.
+- Abre el `README.md` renderizado en GitHub Preview y verifica la presentación de imágenes.
+
+
+

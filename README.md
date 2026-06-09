@@ -1,140 +1,134 @@
-# Aegis
+﻿# Aegis
 
-Backend-first AI task orchestration with traceability, document context and reviewable outputs.
+Orquestación backend-first de tareas con IA, trazabilidad, contexto documental y resultados revisables.
 
-> Aegis is a technical MVP built for portfolio demos and technical interviews.  
-> It focuses on a full workflow - `task -> classification -> agent selection -> execution -> trace -> feedback -> insights` - instead of a single chat response.
+> Aegis es un MVP técnico orientado a portfolio y entrevistas técnicas.  
+> Su valor está en demostrar un flujo completo - `tarea -> clasificacion -> seleccion de agente -> ejecucion -> traza -> feedback -> insights` - y no solo una respuesta aislada de chat.
 
-## What Is Aegis
+## Qué Es Aegis
 
-Aegis is a full-stack project that shows how an AI-assisted workflow can look when it is treated like product software instead of a chat window.
+Aegis es un proyecto full-stack que muestra cómo puede verse un flujo asistido por IA cuando se diseña como software de producto y no como una simple caja de chat.
 
-The core idea is simple:
+La idea principal es sencilla:
 
-- a user creates a structured task
-- the backend classifies the request
-- an agent or execution path is selected
-- the run is persisted with status and trace data
-- the result can be reviewed, rated and inspected later
-- insights aggregate quality signals across runs
+- una persona crea una tarea estructurada
+- el backend clasifica la solicitud
+- se selecciona un agente o ruta de ejecución
+- la ejecución se persiste con estado y trazabilidad
+- el resultado puede revisarse y valorarse después
+- insights agrega señales de calidad y operación
 
-It is not presented as a fully production-ready platform. It is presented as a solid, honest portfolio project with real engineering scope.
+No se presenta como una plataforma completamente lista para producción. Se presenta como un proyecto de portfolio serio, honesto y con alcance real de ingeniería.
 
-## Problem It Solves
+## Problema Que Resuelve
 
-Many AI demos stop at `prompt -> response`.
+Muchas demos de IA se quedan en `prompt -> respuesta`.
 
-Aegis shows a more product-oriented workflow:
+Aegis enseña un flujo más cercano a un producto real:
 
-- structured task intake instead of free-form chat only
-- task classification and routing
-- persisted execution lifecycle
-- visible execution trace
-- output review and lightweight quality scoring
-- document upload for retrieval-assisted context
-- insights for operational review
+- entrada estructurada de trabajo en lugar de chat libre únicamente
+- clasificación y enrutamiento de tareas
+- ciclo de ejecución persistido
+- trazabilidad visible por pasos
+- revisión de resultados y señal ligera de calidad
+- subida de documentos para aportar contexto por recuperación
+- insights para revisión operativa
 
-That makes it easier to discuss architecture, state, quality control and observability in interviews.
+Eso permite hablar con más profundidad sobre arquitectura, estado, control de calidad y observabilidad en entrevistas.
 
-## Core Features
+## Funcionalidades Principales
 
-- FastAPI backend with layered service structure
-- React + Vite frontend with authenticated product workflow
-- session auth for the web app via `HttpOnly` cookie
-- task creation, listing, execution and detail views
-- persisted execution trace and task metadata
-- lightweight output evaluation with rating + comment
-- document upload and retrieval-oriented context ingestion
-- insights view for failed, low-rated and strong runs
-- Docker-based local setup plus backend/frontend test coverage
+- backend FastAPI con estructura por capas
+- frontend React + Vite con flujo autenticado
+- sesión web vía cookie `HttpOnly`
+- creación, listado, ejecución y detalle de tareas
+- traza de ejecucion persistida con metadatos de tarea
+- evaluación ligera del resultado con rating + comentario
+- subida de documentos y contexto orientado a retrieval
+- vista de insights para ejecuciones fallidas, débiles o fuertes
+- ejecución local con Docker y cobertura de tests backend/frontend
 
-## Demo Flow
+## Flujo De Demo
 
-Recommended walkthrough for a 3-5 minute demo:
+Recorrido recomendado para una demo de 3 a 5 minutos:
 
-1. Sign in with the demo user.
-2. Create a realistic task from the Tasks page.
-3. Execute the task and show state transitions.
-4. Open task detail and review the result plus execution trace.
-5. Submit feedback on the output quality.
-6. Upload a document and explain retrieval-assisted context.
-7. Open Insights and show failed vs strong runs.
+1. Iniciar sesión con el usuario demo.
+2. Crear una tarea realista desde la vista de Tareas.
+3. Ejecutarla y enseñar los cambios de estado.
+4. Abrir el detalle y revisar resultado + traza de ejecucion.
+5. Enviar feedback sobre la calidad de la salida.
+6. Subir un documento y explicar el contexto asistido por recuperación.
+7. Abrir Insights y mostrar ejecuciones débiles y fuertes.
 
-Detailed script:
+Guion detallado:
 
 - `docs/DEMO_SCRIPT.md`
 
-## Technical Stack
+## Stack Técnico
 
-| Layer | Technology |
+| Capa | Tecnología |
 | --- | --- |
 | Backend | Python, FastAPI, Pydantic, SQLAlchemy 2.x |
-| Database | PostgreSQL |
-| Migrations | Alembic |
-| Auth | JWT-based session flow for web app via `HttpOnly` cookie |
+| Base de datos | PostgreSQL |
+| Migraciones | Alembic |
+| Auth | Flujo de sesión basado en JWT para web mediante cookie `HttpOnly` |
 | Frontend | React, Vite |
 | Infra | Docker Compose, Nginx |
 | Testing | `unittest`, Vitest, React Testing Library |
-| AI layer | task classification, agent routing, optional LLM provider abstraction |
+| Capa IA | clasificación de tareas, routing de agentes y abstracción opcional de proveedor LLM |
 
-## Architecture
+## Arquitectura
 
 ### Backend
 
-- `backend/app/api/` exposes REST endpoints for auth, tasks, documents, insights, agents and health.
-- `backend/app/services/` contains orchestration, classification, selection and document-context logic.
-- `backend/app/models/` and `backend/app/schemas/` define persistence and API contracts.
-- `backend/app/core/` centralizes config, security and database setup.
+- `backend/app/api/` expone endpoints REST de auth, tasks, documents, insights, agents y health.
+- `backend/app/services/` concentra orquestación, clasificación, selección y lógica de contexto documental.
+- `backend/app/models/` y `backend/app/schemas/` definen persistencia y contratos API.
+- `backend/app/core/` centraliza configuración, seguridad y base de datos.
 
 ### Frontend
 
-- `frontend/src/pages/` contains the product views: auth, dashboard, tasks, task detail, documents and insights.
-- `frontend/src/components/` contains shared UI building blocks such as async states, trace rendering and layout.
-- `frontend/src/context/` and `frontend/src/hooks/` handle auth, i18n and polling behavior.
+- `frontend/src/pages/` contiene las vistas principales: auth, dashboard, tasks, task detail, documents e insights.
+- `frontend/src/components/` agrupa piezas compartidas como estados async, render de traza y layout.
+- `frontend/src/context/` y `frontend/src/hooks/` gestionan auth, i18n y polling.
 
 ### Runtime
 
-- `docker-compose.yml` runs `backend`, `frontend` and `db`.
-- `alembic/` is the single migration source of truth.
-- local validation uses backend tests, frontend tests, build checks and compose config validation.
+- `docker-compose.yml` levanta `backend`, `frontend` y `db`.
+- `alembic/` es la única fuente de verdad de migraciones.
+- La validación local usa tests backend, tests frontend, build y validación de Compose.
 
-## Main Workflow
+## Flujo Principal
 
 ```txt
-task
-  -> classification
-  -> agent selection
-  -> execution
-  -> trace persistence
-  -> feedback
-  -> insights
+tarea`r`n  -> clasificacion`r`n  -> seleccion de agente`r`n  -> ejecucion`r`n  -> persistencia de traza`r`n  -> feedback`r`n  -> insights
 ```
 
-This is the most important part of the project story: Aegis is designed to show an auditable task workflow, not only text generation.
+Ésta es la parte más importante del proyecto: Aegis está pensado para enseñar un flujo auditable de tareas, no solo generación de texto.
 
-## Screenshots
+## Capturas
 
-Screenshot paths are prepared below, but real images still need to be added before publishing the portfolio publicly.
+La estructura para capturas ya está preparada, pero las imágenes reales todavía deben añadirse antes de publicar el portfolio.
 
-Expected folder:
+Carpeta esperada:
 
 - `docs/screenshots/`
 
-Prepared placeholders:
+Placeholders preparados:
 
 ![Login](docs/screenshots/login.png)
 ![Dashboard](docs/screenshots/dashboard.png)
-![Tasks List](docs/screenshots/tasks-list.png)
-![Create Task](docs/screenshots/create-task.png)
-![Task Detail](docs/screenshots/task-detail-trace.png)
-![Documents](docs/screenshots/documents-library.png)
+![Listado de tareas](docs/screenshots/tasks-list.png)
+![Crear tarea](docs/screenshots/create-task.png)
+![Detalle de tarea](docs/screenshots/task-detail-trace.png)
+![Documentos](docs/screenshots/documents-library.png)
 ![Insights](docs/screenshots/insights.png)
 
-Screenshot capture guide:
+Guía de capturas:
 
 - `docs/SCREENSHOT_GUIDE.md`
 
-## Run Locally
+## Cómo Ejecutarlo En Local
 
 ### Docker
 
@@ -144,13 +138,13 @@ docker compose --env-file .env up --build -d
 docker compose --env-file .env run --rm backend alembic upgrade head
 ```
 
-Main URLs:
+URLs principales:
 
 - frontend: `http://localhost:5173`
 - backend: `http://localhost:8000`
 - health: `http://localhost:8000/api/v1/health`
 
-### Local Backend + Frontend
+### Backend + Frontend en local
 
 ```bash
 docker compose --env-file .env up -d db
@@ -168,7 +162,7 @@ npm install
 npm run dev
 ```
 
-## Run Tests
+## Cómo Ejecutar Tests
 
 ### Backend
 
@@ -187,26 +181,26 @@ npm run build
 npm run check:smoke
 ```
 
-### Compose Config
+### Validación de Compose
 
 ```bash
 docker compose --env-file .env.example config
 ```
 
-## Demo Seed
+## Seed De Demo
 
-To load the local demo user and sample data:
+Para cargar el usuario demo y datos de ejemplo:
 
 ```bash
 docker compose --env-file .env run --rm backend alembic upgrade head
 docker compose --env-file .env run --rm backend python -m scripts.seed_demo_data
 ```
 
-## Environment Variables
+## Variables De Entorno
 
-Keep real secrets only in your local `.env`. Do not commit or share it.
+Los secretos reales deben vivir solo en tu `.env` local. No lo subas ni lo compartas.
 
-Important variables:
+Variables importantes:
 
 ```env
 APP_ENV=development
@@ -228,74 +222,76 @@ OPENROUTER_API_KEY=
 OPENROUTER_MODEL=
 ```
 
-Reference template:
+Plantilla de referencia:
 
 - `.env.example`
 
-## Security And Hardening Applied
+## Seguridad Y Hardening Aplicado
 
-- no real `.env` should be committed or shared
-- `.env.example` kept as the safe template
-- web session moved away from `localStorage` to `HttpOnly` cookie flow
-- Alembic used as the migration path instead of runtime schema mutation
-- pagination added to core list endpoints
-- input validation tightened for auth, tasks and documents
-- basic HTTP security headers added
-- document upload restrictions and safer defaults added
+- ningún `.env` real debe subirse ni compartirse
+- `.env.example` se mantiene como plantilla segura
+- la sesión web deja `localStorage` y usa cookie `HttpOnly`
+- Alembic sustituye la mutación de esquema en runtime
+- se añadió paginación en endpoints principales de listado
+- se endurecieron validaciones de auth, tasks y documents
+- se añadieron headers HTTP básicos de seguridad
+- se reforzó la validación de subida documental y los defaults seguros
 
-## Known Limitations
+## Limitaciones Conocidas
 
-- Aegis is **not** presented as fully production-ready.
-- rate limiting is still **in-memory**
-- background execution does **not** use a durable queue yet
-- Docker runtime still needs to be validated in an environment with a working daemon
-- RAG is still MVP-level and does not yet include deep semantic evaluation
-- there is no full browser E2E suite such as Playwright or Cypress in the current scope
-- current document handling is designed for demo and portfolio flows, not enterprise-scale storage
+- Aegis **no** se presenta como completamente production-ready.
+- el rate limiting sigue siendo **in-memory**
+- la ejecución en background todavía **no** usa una cola durable
+- el runtime real en Docker debe validarse en un entorno con daemon disponible
+- RAG sigue en nivel MVP y no incorpora aún una evaluación semántica profunda
+- no existe todavía una suite E2E de navegador completa tipo Playwright o Cypress
+- el manejo actual de documentos está pensado para demo y portfolio, no para almacenamiento enterprise a gran escala
 
-These are documented intentionally because they show engineering judgment, not weakness.
+Estas limitaciones están documentadas a propósito porque demuestran criterio de ingeniería, no debilidad.
 
 ## Roadmap
 
-- add real portfolio screenshots and a polished public demo path
-- expand browser-level E2E coverage for the main workflow
-- improve observability and pre-production runtime validation
-- evolve background execution toward a durable queue if the project grows
+- añadir capturas reales y una demo pública mejor rematada
+- ampliar cobertura E2E del flujo principal
+- reforzar observabilidad y validación preproducción
+- evolucionar la ejecución en background hacia una cola durable si el proyecto crece
 
-## What This Project Demonstrates
+## Qué Demuestra Este Proyecto
 
-For recruiters, hiring managers and technical reviewers, Aegis demonstrates:
+Para recruiters, hiring managers y revisores técnicos, Aegis demuestra:
 
-- full-stack product thinking across backend, frontend and docs
-- API design and stateful workflow handling
-- persistence, traceability and quality review patterns
-- pragmatic security hardening for a portfolio-grade app
-- documentation discipline and demo preparation
-- the ability to scope a project honestly without overselling it
+- pensamiento de producto full-stack en backend, frontend y documentación
+- diseño de API y manejo de flujos con estado
+- persistencia, trazabilidad y patrones de revisión de calidad
+- hardening de seguridad pragmático para una app de portfolio
+- disciplina documental y preparación de demo
+- capacidad de acotar el proyecto con honestidad, sin sobre-venderlo
 
-## How To Explain It In An Interview
+## Cómo Explicarlo En Una Entrevista
 
-Short version:
+Versión corta:
 
-> Aegis is a backend-first AI task orchestration project.  
-> Instead of stopping at prompt/response, it shows a full workflow with task intake, routing, execution trace, feedback and insights.
+> Aegis es un proyecto backend-first de orquestación de tareas con IA.  
+> En lugar de quedarse en prompt/respuesta, muestra un flujo completo con entrada de tareas, enrutamiento, traza de ejecucion, feedback e insights.
 
-Good talking points:
+Puntos de conversación útiles:
 
-- why structured tasks are different from a generic chatbot
-- why traceability improves trust and debugging
-- why feedback and insights make the system more reviewable
-- what was hardened already vs what would change before production
+- por qué una tarea estructurada no es lo mismo que un chatbot genérico
+- por qué la trazabilidad mejora confianza y depuración
+- por qué feedback e insights hacen el sistema más revisable
+- qué partes ya están endurecidas y qué cambiaría antes de producción
 
-Detailed interview notes:
+Notas de entrevista detalladas:
 
 - `docs/INTERVIEW_NOTES.md`
 
-## Additional Documentation
+## Documentación Adicional
 
-- user guide: `GUIA_USUARIO_NUEVO.md`
-- demo script: `docs/DEMO_SCRIPT.md`
-- interview notes: `docs/INTERVIEW_NOTES.md`
-- screenshot guide: `docs/SCREENSHOT_GUIDE.md`
-- testing strategy: `docs/TESTING_STRATEGY.md`
-- Railway deployment notes: `docs/DEPLOYMENT_RAILWAY.md`
+- guía de uso: `GUIA_USUARIO_NUEVO.md`
+- guion de demo: `docs/DEMO_SCRIPT.md`
+- notas de entrevista: `docs/INTERVIEW_NOTES.md`
+- guía de capturas: `docs/SCREENSHOT_GUIDE.md`
+- estrategia de testing: `docs/TESTING_STRATEGY.md`
+- notas de despliegue en Railway: `docs/DEPLOYMENT_RAILWAY.md`
+
+

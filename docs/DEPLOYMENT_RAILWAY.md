@@ -1,30 +1,30 @@
-# Aegis Deployment Guide (Railway)
+﻿# Guía De Despliegue De Aegis (Railway)
 
-This guide prepares Aegis for a real cloud deploy using Railway (or equivalent managed services).
-It does not require committing secrets and it does not run deploy commands automatically.
+Esta guía prepara Aegis para un despliegue cloud real usando Railway (o servicios gestionados equivalentes).
+No requiere commitear secretos ni ejecuta comandos de deploy automáticamente.
 
-## 1. Recommended Architecture
+## 1. Arquitectura Recomendada
 
-- Backend service: FastAPI container (`backend/`)
-- Frontend service: static React build (`frontend/`)
-- PostgreSQL service: managed Railway PostgreSQL
+- Servicio backend: contenedor FastAPI (`backend/`)
+- Servicio frontend: build estática de React (`frontend/`)
+- Servicio PostgreSQL: PostgreSQL gestionado por Railway
 
-## 2. Backend Environment Variables
+## 2. Variables De Entorno Del Backend
 
-Set these in the backend service (Railway variables panel):
+Configura estas variables en el servicio backend (panel de variables de Railway):
 
 - `APP_ENV=production`
 - `DEBUG=false`
-- `PORT` (Railway injects it automatically)
-- `DATABASE_URL` (from managed PostgreSQL)
-- `JWT_SECRET_KEY` (strong secret, at least 32 chars)
+- `PORT` (Railway lo inyecta automáticamente)
+- `DATABASE_URL` (desde PostgreSQL gestionado)
+- `JWT_SECRET_KEY` (secreto fuerte, al menos 32 chars)
 - `JWT_ALGORITHM=HS256`
 - `ACCESS_TOKEN_EXPIRE_MINUTES=30`
-- `CORS_ORIGINS=https://<your-frontend-domain>`
+- `CORS_ORIGINS=https://<tu-dominio-frontend>`
 - `LLM_PROVIDER=openrouter`
 - `LLM_ENABLE_REAL_CALLS=true`
-- `OPENROUTER_API_KEY` (secret)
-- `OPENROUTER_MODEL` (for example: `openai/gpt-4o-mini`)
+- `OPENROUTER_API_KEY` (secreto)
+- `OPENROUTER_MODEL` (por ejemplo: `openai/gpt-4o-mini`)
 - `OPENROUTER_BASE_URL=https://openrouter.ai/api/v1`
 - `LLM_MAX_TOKENS=1200`
 - `LLM_TEMPERATURE=0.3`
@@ -41,82 +41,83 @@ Set these in the backend service (Railway variables panel):
 - `DOCUMENT_ALLOWED_EXTENSIONS=.txt,.md,.csv,.json`
 - `DOCUMENT_ALLOWED_MIME_TYPES=text/plain,text/markdown,text/csv,application/json`
 
-## 3. Frontend Environment Variables
+## 3. Variables De Entorno Del Frontend
 
-Set these for the frontend build:
+Configura esto para el build del frontend:
 
-- `VITE_API_BASE_URL=https://<your-backend-domain>/api/v1`
+- `VITE_API_BASE_URL=https://<tu-dominio-backend>/api/v1`
 
-`VITE_API_URL` is still accepted for compatibility, but `VITE_API_BASE_URL` is the preferred variable.
-In Railway, the frontend must call the backend public URL directly through this variable.
-Do not use `proxy_pass http://backend:8000` or `upstream backend` in `nginx.conf`.
+`VITE_API_URL` se sigue aceptando por compatibilidad, pero `VITE_API_BASE_URL` es la variable preferida.
+En Railway, el frontend debe llamar directamente a la URL pública del backend mediante esta variable.
+No uses `proxy_pass http://backend:8000` ni `upstream backend` en `nginx.conf`.
 
-## 4. Build and Start Commands
+## 4. Comandos De Build Y Start
 
 Backend:
 
 - Build: `pip install -r requirements.txt`
 - Start: `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}`
-- Dockerfile path: `backend/Dockerfile`
-- Build context / Root Directory: repository root
-- Alembic files must exist inside backend image (`alembic.ini`, `alembic/`)
+- Ruta del Dockerfile: `backend/Dockerfile`
+- Build context / Root Directory: raíz del repositorio
+- Los archivos de Alembic deben existir dentro de la imagen backend (`alembic.ini`, `alembic/`)
 
-Railway start command recommendations:
+Recomendaciones de start command en Railway:
 
-- Temporary initialization start command:
+- Start temporal de inicialización:
   `sh -c "alembic upgrade head && python -m scripts.backfill_pgvector_embeddings && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"`
-- Normal start command after initialization:
+- Start normal tras la inicialización:
   `sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"`
 
 Frontend:
 
 - Build: `npm ci && npm run build`
 - Start: `nginx -g "daemon off;"`
-- Root Directory (Railway service): `frontend`
-- Docker runtime serves `dist/` using `frontend/nginx.conf`
+- Root Directory (servicio Railway): `frontend`
+- El runtime Docker sirve `dist/` usando `frontend/nginx.conf`
 
-Nginx note for Railway:
+Nota de Nginx en Railway:
 
-- No internal Docker Compose DNS is available between independent Railway services.
-- Keep the frontend Nginx as static SPA hosting only (`try_files ... /index.html`).
-- Frontend API routing must be done by `VITE_API_BASE_URL`, not by Nginx reverse proxy.
+- No existe DNS interno de Docker Compose entre servicios Railway independientes.
+- Mantén el Nginx del frontend como hosting estático SPA únicamente (`try_files ... /index.html`).
+- El enrutado API del frontend debe hacerse mediante `VITE_API_BASE_URL`, no con reverse proxy Nginx.
 
-Migrations (production):
+Migraciones (producción):
 
 - `alembic upgrade head`
-- `python -m scripts.backfill_pgvector_embeddings` (only needed to backfill old chunks with `embedding IS NULL`)
+- `python -m scripts.backfill_pgvector_embeddings` (solo para backfill de chunks antiguos con `embedding IS NULL`)
 
-Legacy database bootstrap (if schema existed before Alembic versioning):
+Bootstrap legacy de base de datos (si el esquema existía antes de versionar Alembic):
 
 - `alembic stamp 0001_initial_schema`
 - `alembic upgrade head`
 
-## 5. Health and Readiness Checks
+## 5. Checks De Health Y Readiness
 
-Use:
+Usa:
 
 - `/api/v1/health`
 - `/api/v1/health/live`
 - `/api/v1/health/ready`
 
-`/health/ready` checks database reachability and must pass before routing production traffic.
+`/health/ready` comprueba conectividad con base de datos y debe pasar antes de enrutar tráfico productivo.
 
-## 6. Post-Deploy Validation Checklist
+## 6. Checklist De Validación Post-Deploy
 
-1. Signup and login work.
-2. Create a task.
-3. Execute a comparison task.
-4. Verify result and `execution_trace`.
-5. Upload one document.
-6. Execute a task that should use RAG context.
-7. Verify insights endpoint data is still returned.
+1. Signup y login funcionan.
+2. Crear una tarea.
+3. Ejecutar una tarea de comparación.
+4. Verificar resultado y la traza de ejecucion.
+5. Subir un documento.
+6. Ejecutar una tarea que deba usar contexto RAG.
+7. Verificar que el endpoint de insights sigue devolviendo datos.
 
-## 7. Known Production Limitations
+## 7. Limitaciones Conocidas De Producción
 
-- `FastAPI BackgroundTasks` is not a distributed job queue.
-- In-memory rate limiting is per instance (not shared across replicas).
-- Local file storage can be ephemeral in cloud environments without persistent volumes.
-- Local/vector RAG persistence requires explicit storage strategy in multi-instance setups.
-- Production RAG should use PostgreSQL + pgvector persistence (`document_chunks.embedding`) to survive redeploys.
-- OpenRouter calls consume real tokens and real cost.
-- Never commit secrets (`.env`, API keys, database credentials).
+- `FastAPI BackgroundTasks` no es una cola distribuida de jobs.
+- El rate limiting in-memory es por instancia (no compartido entre réplicas).
+- El almacenamiento local de ficheros puede ser efímero en cloud sin volúmenes persistentes.
+- La persistencia local/vectorial de RAG requiere estrategia explícita en setups multi-instancia.
+- RAG en producción debería usar PostgreSQL + pgvector (`document_chunks.embedding`) para sobrevivir redeploys.
+- Las llamadas a OpenRouter consumen tokens y coste reales.
+- Nunca subas secretos (`.env`, API keys, credenciales de base de datos).
+

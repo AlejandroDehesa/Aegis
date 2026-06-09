@@ -48,26 +48,26 @@ function buildErrorMessage(status, payload) {
   }
 
   if (status === 401) {
-    return "Your session expired. Please log in again.";
+    return "Tu sesion expiro. Inicia sesion de nuevo.";
   }
 
   if (status === 403) {
-    return "You do not have permission to perform this action.";
+    return "No tienes permisos para realizar esta accion.";
   }
 
   if (status === 404) {
-    return "The requested resource was not found.";
+    return "No se encontro el recurso solicitado.";
   }
 
   if (status === 409) {
-    return "The action cannot be completed in the current task state.";
+    return "La accion no se puede completar en el estado actual de la tarea.";
   }
 
   if (status >= 500) {
-    return "The server failed to process this request. Please try again.";
+    return "El servidor no pudo procesar esta solicitud. Intentalo de nuevo.";
   }
 
-  return "The request could not be completed.";
+  return "No se pudo completar la solicitud.";
 }
 
 async function parseResponse(response) {
@@ -102,7 +102,7 @@ export async function apiRequest(path, options = {}) {
           : JSON.stringify(body),
     });
   } catch {
-    throw new ApiError("Unable to connect to the API server.", { status: 0 });
+    throw new ApiError("No se pudo conectar con la API.", { status: 0 });
   }
 
   const payload = await parseResponse(response).catch(() => null);

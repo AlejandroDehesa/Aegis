@@ -1,158 +1,161 @@
-# Aegis Demo Script (3-5 min)
+﻿# Guion De Demo De Aegis (3-5 min)
 
-Goal: show Aegis as a traceable task workflow, not just a chat response.
+Objetivo: enseñar Aegis como un flujo trazable de ejecución de tareas, no como una simple respuesta de chat.
 
-## Before You Start
+## Antes De Empezar
 
-Quick checks:
+Comprobaciones rápidas:
 
-- `docker compose ps` shows healthy services
-- frontend available at `http://localhost:5173`
-- backend health available at `http://localhost:8000/api/v1/health`
-- demo user ready:
+- `docker compose ps` muestra servicios saludables
+- frontend disponible en `http://localhost:5173`
+- backend health disponible en `http://localhost:8000/api/v1/health`
+- usuario demo preparado:
   - email: `demo@aegis.local`
   - password: `Demo12345!`
 
-Suggested framing sentence:
+Frase sugerida de apertura:
 
-> "Aegis is a backend-first AI task orchestration demo. The point is not only to generate text, but to show a full execution workflow with traceability, persistence and review."
+> "Aegis es una demo backend-first de orquestación de tareas con IA. La idea no es solo generar texto, sino enseñar un flujo completo con trazabilidad, persistencia y revisión."
 
 ## 1. Login (20-30s)
 
-Open `http://localhost:5173/login` and sign in.
+Abre `http://localhost:5173/login` e inicia sesión.
 
-What to say:
+Qué decir:
 
-- "The web session uses a normal product-style auth flow so I can move through tasks, documents and insights as an authenticated user."
+- "La sesión web usa un flujo de autenticación propio de producto, así que puedo moverme por tareas, documentos e Insights como usuario autenticado."
 
-What to show:
+Qué enseñar:
 
-- login screen
-- optional demo credentials
-- transition into the application shell
+- pantalla de login
+- credenciales demo opcionales
+- transición al shell principal de la app
 
 ## 2. Dashboard (20-30s)
 
-Land on the dashboard and set the context.
+Aterriza en el dashboard y fija el contexto.
 
-What to say:
+Qué decir:
 
-- "This view gives me the high-level demo path: tasks, execution, review, document context and insights."
+- "Esta vista me da el recorrido principal de la demo: tareas, ejecución, revisión, contexto documental e Insights."
 
-What to show:
+Qué enseñar:
 
-- stats cards
-- recent tasks
-- recommended walkthrough actions
+- tarjetas de métricas
+- tareas recientes
+- flujo recomendado de navegación
 
-## 3. Create A Task (40-60s)
+## 3. Crear Una Tarea (40-60s)
 
-Go to `Tasks` and create a realistic request.
+Ve a `Tareas` y crea una solicitud realista.
 
-Recommended example:
+Ejemplo recomendado:
 
-- title: `Compare FastAPI and Django for an internal AI platform`
-- description: `Provide a practical comparison for an AI orchestration product: architecture, maintainability, performance and implementation speed. End with a recommendation.`
+- título: `Comparar FastAPI y Django para una plataforma interna de IA`
+- descripción: `Haz una comparativa practica para un producto de orquestacion con IA: arquitectura, mantenibilidad, rendimiento y velocidad de implementacion. Termina con una recomendacion.`
 
-What to say:
+Qué decir:
 
-- "I start from a structured task, not from a generic chat prompt. That gives the backend enough context to classify, route and persist the workflow."
+- "Aquí parto de una tarea estructurada, no de un prompt genérico. Eso le da al backend contexto suficiente para clasificar, enrutar y persistir el flujo."
 
-## 4. Execute The Task (40-60s)
+## 4. Ejecutar La Tarea (40-60s)
 
-Run the task from the list or detail view.
+Lanza la tarea desde la lista o desde el detalle.
 
-What to show:
+Qué enseñar:
 
-- status transition
-- quick execution control
-- automatic refresh while the task is queued or processing
+- cambio de estado
+- control rápido de ejecución
+- refresco automático mientras la tarea está en cola o procesando
 
-What to say:
+Qué decir:
 
-- "The important part here is not only the final answer. The system tracks execution state and keeps the run reviewable."
+- "Lo importante aquí no es solo la respuesta final. El sistema sigue el estado de ejecución y deja la corrida lista para revisión."
 
-## 5. Open Task Detail And Trace (60-90s)
+## 5. Abrir El Detalle Y La Traza (60-90s)
 
-Open the completed task detail.
+Abre el detalle de una tarea completada.
 
-What to show:
+Qué enseñar:
 
-- task overview
-- final result
-- execution trace
-- evaluation block
+- resumen de tarea
+- resultado final
+- traza de ejecucion
+- bloque de evaluación
 
-Call out:
+Qué remarcar:
 
 - `task_type`
 - `agent_name`
-- timestamps and duration
-- trace steps such as classification, selection and execution
+- timestamps y duración
+- pasos de traza como clasificación, selección y ejecución
 
-Suggested sentence:
+Frase sugerida:
 
-> "This is where Aegis becomes more than a text demo. I can inspect what happened during the run, not only what the model returned."
+> "Aquí es donde Aegis deja de ser una simple demo de texto. Puedo inspeccionar qué ocurrió durante la ejecución, no solo lo que devolvió el modelo."
 
-## 6. Submit Feedback (20-30s)
+## 6. Enviar Feedback (20-30s)
 
-Rate the output and optionally leave a short comment.
+Valora la salida y, si quieres, añade un comentario corto.
 
-What to say:
+Qué decir:
 
-- "The rating step is intentionally lightweight, but it creates a feedback signal that can later be aggregated in Insights."
+- "La valoración es ligera a propósito, pero genera una señal de calidad que luego puedo agregar en Insights."
 
-## 7. Show Documents / Retrieval Context (30-45s)
+## 7. Enseñar Documentos / Contexto De Recuperación (30-45s)
 
-Open `Documents`.
+Abre `Documentos`.
 
-What to show:
+Qué enseñar:
 
-- upload form
-- existing document library
-- file or text-based ingestion
+- formulario de subida
+- biblioteca documental existente
+- ingestión por archivo o por texto
 
-What to say:
+Qué decir:
 
-- "Aegis can ingest supporting context so future tasks can run with retrieval-assisted input instead of relying only on the prompt."
+- "Aegis puede ingerir contexto de apoyo para que futuras tareas se ejecuten con información recuperada y no solo con el prompt."
 
-Keep the explanation honest:
+Mantén la explicación honesta:
 
-- no claims of deep semantic evaluation
-- no claims of internet browsing
+- no afirmar evaluación semántica profunda si no existe
+- no afirmar navegación por internet
 
-## 8. Show Insights (30-45s)
+## 8. Enseñar Insights (30-45s)
 
-Open `Insights`.
+Abre `Insights`.
 
-What to show:
+Qué enseñar:
 
-- top metrics
-- distribution snapshot
-- quality review queue
-- strong results section
+- métricas superiores
+- resumen de distribuciones
+- cola de revisión de calidad
+- bloque de resultados fuertes
 
-What to say:
+Qué decir:
 
-- "This closes the loop. The system does not only execute work; it also surfaces weak and strong runs so the workflow can be reviewed."
+- "Aquí se cierra el ciclo. El sistema no solo ejecuta trabajo; también enseña corridas débiles y fuertes para poder revisarlas."
 
-## 9. Closing Statement (15-20s)
+## 9. Cierre (15-20s)
 
-Suggested close:
+Cierre sugerido:
 
-> "Aegis is a technical MVP for portfolio and interviews. It demonstrates a full-stack, backend-first AI workflow with task intake, routing, traceability, feedback and operational review."
+> "Aegis es un MVP técnico para portfolio y entrevistas. Demuestra un flujo full-stack backend-first con entrada de tareas, enrutamiento, trazabilidad, feedback y revisión operativa."
 
-Optional follow-up sentence:
+Frase opcional de continuación:
 
-> "If this moved toward production, the next steps would be stronger observability, a durable queue and deeper runtime validation."
+> "Si esto evolucionara hacia producción, el siguiente paso sería reforzar observabilidad, usar una cola durable y validar mejor el runtime real."
 
-## Demo Checklist
+## Checklist De Demo
 
-- login works
-- dashboard loads
-- task gets created
-- task executes
-- detail view shows result and trace
-- feedback is saved
-- document library is visible
-- insights page reflects quality signals
+- login funciona
+- dashboard carga
+- la tarea se crea
+- la tarea se ejecuta
+- el detalle enseña resultado y traza
+- el feedback se guarda
+- la biblioteca documental está visible
+- Insights refleja señales de calidad
+
+
+

@@ -13,6 +13,7 @@ import { getErrorMessage } from "../utils/errors";
 import {
   formatDateTime,
   formatDuration,
+  formatTaskTypeLabel,
   getTaskActivityLabel,
   sortTasksByRecent,
   truncateText,
@@ -29,9 +30,9 @@ const PAGE_LIMIT = 50;
 export function TasksPage() {
   const { t, language, locale } = useI18n();
   const demoTaskTemplate = {
-    title: "Compare FastAPI and Django for an internal AI platform",
+    title: "Comparar FastAPI y Django para una plataforma interna de IA",
     description:
-      "Provide a practical comparison for an AI orchestration product: architecture, maintainability, performance, and implementation speed.",
+      "Haz una comparativa practica para un producto de orquestacion con IA: arquitectura, mantenibilidad, rendimiento y velocidad de implementacion.",
   };
   const [tasks, setTasks] = useState([]);
   const [form, setForm] = useState({
@@ -252,11 +253,11 @@ export function TasksPage() {
             <span>{t("tasks.filterStatus")}</span>
             <select name="status" onChange={updateFilterField} value={filters.status}>
               <option value="">{t("common.all")}</option>
-              <option value="pending">pending</option>
-              <option value="queued">queued</option>
-              <option value="processing">processing</option>
-              <option value="completed">completed</option>
-              <option value="failed">failed</option>
+              <option value="pending">{t("status.pending")}</option>
+              <option value="queued">{t("status.queued")}</option>
+              <option value="processing">{t("status.processing")}</option>
+              <option value="completed">{t("status.completed")}</option>
+              <option value="failed">{t("status.failed")}</option>
             </select>
           </label>
 
@@ -264,10 +265,10 @@ export function TasksPage() {
             <span>{t("tasks.filterTaskType")}</span>
             <select name="taskType" onChange={updateFilterField} value={filters.taskType}>
               <option value="">{t("common.all")}</option>
-              <option value="general">general</option>
-              <option value="research">research</option>
-              <option value="summary">summary</option>
-              <option value="comparison">comparison</option>
+              <option value="general">{formatTaskTypeLabel("general", language)}</option>
+              <option value="research">{formatTaskTypeLabel("research", language)}</option>
+              <option value="summary">{formatTaskTypeLabel("summary", language)}</option>
+              <option value="comparison">{formatTaskTypeLabel("comparison", language)}</option>
             </select>
           </label>
 
@@ -323,7 +324,7 @@ export function TasksPage() {
                     {task.title}
                   </Link>
                   <p className="list-item-subtitle">
-                    {task.task_type} / {task.agent_name}
+                    {formatTaskTypeLabel(task.task_type, language)} / {task.agent_name}
                   </p>
                   <p className="list-item-copy task-list-copy">
                     {truncateText(task.result_text || task.description, 180, t("common.noData"))}
