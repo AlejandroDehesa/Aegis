@@ -1,16 +1,65 @@
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      PROJECT_NAME: ${PROJECT_NAME:-Aegis Backend}
+      APP_ENV: ${APP_ENV:-development}
+      DEBUG: ${DEBUG:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ENABLE_REQUEST_LOGGING: ${ENABLE_REQUEST_LOGGING:-true}
+      PORT: ${PORT:-8000}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://aegis_user:replace-with-strong-postgres-password@db:5432/aegis}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-replace-with-a-long-random-jwt-secret-min-32-chars}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5-mini}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      LLM_PROVIDER: ${LLM_PROVIDER:-template}
+      LLM_ENABLE_REAL_CALLS: ${LLM_ENABLE_REAL_CALLS:-false}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-30}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-1200}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.3}
+      LLM_RETRY_ATTEMPTS: ${LLM_RETRY_ATTEMPTS:-1}
+      LLM_RETRY_BACKOFF_SECONDS: ${LLM_RETRY_BACKOFF_SECONDS:-0.5}
+      LLM_REQUEST_HARD_MAX_TOKENS: ${LLM_REQUEST_HARD_MAX_TOKENS:-2000}
+      LLM_TASK_TOTAL_TOKEN_SOFT_LIMIT: ${LLM_TASK_TOTAL_TOKEN_SOFT_LIMIT:-6000}
+      LLM_TASK_TOTAL_TOKEN_HARD_LIMIT: ${LLM_TASK_TOTAL_TOKEN_HARD_LIMIT:-10000}
+      LLM_ENABLE_COST_ESTIMATION: ${LLM_ENABLE_COST_ESTIMATION:-true}
+      LLM_COST_PER_1M_INPUT_TOKENS: ${LLM_COST_PER_1M_INPUT_TOKENS:-}
+      LLM_COST_PER_1M_OUTPUT_TOKENS: ${LLM_COST_PER_1M_OUTPUT_TOKENS:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      OPENROUTER_SITE_URL: ${OPENROUTER_SITE_URL:-http://localhost:5173}
+      OPENROUTER_APP_NAME: ${OPENROUTER_APP_NAME:-Aegis}
+      TASK_EXECUTION_MODE: ${TASK_EXECUTION_MODE:-background}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_REQUESTS_PER_MINUTE: ${RATE_LIMIT_REQUESTS_PER_MINUTE:-120}
+      RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE: ${RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE:-20}
+      RATE_LIMIT_TASK_EXECUTE_PER_MINUTE: ${RATE_LIMIT_TASK_EXECUTE_PER_MINUTE:-10}
+      DOCUMENT_MAX_UPLOAD_MB: ${DOCUMENT_MAX_UPLOAD_MB:-5}
+      DOCUMENT_ALLOWED_EXTENSIONS: ${DOCUMENT_ALLOWED_EXTENSIONS:-.txt,.md,.csv,.json}
+      DOCUMENT_ALLOWED_MIME_TYPES: ${DOCUMENT_ALLOWED_MIME_TYPES:-text/plain,text/markdown,text/csv,application/json}
+      RAG_ENABLED: ${RAG_ENABLED:-true}
+      RAG_VECTOR_BACKEND: ${RAG_VECTOR_BACKEND:-pgvector}
+      EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-64}
+      RAG_TOP_K: ${RAG_TOP_K:-5}
+      RAG_MIN_SCORE: ${RAG_MIN_SCORE:-0.0}
+      RAG_MAX_CONTEXT_CHARS: ${RAG_MAX_CONTEXT_CHARS:-4000}
+      RAG_TRACE_SNIPPET_CHARS: ${RAG_TRACE_SNIPPET_CHARS:-300}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173}
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173}
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - ./backend:/app/backend
+      - ./alembic:/app/backend/alembic
+      - ./alembic.ini:/app/backend/alembic.ini
     healthcheck:
       test:
         [
@@ -32,7 +81,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-/api/v1}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000/api/v1}
     restart: unless-stopped
     ports:
       - "5173:80"
@@ -50,13 +99,13 @@ services:
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_DB: aegis
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${POSTGRES_DB:-aegis}
+      POSTGRES_USER: ${POSTGRES_USER:-aegis_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replace-with-strong-postgres-password}
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d aegis"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aegis_user} -d ${POSTGRES_DB:-aegis}"]
       interval: 10s
       timeout: 5s
       retries: 5

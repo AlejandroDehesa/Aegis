@@ -38,6 +38,7 @@ export function formatStatusLabel(status, language = "en") {
   const labelsByLanguage = {
     en: {
       pending: "Pending",
+      queued: "Queued",
       processing: "Processing",
       completed: "Completed",
       failed: "Failed",
@@ -45,6 +46,7 @@ export function formatStatusLabel(status, language = "en") {
     },
     es: {
       pending: "Pendiente",
+      queued: "En cola",
       processing: "Procesando",
       completed: "Completada",
       failed: "Fallida",
@@ -56,6 +58,31 @@ export function formatStatusLabel(status, language = "en") {
   return labels[normalizedStatus] || normalizedStatus;
 }
 
+export function formatTaskTypeLabel(taskType, language = "en") {
+  const normalizedTaskType = taskType || "general";
+  const labelsByLanguage = {
+    en: {
+      general: "General",
+      research: "Research",
+      summary: "Summary",
+      comparison: "Comparison",
+      analysis: "Analysis",
+      planning: "Planning",
+    },
+    es: {
+      general: "General",
+      research: "Investigacion",
+      summary: "Resumen",
+      comparison: "Comparacion",
+      analysis: "Analisis",
+      planning: "Planificacion",
+    },
+  };
+  const labels = labelsByLanguage[language] || labelsByLanguage.en;
+
+  return labels[normalizedTaskType] || normalizedTaskType;
+}
+
 export function sortTasksByRecent(tasks) {
   return [...tasks].sort((left, right) => {
     return resolveTaskTimestamp(right) - resolveTaskTimestamp(left);
@@ -64,9 +91,14 @@ export function sortTasksByRecent(tasks) {
 
 export function getTaskActivityLabel(task, language = "en", locale = "en-US") {
   const startedLabel = language === "es" ? "Iniciada" : "Started";
+  const queuedLabel = language === "es" ? "En cola" : "Queued";
   const finishedLabel = language === "es" ? "Finalizada" : "Finished";
   const createdLabel = language === "es" ? "Creada" : "Created";
   const noneLabel = language === "es" ? "Sin actividad reciente" : "No recent activity";
+
+  if (task?.status === "queued") {
+    return queuedLabel;
+  }
 
   if (task?.status === "processing" && task.started_at) {
     return `${startedLabel} ${formatDateTime(task.started_at, locale)}`;

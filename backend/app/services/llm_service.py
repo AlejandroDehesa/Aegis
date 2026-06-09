@@ -1,6 +1,8 @@
 from functools import lru_cache
 
 from app.core.config import settings
+from app.services.llm.schemas import LLMRequest
+from app.services.llm.service import LLMService
 
 
 @lru_cache
@@ -16,21 +18,26 @@ def get_openai_client():
     return OpenAI(api_key=settings.OPENAI_API_KEY)
 
 
+@lru_cache
+def get_llm_service() -> LLMService:
+    return LLMService()
+
+
+def generate(
+    request: LLMRequest,
+    fallback_text: str | None = None,
+):
+    return get_llm_service().generate(request=request, fallback_text=fallback_text)
+
+
 def generate_text(prompt: str, fallback_text: str = "") -> str:
-    client = get_openai_client()
-
-    if client is None:
-        return fallback_text
-
     try:
-        response = client.responses.create(
-            model=settings.OPENAI_MODEL,
-            input=prompt,
+        response = get_llm_service().generate(
+            request=LLMRequest(prompt=prompt),
+            fallback_text=fallback_text,
         )
-        output_text = (response.output_text or "").strip()
-
-        if output_text:
-            return output_text
+        if response.text.strip():
+            return response.text.strip()
     except Exception:
         pass
 

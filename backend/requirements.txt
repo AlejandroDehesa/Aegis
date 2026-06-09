@@ -7,5 +7,8 @@ python-multipart>=0.0.9,<1.0
 passlib[bcrypt]>=1.7,<2.0
 bcrypt==4.0.1
 PyJWT>=2.9,<3.0
+email-validator>=2.2,<3.0
 openai>=1.0,<2.0
 chromadb>=0.5,<1.0
+pgvector>=0.3,<1.0
+alembic>=1.13,<2.0

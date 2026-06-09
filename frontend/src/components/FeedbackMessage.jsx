@@ -3,5 +3,15 @@ export function FeedbackMessage({ tone = "info", children }) {
     return null;
   }
 
-  return <p className={`feedback-message feedback-${tone}`}>{children}</p>;
+  const isError = tone === "error";
+
+  return (
+    <p
+      aria-live={isError ? "assertive" : "polite"}
+      className={`feedback-message feedback-${tone}`}
+      role={isError ? "alert" : "status"}
+    >
+      {children}
+    </p>
+  );
 }

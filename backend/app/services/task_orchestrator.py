@@ -1,16 +1,17 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import re
 import unicodedata
 
 from sqlalchemy.orm import Session
 
-from app.agents.comparison_agent import run_task as run_comparison_task
-from app.agents.general_assistant_agent import run_task as run_general_task
-from app.agents.analysis_agent import run_task as run_analysis_task
-from app.agents.planning_agent import run_task as run_planning_task
-from app.agents.research_agent import run_task as run_research_task
-from app.agents.summary_agent import run_task as run_summary_task
+from app.agents.analysis_agent import run_task_with_metadata as run_analysis_task
+from app.agents.comparison_agent import run_task_with_metadata as run_comparison_task
+from app.agents.execution_result import AgentExecutionResult
+from app.agents.general_assistant_agent import run_task_with_metadata as run_general_task
+from app.agents.planning_agent import run_task_with_metadata as run_planning_task
+from app.agents.research_agent import run_task_with_metadata as run_research_task
+from app.agents.summary_agent import run_task_with_metadata as run_summary_task
 from app.core.config import settings
 from app.models.task import Task
 from app.services.memory_service import get_recent_task_context_result
@@ -86,6 +87,31 @@ class OrchestrationRagDebugInfo:
     memory_context_truncated: bool
     full_context_truncated: bool
     retrieval_error: str | None = None
+    enabled: bool = True
+    retrieved_chunks_count: int = 0
+    documents_used: list[str] = field(default_factory=list)
+    empty_reason: str | None = None
+    context_chars: int = 0
+    trace_snippets: list[str] = field(default_factory=list)
+    trace_scores: list[float] = field(default_factory=list)
+    vector_backend: str = "pgvector"
+
+
+@dataclass
+class RAGContext:
+    enabled: bool
+    query: str
+    retrieved_chunks: list[RetrievedChunk]
+    retrieved_chunks_count: int
+    documents_used: list[str]
+    empty_reason: str | None
+    context_text: str | None
+    context_chars: int
+    snippets: list[str]
+    scores: list[float]
+    truncated: bool
+    vector_backend: str
+    error: str | None = None
 
 
 @dataclass
@@ -99,6 +125,7 @@ class TaskOrchestrationResult:
     final_output: str
     execution_trace: list[dict[str, object]]
     rag_debug: OrchestrationRagDebugInfo
+    llm_usage_summary: dict[str, object] | None = None
 
 
 class TaskOrchestrationError(Exception):
@@ -265,7 +292,26 @@ def _normalize_text(text: str) -> str:
     return normalized
 
 
-def _validate_output_quality(task: Task, output_text: str | None) -> str | None:
+def _contains_any_heading_token(text: str, patterns: tuple[str, ...]) -> bool:
+    return any(re.search(pattern, text) is not None for pattern in patterns)
+
+
+def _contains_rag_evidence_section(normalized_output: str) -> bool:
+    evidence_markers = (
+        "evidencias usadas",
+        "evidence used",
+        "documentos usados",
+        "sources used",
+    )
+    return any(marker in normalized_output for marker in evidence_markers)
+
+
+def _validate_output_quality(
+    task: Task,
+    output_text: str | None,
+    *,
+    rag_retrieved_chunks_count: int = 0,
+) -> str | None:
     if not output_text or not output_text.strip():
         return "Generated output is empty."
 
@@ -283,13 +329,27 @@ def _validate_output_quality(task: Task, output_text: str | None) -> str | None:
             return "Comparison output must include a recommendation."
 
     if task.task_type == "analysis":
-        required = ("risk", "impact", "mitigation")
-        if not all(token in normalized_output for token in required):
+        has_risks = _contains_any_heading_token(
+            normalized_output,
+            (r"\brisk\b", r"\brisks\b", r"\briesgo\b", r"\briesgos\b"),
+        )
+        has_impact = _contains_any_heading_token(
+            normalized_output,
+            (r"\bimpact\b", r"\bimpacts\b", r"\bimpacto\b", r"\bimpactos\b"),
+        )
+        has_mitigation = _contains_any_heading_token(
+            normalized_output,
+            (r"\bmitigation\b", r"\bmitigations\b", r"\bmitigacion\b", r"\bmitigaciones\b"),
+        )
+        if not (has_risks and has_impact and has_mitigation):
             return "Analysis output must include risks, impact, and mitigation."
 
     if task.task_type == "planning":
         if not re.search(r"\b1\b", normalized_output):
             return "Planning output must include numbered steps."
+
+    if rag_retrieved_chunks_count > 0 and not _contains_rag_evidence_section(normalized_output):
+        return "RAG output must include an evidence section when document chunks are retrieved."
 
     normalized_input = _normalize_text(f"{task.title} {task.description or ''}")
     tokens = [token for token in normalized_input.split() if len(token) >= 4]
@@ -305,11 +365,13 @@ def _prepare_combined_context(
     *,
     top_k: int | None = None,
     min_score: float | None = None,
-) -> tuple[str | None, OrchestrationRagDebugInfo]:
+) -> tuple[str | None, OrchestrationRagDebugInfo, RAGContext]:
     query = _build_retrieval_query(task)
     effective_top_k = top_k or settings.RAG_TOP_K
     effective_min_score = settings.RAG_MIN_SCORE if min_score is None else min_score
 
+    rag_enabled = bool(getattr(settings, "RAG_ENABLED", True))
+    vector_backend = str(getattr(settings, "RAG_VECTOR_BACKEND", "pgvector"))
     empty_debug = OrchestrationRagDebugInfo(
         query=query,
         top_k=effective_top_k,
@@ -323,13 +385,28 @@ def _prepare_combined_context(
         memory_context_truncated=False,
         full_context_truncated=False,
         retrieval_error=None,
+        enabled=rag_enabled,
+        retrieved_chunks_count=0,
+        documents_used=[],
+        empty_reason=None,
+        context_chars=0,
+        trace_snippets=[],
+        trace_scores=[],
+        vector_backend=vector_backend,
     )
 
     rag_context = None
     rag_chunks: list[RetrievedChunk] = []
     rag_truncated = False
+    rag_empty_reason: str | None = None
+    trace_snippets: list[str] = []
+    trace_scores: list[float] = []
 
-    if query:
+    if not rag_enabled:
+        rag_empty_reason = "rag_disabled"
+    elif not query:
+        rag_empty_reason = "empty_query"
+    else:
         try:
             rag_chunks = retrieve_relevant_chunks(
                 query=query,
@@ -341,8 +418,20 @@ def _prepare_combined_context(
             rag_context = rag_result.text
             rag_chunks = rag_result.used_chunks
             rag_truncated = rag_result.truncated
+            if not rag_chunks:
+                rag_empty_reason = "no_results"
         except Exception as error:
             empty_debug.retrieval_error = str(error)
+            rag_empty_reason = "retrieval_failed"
+
+    rag_documents_used = sorted({chunk.document_title for chunk in rag_chunks if chunk.document_title})
+    snippet_chars = int(getattr(settings, "RAG_TRACE_SNIPPET_CHARS", 300))
+    for chunk in rag_chunks[:3]:
+        snippet = " ".join(chunk.text.split())
+        if len(snippet) > snippet_chars:
+            snippet = f"{snippet[:snippet_chars].rstrip()}..."
+        trace_snippets.append(snippet)
+        trace_scores.append(round(chunk.score, 4))
 
     memory_result = get_recent_task_context_result(
         db,
@@ -352,6 +441,22 @@ def _prepare_combined_context(
     full_context_result = build_full_context(
         rag_context,
         memory_result.text,
+    )
+
+    rag_context_contract = RAGContext(
+        enabled=rag_enabled,
+        query=query,
+        retrieved_chunks=rag_chunks,
+        retrieved_chunks_count=len(rag_chunks),
+        documents_used=rag_documents_used,
+        empty_reason=rag_empty_reason,
+        context_text=rag_context,
+        context_chars=len(rag_context or ""),
+        snippets=trace_snippets,
+        scores=trace_scores,
+        truncated=rag_truncated,
+        vector_backend=vector_backend,
+        error=empty_debug.retrieval_error,
     )
 
     return full_context_result.text, OrchestrationRagDebugInfo(
@@ -367,7 +472,15 @@ def _prepare_combined_context(
         memory_context_truncated=memory_result.truncated,
         full_context_truncated=full_context_result.truncated,
         retrieval_error=empty_debug.retrieval_error,
-    )
+        enabled=rag_enabled,
+        retrieved_chunks_count=len(rag_chunks),
+        documents_used=rag_documents_used,
+        empty_reason=rag_empty_reason,
+        context_chars=len(rag_context or ""),
+        trace_snippets=trace_snippets,
+        trace_scores=trace_scores,
+        vector_backend=vector_backend,
+    ), rag_context_contract
 
 
 def _get_pipeline(task_type: str) -> list[tuple[str, str]]:
@@ -388,10 +501,12 @@ def _build_trace_step(
     error_message: str | None,
     started_at: datetime | None,
     finished_at: datetime | None,
+    llm_metadata: dict[str, object] | None = None,
+    llm_usage_summary: dict[str, object] | None = None,
+    rag_metadata: dict[str, object] | None = None,
 ) -> dict[str, object]:
     duration_ms = _calculate_duration_ms(started_at, finished_at)
-
-    return {
+    step = {
         "step_index": step_index,
         "step_number": step_index,
         "step_name": step_name,
@@ -405,6 +520,124 @@ def _build_trace_step(
         "duration_ms": duration_ms,
         "error_message": error_message,
     }
+    if llm_metadata is not None:
+        step["llm_provider"] = llm_metadata.get("provider")
+        step["llm_model"] = llm_metadata.get("model")
+        step["llm_prompt_tokens"] = llm_metadata.get("prompt_tokens")
+        step["llm_completion_tokens"] = llm_metadata.get("completion_tokens")
+        step["llm_total_tokens"] = llm_metadata.get("total_tokens")
+        step["llm_estimated_cost"] = llm_metadata.get("estimated_cost")
+        step["llm_fallback_used"] = llm_metadata.get("fallback_used")
+        step["llm_error"] = llm_metadata.get("error")
+        step["llm_retry_count"] = llm_metadata.get("retry_count")
+        step["llm_latency_ms"] = llm_metadata.get("latency_ms")
+    if llm_usage_summary is not None:
+        step["llm_usage_summary"] = llm_usage_summary
+    if rag_metadata is not None:
+        step["rag_vector_backend"] = rag_metadata.get("rag_vector_backend")
+        step["rag_enabled"] = rag_metadata.get("rag_enabled")
+        step["rag_context_used"] = rag_metadata.get("rag_context_used")
+        step["rag_retrieved_chunks_count"] = rag_metadata.get("rag_retrieved_chunks_count")
+        step["rag_documents_used"] = rag_metadata.get("rag_documents_used")
+        step["rag_error"] = rag_metadata.get("rag_error")
+        step["rag_context_chars"] = rag_metadata.get("rag_context_chars")
+        step["rag_snippets"] = rag_metadata.get("rag_snippets")
+        step["rag_scores"] = rag_metadata.get("rag_scores")
+    return step
+
+
+def _extract_agent_output(step_output: object) -> tuple[str, dict[str, object] | None]:
+    if isinstance(step_output, AgentExecutionResult):
+        llm_metadata = {
+            "provider": step_output.llm_provider,
+            "model": step_output.llm_model,
+            "prompt_tokens": step_output.prompt_tokens,
+            "completion_tokens": step_output.completion_tokens,
+            "total_tokens": step_output.total_tokens,
+            "estimated_cost": step_output.estimated_cost,
+            "fallback_used": step_output.fallback_used,
+            "error": step_output.llm_error,
+            "retry_count": step_output.llm_retry_count,
+            "latency_ms": step_output.llm_latency_ms,
+        }
+        return step_output.text, llm_metadata
+
+    if isinstance(step_output, str):
+        return step_output, None
+
+    return str(step_output), None
+
+
+def _build_llm_usage_summary(execution_trace: list[dict[str, object]]) -> dict[str, object]:
+    prompt_tokens_total = 0
+    completion_tokens_total = 0
+    total_tokens_total = 0
+    estimated_cost_total = 0.0
+    estimated_cost_available = False
+    providers: set[str] = set()
+    models: set[str] = set()
+    fallback_used_any = False
+    errors_count = 0
+    retries_total = 0
+    latency_ms_total = 0
+    latency_samples = 0
+
+    for step in execution_trace:
+        if step.get("step_name") != "execution":
+            continue
+
+        provider = step.get("llm_provider")
+        if isinstance(provider, str) and provider.strip():
+            providers.add(provider.strip())
+
+        model = step.get("llm_model")
+        if isinstance(model, str) and model.strip():
+            models.add(model.strip())
+
+        prompt_tokens = step.get("llm_prompt_tokens")
+        if isinstance(prompt_tokens, int):
+            prompt_tokens_total += prompt_tokens
+
+        completion_tokens = step.get("llm_completion_tokens")
+        if isinstance(completion_tokens, int):
+            completion_tokens_total += completion_tokens
+
+        total_tokens = step.get("llm_total_tokens")
+        if isinstance(total_tokens, int):
+            total_tokens_total += total_tokens
+
+        estimated_cost = step.get("llm_estimated_cost")
+        if isinstance(estimated_cost, (int, float)):
+            estimated_cost_total += float(estimated_cost)
+            estimated_cost_available = True
+
+        if bool(step.get("llm_fallback_used")):
+            fallback_used_any = True
+
+        if step.get("llm_error"):
+            errors_count += 1
+
+        retry_count = step.get("llm_retry_count")
+        if isinstance(retry_count, int) and retry_count > 0:
+            retries_total += retry_count
+
+        latency_ms = step.get("llm_latency_ms")
+        if isinstance(latency_ms, int) and latency_ms >= 0:
+            latency_ms_total += latency_ms
+            latency_samples += 1
+
+    return {
+        "total_prompt_tokens": prompt_tokens_total,
+        "total_completion_tokens": completion_tokens_total,
+        "total_tokens": total_tokens_total,
+        "estimated_cost": estimated_cost_total if estimated_cost_available else None,
+        "providers_used": sorted(providers),
+        "models_used": sorted(models),
+        "fallback_used_any": fallback_used_any,
+        "llm_errors_count": errors_count,
+        "llm_retry_total": retries_total,
+        "llm_average_latency_ms": (latency_ms_total // latency_samples) if latency_samples else None,
+    }
 
 
 def orchestrate_task(
@@ -414,16 +647,36 @@ def orchestrate_task(
     top_k: int | None = None,
     min_score: float | None = None,
 ) -> TaskOrchestrationResult:
-    base_context, rag_debug = _prepare_combined_context(
+    prepared_context = _prepare_combined_context(
         task,
         db,
         top_k=top_k,
         min_score=min_score,
     )
+    if isinstance(prepared_context, tuple) and len(prepared_context) == 2:
+        base_context, rag_debug = prepared_context
+        rag_context = RAGContext(
+            enabled=bool(getattr(settings, "RAG_ENABLED", True)),
+            query=_build_retrieval_query(task),
+            retrieved_chunks=[],
+            retrieved_chunks_count=0,
+            documents_used=[],
+            empty_reason="compat_no_rag_context",
+            context_text=None,
+            context_chars=0,
+            snippets=[],
+            scores=[],
+            truncated=False,
+            vector_backend=str(getattr(settings, "RAG_VECTOR_BACKEND", "pgvector")),
+            error=None,
+        )
+    else:
+        base_context, rag_debug, rag_context = prepared_context
     pipeline = _get_pipeline(task.task_type)
     execution_trace: list[dict[str, object]] = []
     previous_output: str | None = None
     step_index = 1
+    cumulative_llm_total_tokens = 0
 
     classification_started = _utc_now()
     classification_finished = _utc_now()
@@ -456,6 +709,47 @@ def orchestrate_task(
             error_message=None,
             started_at=selection_started,
             finished_at=selection_finished,
+        )
+    )
+    step_index += 1
+
+    if not rag_context.enabled:
+        retrieval_status = "skipped"
+        retrieval_summary = "RAG retrieval skipped because RAG is disabled."
+    elif rag_context.error:
+        retrieval_status = "failed"
+        retrieval_summary = "RAG retrieval failed; continuing without document context."
+    else:
+        retrieval_status = "completed"
+        retrieval_summary = (
+            "Retrieved "
+            f"{rag_context.retrieved_chunks_count} chunks from {len(rag_context.documents_used)} documents."
+        )
+
+    retrieval_started = _utc_now()
+    retrieval_finished = _utc_now()
+    execution_trace.append(
+        _build_trace_step(
+            step_index=step_index,
+            step_name="document_retrieval",
+            agent_name="RAGRetriever",
+            status=retrieval_status,
+            used_previous_output=False,
+            short_summary=retrieval_summary,
+            error_message=rag_context.error if retrieval_status == "failed" else None,
+            started_at=retrieval_started,
+            finished_at=retrieval_finished,
+            rag_metadata={
+                "rag_vector_backend": rag_context.vector_backend,
+                "rag_enabled": rag_context.enabled,
+                "rag_context_used": bool(rag_context.context_text),
+                "rag_retrieved_chunks_count": rag_context.retrieved_chunks_count,
+                "rag_documents_used": rag_context.documents_used,
+                "rag_error": rag_context.error,
+                "rag_context_chars": rag_context.context_chars,
+                "rag_snippets": rag_context.snippets,
+                "rag_scores": rag_context.scores,
+            },
         )
     )
     step_index += 1
@@ -494,7 +788,8 @@ def orchestrate_task(
         )
 
         try:
-            step_output = runner(task, retrieved_context=step_context)
+            raw_step_output = runner(task, retrieved_context=step_context)
+            step_output, llm_metadata = _extract_agent_output(raw_step_output)
             step_finished_at = _utc_now()
         except Exception as error:
             step_finished_at = _utc_now()
@@ -537,12 +832,58 @@ def orchestrate_task(
                 error_message=None,
                 started_at=step_started_at,
                 finished_at=step_finished_at,
+                llm_metadata=llm_metadata,
+                rag_metadata={
+                    "rag_vector_backend": rag_context.vector_backend,
+                    "rag_enabled": rag_context.enabled,
+                    "rag_context_used": bool(rag_context.context_text),
+                    "rag_retrieved_chunks_count": rag_context.retrieved_chunks_count,
+                    "rag_documents_used": rag_context.documents_used,
+                    "rag_error": rag_context.error,
+                    "rag_context_chars": rag_context.context_chars,
+                    "rag_snippets": rag_context.snippets,
+                    "rag_scores": rag_context.scores,
+                },
             )
         )
+        if llm_metadata is not None:
+            step_tokens = llm_metadata.get("total_tokens")
+            if isinstance(step_tokens, int):
+                cumulative_llm_total_tokens += step_tokens
+                hard_limit = int(getattr(settings, "LLM_TASK_TOTAL_TOKEN_HARD_LIMIT", 10000))
+                if hard_limit > 0 and cumulative_llm_total_tokens > hard_limit:
+                    step_index += 1
+                    failed_started_at = _utc_now()
+                    failed_finished_at = _utc_now()
+                    execution_trace.append(
+                        _build_trace_step(
+                            step_index=step_index,
+                            step_name="execution",
+                            agent_name=agent_name,
+                            status="failed",
+                            used_previous_output=True,
+                            short_summary=None,
+                            error_message=(
+                                "Task exceeded LLM_TASK_TOTAL_TOKEN_HARD_LIMIT "
+                                f"({cumulative_llm_total_tokens} > {hard_limit})."
+                            ),
+                            started_at=failed_started_at,
+                            finished_at=failed_finished_at,
+                        )
+                    )
+                    raise TaskOrchestrationError(
+                        "Task orchestration exceeded hard LLM token limit.",
+                        execution_trace=execution_trace,
+                        rag_debug=rag_debug,
+                    )
         step_index += 1
         previous_output = step_output
 
-    quality_error = _validate_output_quality(task, previous_output)
+    quality_error = _validate_output_quality(
+        task,
+        previous_output,
+        rag_retrieved_chunks_count=rag_context.retrieved_chunks_count,
+    )
     if quality_error is not None:
         failed_started_at = _utc_now()
         failed_finished_at = _utc_now()
@@ -565,8 +906,42 @@ def orchestrate_task(
             rag_debug=rag_debug,
         )
 
+    llm_usage_summary = _build_llm_usage_summary(execution_trace)
+    soft_limit = int(getattr(settings, "LLM_TASK_TOTAL_TOKEN_SOFT_LIMIT", 6000))
+    hard_limit = int(getattr(settings, "LLM_TASK_TOTAL_TOKEN_HARD_LIMIT", 10000))
+    llm_usage_summary["soft_limit"] = soft_limit
+    llm_usage_summary["hard_limit"] = hard_limit
+    llm_usage_summary["soft_limit_exceeded"] = (
+        soft_limit > 0 and llm_usage_summary["total_tokens"] > soft_limit
+    )
+    llm_usage_summary["hard_limit_exceeded"] = (
+        hard_limit > 0 and llm_usage_summary["total_tokens"] > hard_limit
+    )
+
+    summary_started_at = _utc_now()
+    summary_finished_at = _utc_now()
+    execution_trace.append(
+        _build_trace_step(
+            step_index=step_index,
+            step_name="llm_usage_summary",
+            agent_name="LLMService",
+            status="completed",
+            used_previous_output=False,
+            short_summary=(
+                "LLM usage summary: "
+                f"total_tokens={llm_usage_summary['total_tokens']}, "
+                f"providers={','.join(llm_usage_summary['providers_used']) or 'none'}."
+            ),
+            error_message=None,
+            started_at=summary_started_at,
+            finished_at=summary_finished_at,
+            llm_usage_summary=llm_usage_summary,
+        )
+    )
+
     return TaskOrchestrationResult(
         final_output=previous_output or "",
         execution_trace=execution_trace,
         rag_debug=rag_debug,
+        llm_usage_summary=llm_usage_summary,
     )

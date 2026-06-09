@@ -1,121 +1,145 @@
-# Aegis Interview Notes
+﻿# Notas De Entrevista De Aegis
 
-## 1) Que es Aegis
+## Qué Es Aegis
 
-Aegis es una plataforma backend-first para orquestar tareas con agentes IA y trazabilidad de ejecucion.
+Aegis es un proyecto backend-first de orquestación de tareas con IA construido para demostrar un flujo completo, no una respuesta aislada de chat.
 
-## 2) Por que no es un chatbot
+La historia principal es:
 
-Un chatbot suele terminar en prompt/respuesta.  
-Aegis trabaja con flujo de tarea persistido:
-
-- task input estructurado
-- clasificacion
-- seleccion de agente
-- ejecucion
-- resultado
-- trace
+- entrada estructurada de tareas
+- clasificación
+- selección de agente
+- ejecución
+- traza persistida
 - feedback
 - insights
 
-## 3) Como funciona el backend
+Eso lo convierte en una pieza de portfolio más fuerte que un CRUD simple o una UI de chatbot.
 
-El backend (FastAPI) expone endpoints de:
+## Cómo Explico La Arquitectura
 
-- auth (`signup`, `login`, `me`)
-- tasks (`create`, `list`, `detail`, `execute`, `feedback`, `trace`)
-- documents (`upload`, `list`, `delete`)
-- insights (`overview`)
-- health
+### Backend
 
-La logica de dominio esta en servicios (`classifier`, `selector`, `orchestrator`, `executor`, `rag/memory`).
+- FastAPI expone endpoints para auth, tasks, documents, insights, agents y health.
+- Los servicios encapsulan preocupaciones de orquestación como clasificación, routing, ejecución y contexto documental.
+- Los modelos SQLAlchemy persisten tareas, documentos y metadatos de ejecución.
+- Los schemas Pydantic definen el contrato API y la capa de validación.
 
-## 4) Como funciona la clasificacion
+### Frontend
 
-La clasificacion usa reglas por keywords con normalizacion de texto (case/acentos/simbolos).
+- React + Vite ofrece el flujo autenticado del producto.
+- Las vistas principales son dashboard, tasks, task detail, documents e insights.
+- Los componentes compartidos gestionan estados async, layout, feedback y render de traza.
 
-Tipos principales:
+### Flujo de datos
 
-- comparison
-- summary
-- research
-- analysis
-- planning
-- general
+```txt
+usuario crea tarea
+  -> backend clasifica solicitud
+  -> selecciona agente
+  -> ejecuta tarea
+  -> persiste resultado + traza
+  -> usuario revisa salida
+  -> usuario envía feedback
+  -> insights agrega señales de calidad
+```
 
-Prioriza evitar falsos "general" en casos obvios.
+## Por Qué No Es Solo Un CRUD
 
-## 5) Como se seleccionan agentes
+Un CRUD almacena registros. Aegis hace más que eso:
 
-`task_type` se mapea a un agente catalogado:
+- enruta trabajo por tipo de tarea
+- sigue el estado de ejecución a lo largo del tiempo
+- almacena trazabilidad paso a paso
+- soporta revisión ligera de calidad
+- usa contexto documental para enriquecer futuras ejecuciones
 
-- comparison -> ComparisonAgent
-- summary -> SummaryAgent
-- research -> ResearchAgent
-- analysis -> AnalysisAgent
-- planning -> PlanningAgent
-- general -> GeneralAssistantAgent
+Esa combinación crea una historia de flujo, no solo formularios y tablas.
 
-Si hay tipo desconocido, fallback seguro a general.
+## Por Qué FastAPI
 
-## 6) Como se guarda la execution trace
+- experiencia de desarrollo limpia
+- velocidad alta de iteración
+- buen encaje con contratos tipados request/response
+- fácil de estructurar por servicios y routers
+- muy adecuado para un portfolio con peso backend
 
-Cada ejecucion persiste pasos estructurados:
+## Por Qué React + Vite
 
-- `step_name`
-- `agent_name`
-- `status`
-- `short_summary`
-- timestamps y duracion cuando aplica
+- arranque rápido sin complicar el frontend
+- gran velocidad de iteración para pantallas de producto
+- permite centrar la UI en el flujo y no en la ceremonia del framework
+- suficiente flexibilidad para páginas con estado como tareas, revisión de traza e insights
 
-Ademas se mantiene compatibilidad con formatos legacy para evitar roturas en lectura.
+## Por Qué Cookies HttpOnly En La Sesión Web
 
-## 7) Como se validan resultados
+- reducen la exposición del token de sesión a JavaScript en navegador
+- encajan mejor con un modelo de auth más realista que guardar JWT en `localStorage`
+- fortalecen la narrativa de seguridad del proyecto
 
-Antes de marcar `completed`, hay quality gate basico:
+Se mantiene compatibilidad Bearer para tests y uso manual de API, pero el flujo web es cookie-based.
 
-- output no vacio
-- longitud minima razonable
-- bloqueo de lenguaje placeholder (ej. "future expansion", "stub", "TODO")
-- checks de contenido minimo por tipo (comparison/analysis/planning)
+## Por Qué Alembic
 
-Si falla, la tarea se marca `failed`.
+- los cambios de esquema deben ser explícitos y revisables
+- el historial de migraciones es más razonable que DDL en runtime
+- es el paso correcto para salir de atajos de demo y acercarse a higiene profesional de repositorio
 
-## 8) Como se testea
+## Por Qué Aún No Hay Celery
 
-Backend:
+- el objetivo actual es un MVP sólido de portfolio, no una plataforma distribuida de jobs
+- `BackgroundTasks` basta para demostrar transiciones de estado y trazabilidad
+- meter Celery o Redis ahora mismo aumentaría la complejidad operativa más de lo que aporta a la demo
 
-- `unittest` con cobertura critica de auth, tasks, classification, agent selection, output quality, execution trace, seed, insights, documents/RAG basico.
+Si el proyecto evolucionara hacia una carga más cercana a producción, una cola durable sería el siguiente paso lógico.
 
-Frontend:
+## Por Qué El Rate Limiting Sigue Siendo In-Memory
 
-- Vitest + React Testing Library para unit/component minimo:
-  - ProtectedRoute
-  - AuthPage
-  - TasksPage
-  - TaskDetailPage
-  - InsightsPage
-  - DocumentsPage
+- era suficiente para demos locales y un scope de portfolio monoinstancia
+- mantiene la implementación simple y fácil de explicar
+- también sirve como ejemplo honesto de limitación que revisaría antes de múltiples réplicas
 
-Apoyos:
+## Cómo Explico RAG De Forma Honesta
 
-- `npm run build`
-- `npm run check:smoke`
-- Docker healthchecks
+- el usuario puede subir documentos
+- los documentos se trocean y quedan almacenados para retrieval
+- futuras tareas pueden usar ese contexto durante la ejecución
 
-## 9) Que aprendi construyendolo
+Puntos importantes de honestidad:
 
-- Que "status=completed" no implica valor real si no hay quality checks.
-- Que la trazabilidad operativa (trace + feedback + insights) cambia la calidad percibida del producto.
-- Que small, explicit architecture decisions dan estabilidad sin sobreingenieria.
+- esto es un flujo RAG de nivel MVP
+- no se presenta como un sistema de retrieval profundamente evaluado
+- no finge navegar por internet ni inventar fuentes externas
 
-## 10) Que mejoraria en produccion
+## Tradeoffs Que Tomé
 
-- e2e browser tests (Playwright/Cypress) para flujos completos.
-- observabilidad mas fuerte (structured logs, metrics, alerting).
-- hardening de seguridad y politicas de rate limiting.
-- evaluacion mas profunda de calidad RAG/retrieval.
+- mantuve una arquitectura por capas, pero sin sobre-ingeniería
+- prioricé trazabilidad y claridad del flujo sobre complejidad de agentes autónomos
+- endurecí auth, configuración y documentación antes de perseguir infraestructura avanzada
+- acepté rate limiting in-memory y background no durable como tradeoffs razonables de portfolio
 
-## 11) Mensaje corto para recruiter
+## Qué Aprendí Construyéndolo
 
-"Aegis es un MVP tecnico de orquestacion de tareas IA con ejecucion trazable, calidad validada y demo reproducible en Docker. No pretende ser enterprise-ready, pero si una base solida y profesional."
+- `completed` no significa necesariamente `útil` si no hay quality checks
+- la traza de ejecución cambia mucho la capacidad de depurar y revisar el sistema
+- documentar limitaciones con honestidad fortalece el proyecto en una entrevista
+- la documentación, la demo y la estrategia de tests pesan casi tanto como el código en un portfolio
+
+## Qué Mejoraría Antes De Producción
+
+- ejecución en background durable
+- rate limiting distribuido
+- observabilidad y alerting más fuertes
+- cobertura E2E de navegador
+- evaluación RAG y monitorización de retrieval más profundas
+- validación real de despliegue con daemon/runtime disponibles
+
+## Pitch Corto De Entrevista
+
+> "Aegis es un proyecto backend-first de orquestación de tareas con IA. En lugar de quedarse en prompt y respuesta, muestra clasificación, enrutamiento, traza de ejecución, feedback e insights dentro de un flujo de producto real."
+
+## Pitch Largo De Entrevista
+
+> "Construí Aegis para demostrar cómo se ve un flujo asistido por IA cuando lo tratas como software de producto. Una persona crea una tarea estructurada, el backend la clasifica, selecciona una ruta de ejecución, persiste resultado y traza, y después la UI soporta feedback e insights. No se vende como completamente production-ready, pero sí como un proyecto endurecido lo suficiente para ser una pieza seria de portfolio."
+
+

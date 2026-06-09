@@ -13,6 +13,7 @@ import { getErrorMessage } from "../utils/errors";
 import {
   formatDateTime,
   formatDuration,
+  formatTaskTypeLabel,
   getTaskActivityLabel,
   sortTasksByRecent,
   truncateText,
@@ -24,13 +25,14 @@ const EMPTY_FILTERS = {
   agentName: "",
   feedbackRating: "",
 };
+const PAGE_LIMIT = 50;
 
 export function TasksPage() {
   const { t, language, locale } = useI18n();
   const demoTaskTemplate = {
-    title: "Compare FastAPI and Django for an internal AI platform",
+    title: "Comparar FastAPI y Django para una plataforma interna de IA",
     description:
-      "Provide a practical comparison for an AI orchestration product: architecture, maintainability, performance, and implementation speed.",
+      "Haz una comparativa practica para un producto de orquestacion con IA: arquitectura, mantenibilidad, rendimiento y velocidad de implementacion.",
   };
   const [tasks, setTasks] = useState([]);
   const [form, setForm] = useState({
@@ -55,7 +57,7 @@ export function TasksPage() {
     },
     {
       enabled: tasks.some((task) =>
-        ["pending", "processing"].includes(task.status),
+        ["pending", "queued", "processing"].includes(task.status),
       ),
       intervalMs: 3000,
     },
@@ -69,7 +71,11 @@ export function TasksPage() {
     setListError("");
 
     try {
-      const taskList = await listTasks(activeFilters);
+      const taskList = await listTasks({
+        ...activeFilters,
+        limit: PAGE_LIMIT,
+        offset: 0,
+      });
       setTasks(sortTasksByRecent(taskList));
     } catch (loadError) {
       setListError(getErrorMessage(loadError, t("tasks.loading")));
@@ -141,7 +147,7 @@ export function TasksPage() {
         ),
       );
       setNotice(
-        updatedTask.status === "processing"
+        ["queued", "processing"].includes(updatedTask.status)
           ? t("tasks.executeStarted")
           : t("tasks.executeCompleted"),
       );
@@ -154,7 +160,7 @@ export function TasksPage() {
   }
 
   const runningCount = tasks.filter((task) =>
-    ["pending", "processing"].includes(task.status),
+    ["pending", "queued", "processing"].includes(task.status),
   ).length;
 
   return (
@@ -211,6 +217,7 @@ export function TasksPage() {
         </form>
         <p className="inline-helper">
           {t("tasks.demoPathHelper")}
+          {" "}
           <Link className="inline-link" to={ROUTES.DOCUMENTS}>{t("tasks.addDocuments")}</Link>
           {t("tasks.addDocumentsSuffix")}
         </p>
@@ -246,10 +253,11 @@ export function TasksPage() {
             <span>{t("tasks.filterStatus")}</span>
             <select name="status" onChange={updateFilterField} value={filters.status}>
               <option value="">{t("common.all")}</option>
-              <option value="pending">pending</option>
-              <option value="processing">processing</option>
-              <option value="completed">completed</option>
-              <option value="failed">failed</option>
+              <option value="pending">{t("status.pending")}</option>
+              <option value="queued">{t("status.queued")}</option>
+              <option value="processing">{t("status.processing")}</option>
+              <option value="completed">{t("status.completed")}</option>
+              <option value="failed">{t("status.failed")}</option>
             </select>
           </label>
 
@@ -257,10 +265,10 @@ export function TasksPage() {
             <span>{t("tasks.filterTaskType")}</span>
             <select name="taskType" onChange={updateFilterField} value={filters.taskType}>
               <option value="">{t("common.all")}</option>
-              <option value="general">general</option>
-              <option value="research">research</option>
-              <option value="summary">summary</option>
-              <option value="comparison">comparison</option>
+              <option value="general">{formatTaskTypeLabel("general", language)}</option>
+              <option value="research">{formatTaskTypeLabel("research", language)}</option>
+              <option value="summary">{formatTaskTypeLabel("summary", language)}</option>
+              <option value="comparison">{formatTaskTypeLabel("comparison", language)}</option>
             </select>
           </label>
 
@@ -316,7 +324,7 @@ export function TasksPage() {
                     {task.title}
                   </Link>
                   <p className="list-item-subtitle">
-                    {task.task_type} / {task.agent_name}
+                    {formatTaskTypeLabel(task.task_type, language)} / {task.agent_name}
                   </p>
                   <p className="list-item-copy task-list-copy">
                     {truncateText(task.result_text || task.description, 180, t("common.noData"))}
@@ -346,14 +354,14 @@ export function TasksPage() {
                     <button
                       className="button button-primary"
                       disabled={
-                        executingId === task.id || task.status === "processing"
+                        executingId === task.id || ["queued", "processing"].includes(task.status)
                       }
                       onClick={() => handleExecuteTask(task.id)}
                       type="button"
                     >
                       {executingId === task.id
                         ? t("tasks.executing")
-                        : task.status === "processing"
+                        : ["queued", "processing"].includes(task.status)
                           ? t("tasks.processing")
                           : t("tasks.execute")}
                     </button>

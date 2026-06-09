@@ -53,24 +53,31 @@ def retrieve_relevant_chunks(
     requested_top_k = top_k or settings.RAG_TOP_K
     score_threshold = settings.RAG_MIN_SCORE if min_score is None else min_score
     query_embedding = generate_embedding(normalized_query)
+    user_id_str = str(user_id)
     raw_results = query_records(
         query_embedding=query_embedding,
-        user_id=str(user_id),
+        user_id=user_id_str,
         top_k=max(requested_top_k * 3, requested_top_k),
     )
 
-    chunks = [
-        RetrievedChunk(
-            chunk_id=result["id"],
-            document_id=result["metadata"].get("document_id"),
-            document_title=result["metadata"].get("document_title", "Untitled document"),
-            source_name=result["metadata"].get("source_name") or None,
-            chunk_index=_parse_chunk_index(result["metadata"].get("chunk_index")),
-            text=result["text"],
-            score=float(result.get("score", 0.0)),
+    chunks: list[RetrievedChunk] = []
+    for result in raw_results:
+        metadata = result.get("metadata", {}) or {}
+        record_user_id = str(metadata.get("user_id", "") or "").strip()
+        if record_user_id and record_user_id != user_id_str:
+            continue
+
+        chunks.append(
+            RetrievedChunk(
+                chunk_id=result["id"],
+                document_id=metadata.get("document_id"),
+                document_title=metadata.get("document_title", "Untitled document"),
+                source_name=metadata.get("source_name") or None,
+                chunk_index=_parse_chunk_index(metadata.get("chunk_index")),
+                text=result["text"],
+                score=float(result.get("score", 0.0)),
+            )
         )
-        for result in raw_results
-    ]
 
     filtered_chunks = [chunk for chunk in chunks if chunk.score >= score_threshold]
     return filtered_chunks[:requested_top_k]
@@ -79,13 +86,15 @@ def retrieve_relevant_chunks(
 def _format_chunk_section(index: int, chunk: RetrievedChunk, text: str) -> str:
     source_label = chunk.source_name or "N/A"
     chunk_index_label = chunk.chunk_index if chunk.chunk_index is not None else "N/A"
+    document_id_label = chunk.document_id or "N/A"
 
     return (
-        f"[Chunk {index}]\n"
+        f"[Document context {index}]\n"
         f"Document: {chunk.document_title}\n"
+        f"Document ID: {document_id_label}\n"
         f"Source: {source_label}\n"
-        f"Chunk Index: {chunk_index_label}\n"
-        f"Score: {chunk.score:.2f}\n"
+        f"Chunk: {chunk_index_label}\n"
+        f"Relevance score: {chunk.score:.2f}\n"
         "Content:\n"
         f"{text}"
     )
@@ -101,7 +110,7 @@ def _truncate_chunk_text(
     content_prefix = "" if header.endswith("\n") else "\n"
     header_length = len(header) + len(content_prefix)
 
-    if available_chars <= header_length + len(ellipsis) + 40:
+    if available_chars <= header_length + len(ellipsis) + 8:
         return None
 
     remaining_chars = available_chars - header_length - len(ellipsis)
@@ -168,6 +177,28 @@ def build_context(
         break
 
     if not sections:
+        if chunks:
+            first_chunk = chunks[0]
+            minimal_text = _format_chunk_section(
+                1,
+                first_chunk,
+                f"{first_chunk.text[:32].rstrip()}...",
+            )
+            return ContextBuildResult(
+                text=f"{CONTEXT_START_DELIMITER}\n{minimal_text}\n{CONTEXT_END_DELIMITER}",
+                used_chunks=[
+                    RetrievedChunk(
+                        chunk_id=first_chunk.chunk_id,
+                        document_id=first_chunk.document_id,
+                        document_title=first_chunk.document_title,
+                        source_name=first_chunk.source_name,
+                        chunk_index=first_chunk.chunk_index,
+                        text=f"{first_chunk.text[:32].rstrip()}...",
+                        score=first_chunk.score,
+                    )
+                ],
+                truncated=True,
+            )
         return ContextBuildResult(text=None, used_chunks=[], truncated=truncated)
 
     context_body = CONTEXT_SECTION_DELIMITER.join(sections)

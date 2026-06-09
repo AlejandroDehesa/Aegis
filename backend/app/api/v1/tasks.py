@@ -1,8 +1,8 @@
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -26,10 +26,15 @@ from app.services.task_executor import (
     TaskExecutionResult,
     TaskExecutionStateError,
     execute_task,
+    get_task_execution_mode,
+    queue_task_for_background,
+    run_task_execution_background,
 )
 
 
 router = APIRouter()
+DEFAULT_PAGE_LIMIT = 20
+MAX_PAGE_LIMIT = 100
 
 
 def _normalize_trace_step(raw_step: Any, fallback_agent_name: str) -> dict[str, Any]:
@@ -59,6 +64,26 @@ def _normalize_trace_step(raw_step: Any, fallback_agent_name: str) -> dict[str, 
         "finished_at": raw_step.get("finished_at"),
         "duration_ms": raw_step.get("duration_ms"),
         "error_message": raw_step.get("error_message"),
+        "llm_provider": raw_step.get("llm_provider"),
+        "llm_model": raw_step.get("llm_model"),
+        "llm_prompt_tokens": raw_step.get("llm_prompt_tokens"),
+        "llm_completion_tokens": raw_step.get("llm_completion_tokens"),
+        "llm_total_tokens": raw_step.get("llm_total_tokens"),
+        "llm_estimated_cost": raw_step.get("llm_estimated_cost"),
+        "llm_fallback_used": raw_step.get("llm_fallback_used"),
+        "llm_error": raw_step.get("llm_error"),
+        "llm_retry_count": raw_step.get("llm_retry_count"),
+        "llm_latency_ms": raw_step.get("llm_latency_ms"),
+        "llm_usage_summary": raw_step.get("llm_usage_summary"),
+        "rag_enabled": raw_step.get("rag_enabled"),
+        "rag_vector_backend": raw_step.get("rag_vector_backend"),
+        "rag_context_used": raw_step.get("rag_context_used"),
+        "rag_retrieved_chunks_count": raw_step.get("rag_retrieved_chunks_count"),
+        "rag_documents_used": raw_step.get("rag_documents_used"),
+        "rag_error": raw_step.get("rag_error"),
+        "rag_context_chars": raw_step.get("rag_context_chars"),
+        "rag_snippets": raw_step.get("rag_snippets"),
+        "rag_scores": raw_step.get("rag_scores"),
     }
     return normalized
 
@@ -182,6 +207,8 @@ def list_tasks(
     task_type: str | None = Query(default=None),
     agent_name: str | None = Query(default=None),
     feedback_rating: int | None = Query(default=None, ge=1, le=5),
+    limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
+    offset: Annotated[int, Query(ge=0)] = 0,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[TaskRead]:
@@ -200,7 +227,7 @@ def list_tasks(
         query = query.where(Task.feedback_rating == feedback_rating)
 
     tasks = db.execute(
-        query.order_by(Task.created_at.desc())
+        query.order_by(Task.created_at.desc(), Task.id.desc()).offset(offset).limit(limit)
     ).scalars().all()
 
     return [_serialize_task(task) for task in tasks]
@@ -237,6 +264,7 @@ def get_task_trace(
 @router.post("/tasks/{task_id}/execute", response_model=TaskRead)
 def execute_user_task(
     task_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     debug: bool = Query(default=False),
     top_k: int | None = Query(default=None, ge=1, le=10),
     min_score: float | None = Query(default=None, ge=0.0, le=1.0),
@@ -244,6 +272,27 @@ def execute_user_task(
     db: Session = Depends(get_db),
 ) -> TaskRead:
     task = _get_user_task(task_id, current_user, db)
+
+    mode = get_task_execution_mode()
+
+    if mode == "background":
+        try:
+            queued_task = queue_task_for_background(task, db)
+        except TaskExecutionStateError as error:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(error),
+            ) from error
+
+        background_tasks.add_task(
+            run_task_execution_background,
+            task_id=queued_task.id,
+            user_id=current_user.id,
+            debug=debug,
+            top_k=top_k,
+            min_score=min_score,
+        )
+        return _serialize_task(queued_task)
 
     try:
         execution = execute_task(

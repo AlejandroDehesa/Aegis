@@ -15,6 +15,13 @@ export function signupUser(payload) {
   });
 }
 
-export function getCurrentUser() {
-  return apiRequest("/me");
+export function getCurrentUser(options = {}) {
+  return apiRequest("/me", options);
+}
+
+export function logoutUser() {
+  return apiRequest("/logout", {
+    method: "POST",
+    ignoreUnauthorized: true,
+  });
 }

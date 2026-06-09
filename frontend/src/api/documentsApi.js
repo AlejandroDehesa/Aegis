@@ -1,7 +1,19 @@
 import { apiRequest } from "./http";
 
-export function listDocuments() {
-  return apiRequest("/documents");
+export function listDocuments(options = {}) {
+  const params = new URLSearchParams();
+
+  if (options.limit !== undefined && options.limit !== null && options.limit !== "") {
+    params.set("limit", String(options.limit));
+  }
+
+  if (options.offset !== undefined && options.offset !== null && options.offset !== "") {
+    params.set("offset", String(options.offset));
+  }
+
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+
+  return apiRequest(`/documents${suffix}`);
 }
 
 export function uploadDocument({ title, content, file }) {

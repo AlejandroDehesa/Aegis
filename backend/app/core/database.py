@@ -2,6 +2,7 @@ from collections.abc import Generator
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.core.config import settings
 
@@ -17,9 +18,23 @@ class Base(DeclarativeBase):
     pass
 
 
+def _build_engine_options(database_url: str) -> dict[str, object]:
+    options: dict[str, object] = {
+        "pool_pre_ping": True,
+    }
+
+    if database_url.startswith("sqlite"):
+        options["connect_args"] = {"check_same_thread": False}
+        if ":memory:" in database_url:
+            options["poolclass"] = StaticPool
+
+    return options
+
+
+normalized_database_url = _normalize_database_url(settings.DATABASE_URL)
 engine = create_engine(
-    _normalize_database_url(settings.DATABASE_URL),
-    pool_pre_ping=True,
+    normalized_database_url,
+    **_build_engine_options(normalized_database_url),
 )
 
 SessionLocal = sessionmaker(
@@ -29,61 +44,22 @@ SessionLocal = sessionmaker(
 )
 
 
-def create_tables() -> None:
+def create_test_schema() -> None:
+    if settings.APP_ENV != "test":
+        raise RuntimeError("create_test_schema() is only available when APP_ENV=test.")
+
     import app.models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
-    _ensure_runtime_schema_updates()
 
+def reset_test_schema() -> None:
+    if settings.APP_ENV != "test":
+        raise RuntimeError("reset_test_schema() is only available when APP_ENV=test.")
 
-def _ensure_runtime_schema_updates() -> None:
-    if engine.dialect.name != "postgresql":
-        return
+    import app.models  # noqa: F401
 
-    with engine.begin() as connection:
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS execution_trace JSONB "
-                "NOT NULL DEFAULT '[]'::jsonb"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS finished_at TIMESTAMPTZ"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS duration_ms INTEGER"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS feedback_rating INTEGER"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS feedback_comment TEXT"
-            )
-        )
-        connection.execute(
-            text(
-                "ALTER TABLE tasks "
-                "ADD COLUMN IF NOT EXISTS feedback_submitted_at TIMESTAMPTZ"
-            )
-        )
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -92,3 +68,12 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def check_database_connection() -> bool:
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False

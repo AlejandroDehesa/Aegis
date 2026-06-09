@@ -31,10 +31,10 @@ describe("InsightsPage", () => {
 
     renderWithProviders(<InsightsPage />);
 
-    expect(await screen.findByText("Operational visibility and quality review")).toBeInTheDocument();
-    const totalTasksCard = screen.getByText("Total Tasks").closest("article");
+    expect(await screen.findByText("Calidad de ejecucion y visibilidad operativa")).toBeInTheDocument();
+    const totalTasksCard = screen.getByText("Tareas totales").closest("article");
     expect(totalTasksCard).not.toBeNull();
     expect(within(totalTasksCard).getByText("3")).toBeInTheDocument();
-    expect(screen.getByText("No failed or low-rated tasks detected for this user.")).toBeInTheDocument();
+    expect(screen.getByText("No hay tareas fallidas o mal valoradas para este usuario.")).toBeInTheDocument();
   });
 });

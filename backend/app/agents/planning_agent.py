@@ -1,43 +1,33 @@
-from app.agents.prompt_utils import build_retrieved_context_block
+from app.agents.execution_result import AgentExecutionResult
+from app.agents.prompts import build_planning_fallback, build_planning_prompt
 from app.models.task import Task
-from app.services.llm_service import generate_text
+from app.services.llm.schemas import LLMRequest
+from app.services.llm_service import generate
 
 
 def _build_prompt(task: Task, retrieved_context: str | None = None) -> str:
-    description = task.description or "No additional planning context provided."
-    context_block = build_retrieved_context_block(retrieved_context)
-
-    return (
-        "You are PlanningAgent inside Aegis.\n"
-        "Create a practical and ordered implementation plan.\n\n"
-        f"Task title: {task.title}\n"
-        f"Task description: {description}\n\n"
-        f"{context_block}"
-        "Return:\n"
-        "1. Numbered steps in order\n"
-        "2. Objective of each step\n"
-        "3. Immediate next action"
+    return build_planning_prompt(
+        title=task.title,
+        description=task.description or "No additional planning context provided.",
+        retrieved_context=retrieved_context,
     )
 
 
-def _build_fallback(task: Task) -> str:
-    description = task.description or "No additional planning context provided."
-
-    return (
-        f"Implementation plan for: {task.title}\n\n"
-        "1. Define scope and acceptance criteria.\n"
-        "2. Split work into backend, integration, and validation tasks.\n"
-        "3. Implement smallest end-to-end vertical slice first.\n"
-        "4. Add automated checks for each critical behavior.\n"
-        "5. Run demo rehearsal and adjust based on results.\n\n"
-        f"Context considered: {description}\n\n"
-        "Next action:\n"
-        "- Start with a short technical spec and a checklist of critical tests."
+def _build_fallback(task: Task, retrieved_context: str | None = None) -> str:
+    return build_planning_fallback(
+        title=task.title,
+        description=task.description or "No additional planning context provided.",
+        retrieved_context=retrieved_context,
     )
 
 
 def run_task(task: Task, retrieved_context: str | None = None) -> str:
-    return generate_text(
-        prompt=_build_prompt(task, retrieved_context=retrieved_context),
-        fallback_text=_build_fallback(task),
+    return run_task_with_metadata(task, retrieved_context=retrieved_context).text
+
+
+def run_task_with_metadata(task: Task, retrieved_context: str | None = None) -> AgentExecutionResult:
+    response = generate(
+        request=LLMRequest(prompt=_build_prompt(task, retrieved_context=retrieved_context)),
+        fallback_text=_build_fallback(task, retrieved_context=retrieved_context),
     )
+    return AgentExecutionResult.from_llm_response(response)

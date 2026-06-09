@@ -82,6 +82,73 @@ class SeedAndDevopsContractTests(unittest.TestCase):
         self.assertIn("npm run check:smoke", readme_content)
         self.assertIn("npm run build", readme_content)
 
+    def test_alembic_config_exists(self) -> None:
+        alembic_ini = _find_repo_file("alembic.ini")
+        if alembic_ini is None:
+            self.skipTest("alembic.ini is not mounted in this test runtime")
+        self.assertTrue(alembic_ini and alembic_ini.exists())
+
+    def test_alembic_env_imports_metadata(self) -> None:
+        env_file = _find_repo_file("alembic/env.py")
+        if env_file is None:
+            self.skipTest("alembic/env.py is not mounted in this test runtime")
+        content = env_file.read_text(encoding="utf-8")
+        self.assertIn("target_metadata = Base.metadata", content)
+        self.assertIn("import app.models", content)
+
+    def test_alembic_has_initial_revision(self) -> None:
+        versions_dir = _find_repo_file("alembic/versions")
+        if versions_dir is None:
+            self.skipTest("alembic/versions is not mounted in this test runtime")
+        revision_files = list(versions_dir.glob("*.py"))
+        self.assertGreaterEqual(len(revision_files), 1)
+
+    def test_ci_workflow_exists(self) -> None:
+        workflow_file = _find_repo_file(".github/workflows/ci.yml")
+        if workflow_file is None:
+            self.skipTest(".github/workflows/ci.yml is not mounted in this test runtime")
+        self.assertTrue(workflow_file and workflow_file.exists())
+
+    def test_ci_workflow_does_not_require_openrouter_secret(self) -> None:
+        workflow_file = _find_repo_file(".github/workflows/ci.yml")
+        if workflow_file is None:
+            self.skipTest(".github/workflows/ci.yml is not mounted in this test runtime")
+        content = workflow_file.read_text(encoding="utf-8")
+        self.assertIn("Run backend tests", content)
+        self.assertNotIn("OPENROUTER_API_KEY", content)
+        self.assertNotIn("secrets.OPENROUTER", content)
+
+    def test_document_formats_are_aligned_without_pdf_claims(self) -> None:
+        expected_extensions = ".txt,.md,.csv,.json"
+        expected_mime_types = "text/plain,text/markdown,text/csv,application/json"
+
+        env_example = _find_repo_file(".env.example")
+        readme = _find_repo_file("README.md")
+        compose_file = _find_repo_file("docker-compose.yml")
+        frontend_documents_page = _find_repo_file("frontend/src/pages/DocumentsPage.jsx")
+        deployment_doc = _find_repo_file("docs/DEPLOYMENT_RAILWAY.md")
+
+        for file_path in [env_example, readme, compose_file, frontend_documents_page, deployment_doc]:
+            if file_path is None:
+                self.skipTest("A required repo file is not mounted in this test runtime")
+
+        env_content = env_example.read_text(encoding="utf-8")
+        readme_content = readme.read_text(encoding="utf-8")
+        compose_content = compose_file.read_text(encoding="utf-8")
+        frontend_content = frontend_documents_page.read_text(encoding="utf-8")
+        deployment_content = deployment_doc.read_text(encoding="utf-8")
+
+        self.assertIn(expected_extensions, env_content)
+        self.assertIn(expected_mime_types, env_content)
+        self.assertIn(expected_extensions, compose_content)
+        self.assertIn(expected_mime_types, compose_content)
+        self.assertIn('accept=".txt,.md,.csv,.json"', frontend_content)
+        self.assertNotIn(".pdf", env_content)
+        self.assertNotIn("application/pdf", env_content)
+        self.assertNotIn(".pdf", deployment_content)
+        self.assertNotIn("application/pdf", deployment_content)
+        self.assertNotIn(".pdf", readme_content)
+
 
 if __name__ == "__main__":
     unittest.main()

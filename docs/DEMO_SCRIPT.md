@@ -1,84 +1,161 @@
-# Aegis Demo Script (3-5 min)
+﻿# Guion De Demo De Aegis (3-5 min)
 
-Objetivo: mostrar que Aegis es una plataforma de orquestacion de tareas con agentes, no un simple chatbot.
+Objetivo: enseñar Aegis como un flujo trazable de ejecución de tareas, no como una simple respuesta de chat.
 
-## 0) Preparacion (30s)
+## Antes De Empezar
 
-Verificar rapidamente:
+Comprobaciones rápidas:
 
-- `docker compose ps` en estado healthy
-- frontend en `http://localhost:5173`
-- backend health en `http://localhost:8000/api/v1/health`
+- `docker compose ps` muestra servicios saludables
+- frontend disponible en `http://localhost:5173`
+- backend health disponible en `http://localhost:8000/api/v1/health`
+- usuario demo preparado:
+  - email: `demo@aegis.local`
+  - password: `Demo12345!`
 
-## 1) Login y contexto (30s)
+Frase sugerida de apertura:
 
-1. Abrir `http://localhost:5173/login`.
-2. Entrar con:
-   - email: `demo@aegis.local`
-   - password: `Demo12345!`
-3. Frase sugerida:
-   - "Aegis ejecuta tareas con trazabilidad completa; no es un chat de respuesta unica."
+> "Aegis es una demo backend-first de orquestación de tareas con IA. La idea no es solo generar texto, sino enseñar un flujo completo con trazabilidad, persistencia y revisión."
 
-## 2) Crear y ejecutar tarea comparison (60-90s)
+## 1. Login (20-30s)
 
-Crear tarea:
+Abre `http://localhost:5173/login` e inicia sesión.
 
-- Title: `Compara FastAPI y Django`
-- Description: `Compara FastAPI y Django para crear una API backend moderna. Dame ventajas, desventajas y recomendacion final.`
+Qué decir:
 
-Ejecutar tarea desde `Tasks`.
+- "La sesión web usa un flujo de autenticación propio de producto, así que puedo moverme por tareas, documentos e Insights como usuario autenticado."
 
-Puntos a remarcar:
+Qué enseñar:
 
-- `task_type = comparison`
-- `agent_name = ComparisonAgent`
-- status cambia y termina en `completed`
+- pantalla de login
+- credenciales demo opcionales
+- transición al shell principal de la app
 
-## 3) Abrir Task Detail y mostrar trace (60-90s)
+## 2. Dashboard (20-30s)
 
-Abrir el detalle de esa tarea.
+Aterriza en el dashboard y fija el contexto.
 
-Mostrar:
+Qué decir:
 
-- resultado util (no placeholder)
-- trace con pasos:
-  - `classification`
-  - `agent_selection`
-  - `execution`
-- metadata de ejecucion (timestamps, duracion)
+- "Esta vista me da el recorrido principal de la demo: tareas, ejecución, revisión, contexto documental e Insights."
+
+Qué enseñar:
+
+- tarjetas de métricas
+- tareas recientes
+- flujo recomendado de navegación
+
+## 3. Crear Una Tarea (40-60s)
+
+Ve a `Tareas` y crea una solicitud realista.
+
+Ejemplo recomendado:
+
+- título: `Comparar FastAPI y Django para una plataforma interna de IA`
+- descripción: `Haz una comparativa práctica para un producto de orquestación con IA: arquitectura, mantenibilidad, rendimiento y velocidad de implementación. Termina con una recomendación.`
+
+Qué decir:
+
+- "Aquí parto de una tarea estructurada, no de un prompt genérico. Eso le da al backend contexto suficiente para clasificar, enrutar y persistir el flujo."
+
+## 4. Ejecutar La Tarea (40-60s)
+
+Lanza la tarea desde la lista o desde el detalle.
+
+Qué enseñar:
+
+- cambio de estado
+- control rápido de ejecución
+- refresco automático mientras la tarea está en cola o procesando
+
+Qué decir:
+
+- "Lo importante aquí no es solo la respuesta final. El sistema sigue el estado de ejecución y deja la corrida lista para revisión."
+
+## 5. Abrir El Detalle Y La Traza (60-90s)
+
+Abre el detalle de una tarea completada.
+
+Qué enseñar:
+
+- resumen de tarea
+- resultado final
+- execution trace
+- bloque de evaluación
+
+Qué remarcar:
+
+- `task_type`
+- `agent_name`
+- timestamps y duración
+- pasos de traza como clasificación, selección y ejecución
 
 Frase sugerida:
 
-- "Aqui se ve el pipeline completo y no solo una salida de texto."
+> "Aquí es donde Aegis deja de ser una simple demo de texto. Puedo inspeccionar qué ocurrió durante la ejecución, no solo lo que devolvió el modelo."
 
-## 4) Feedback + Insights (45-60s)
+## 6. Enviar Feedback (20-30s)
 
-1. Enviar rating (por ejemplo 5) y comentario corto.
-2. Ir a `Insights`.
-3. Mostrar:
-   - metricas por estado
-   - distribucion por tipo/agent
-   - quality queue (si hay fallidas o low-rated)
+Valora la salida y, si quieres, añade un comentario corto.
 
-## 5) Documents (30-45s)
+Qué decir:
 
-1. Ir a `Documents`.
-2. Mostrar carga de documento o libreria existente.
-3. Frase sugerida:
-   - "El sistema permite enriquecer tareas futuras con contexto documental."
+- "La valoración es ligera a propósito, pero genera una señal de calidad que luego puedo agregar en Insights."
 
-## 6) Cierre (15-20s)
+## 7. Enseñar Documentos / Contexto De Recuperación (30-45s)
 
-Mensaje final recomendado:
+Abre `Documentos`.
 
-- "Aegis es un MVP tecnico estable: clasifica tareas, selecciona agente, ejecuta, traza, recoge feedback y consolida insights."
+Qué enseñar:
 
-## Checklist rapido de demo
+- formulario de subida
+- biblioteca documental existente
+- ingestión por archivo o por texto
 
-- Login OK
-- Crear tarea OK
-- Ejecutar tarea OK
-- Detail + Trace OK
-- Feedback OK
-- Insights OK
-- Documents OK
+Qué decir:
+
+- "Aegis puede ingerir contexto de apoyo para que futuras tareas se ejecuten con información recuperada y no solo con el prompt."
+
+Mantén la explicación honesta:
+
+- no afirmar evaluación semántica profunda si no existe
+- no afirmar navegación por internet
+
+## 8. Enseñar Insights (30-45s)
+
+Abre `Insights`.
+
+Qué enseñar:
+
+- métricas superiores
+- resumen de distribuciones
+- cola de revisión de calidad
+- bloque de resultados fuertes
+
+Qué decir:
+
+- "Aquí se cierra el ciclo. El sistema no solo ejecuta trabajo; también enseña corridas débiles y fuertes para poder revisarlas."
+
+## 9. Cierre (15-20s)
+
+Cierre sugerido:
+
+> "Aegis es un MVP técnico para portfolio y entrevistas. Demuestra un flujo full-stack backend-first con entrada de tareas, enrutamiento, trazabilidad, feedback y revisión operativa."
+
+Frase opcional de continuación:
+
+> "Si esto evolucionara hacia producción, el siguiente paso sería reforzar observabilidad, usar una cola durable y validar mejor el runtime real."
+
+## Checklist De Demo
+
+- login funciona
+- dashboard carga
+- la tarea se crea
+- la tarea se ejecuta
+- el detalle enseña resultado y traza
+- el feedback se guarda
+- la biblioteca documental está visible
+- Insights refleja señales de calidad
+
+
+

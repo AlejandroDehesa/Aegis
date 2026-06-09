@@ -12,7 +12,7 @@ import { ROUTES } from "../constants/routes";
 import { useI18n } from "../hooks/useI18n";
 import { usePolling } from "../hooks/usePolling";
 import { getErrorMessage } from "../utils/errors";
-import { formatDateTime, formatDuration } from "../utils/formatters";
+import { formatDateTime, formatDuration, formatTaskTypeLabel } from "../utils/formatters";
 
 function createFeedbackForm(task) {
   return {
@@ -22,7 +22,7 @@ function createFeedbackForm(task) {
 }
 
 export function TaskDetailPage() {
-  const { t, locale } = useI18n();
+  const { t, language, locale } = useI18n();
   const { taskId } = useParams();
   const [task, setTask] = useState(null);
   const [trace, setTrace] = useState(null);
@@ -47,7 +47,7 @@ export function TaskDetailPage() {
       void loadTaskDetail({ silent: true });
     },
     {
-      enabled: Boolean(task && ["pending", "processing"].includes(task.status)),
+      enabled: Boolean(task && ["pending", "queued", "processing"].includes(task.status)),
       intervalMs: 2500,
     },
   );
@@ -99,7 +99,7 @@ export function TaskDetailPage() {
       }
 
       setNotice(
-        taskData.status === "processing"
+        ["queued", "processing"].includes(taskData.status)
           ? t("taskDetail.executeStarted")
           : t("taskDetail.executeCompleted"),
       );
@@ -187,13 +187,13 @@ export function TaskDetailPage() {
           </Link>
           <button
             className="button button-primary"
-            disabled={executing || task.status === "processing"}
+            disabled={executing || ["queued", "processing"].includes(task.status)}
             onClick={handleExecute}
             type="button"
           >
             {executing
               ? t("taskDetail.executing")
-              : task.status === "processing"
+              : ["queued", "processing"].includes(task.status)
                 ? t("taskDetail.running")
                 : t("taskDetail.execute")}
           </button>
@@ -201,7 +201,7 @@ export function TaskDetailPage() {
       </header>
 
       <FeedbackMessage tone="info">
-        {task.status === "processing"
+        {["queued", "processing"].includes(task.status)
           ? t("taskDetail.runningNotice")
           : notice}
       </FeedbackMessage>
@@ -223,7 +223,7 @@ export function TaskDetailPage() {
           </div>
           <div>
             <dt>{t("taskDetail.taskType")}</dt>
-            <dd>{task.task_type}</dd>
+            <dd>{formatTaskTypeLabel(task.task_type, language)}</dd>
           </div>
           <div>
             <dt>{t("taskDetail.agent")}</dt>
@@ -283,6 +283,8 @@ export function TaskDetailPage() {
           <div className="feedback-rating-group">
             {[1, 2, 3, 4, 5].map((value) => (
               <button
+                aria-label={t("taskDetail.rateOption", { value })}
+                aria-pressed={feedbackForm.feedback_rating === value}
                 className={
                   feedbackForm.feedback_rating === value
                     ? "rating-button rating-button-active"

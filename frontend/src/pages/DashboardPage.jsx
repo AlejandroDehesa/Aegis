@@ -11,11 +11,12 @@ import { StatusBadge } from "../components/StatusBadge";
 import { ROUTES } from "../constants/routes";
 import { useI18n } from "../hooks/useI18n";
 import { getErrorMessage } from "../utils/errors";
-import { formatDateTime } from "../utils/formatters";
+import { formatDateTime, formatTaskTypeLabel } from "../utils/formatters";
 
+const DASHBOARD_PAGE_LIMIT = 50;
 
 export function DashboardPage() {
-  const { t, locale } = useI18n();
+  const { t, language, locale } = useI18n();
   const [summary, setSummary] = useState({
     tasks: [],
     documents: [],
@@ -31,8 +32,8 @@ export function DashboardPage() {
 
       try {
         const [tasks, documents, agents] = await Promise.all([
-          listTasks(),
-          listDocuments(),
+          listTasks({ limit: DASHBOARD_PAGE_LIMIT, offset: 0 }),
+          listDocuments({ limit: DASHBOARD_PAGE_LIMIT, offset: 0 }),
           listAgents(),
         ]);
         setSummary({ tasks, documents, agents });
@@ -141,7 +142,7 @@ export function DashboardPage() {
               <Link className="list-item" key={task.id} to={`/tasks/${task.id}`}>
                 <div>
                   <strong>{task.title}</strong>
-                  <p className="list-item-subtitle">{task.task_type}</p>
+                  <p className="list-item-subtitle">{formatTaskTypeLabel(task.task_type, language)}</p>
                 </div>
                 <div className="list-item-meta">
                   <StatusBadge status={task.status} />

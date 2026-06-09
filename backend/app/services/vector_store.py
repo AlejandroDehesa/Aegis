@@ -1,27 +1,14 @@
-import json
+from __future__ import annotations
+
 import math
-from dataclasses import dataclass
-from pathlib import Path
+import uuid
 from typing import Any
 
+from sqlalchemy import Select, select, text
+
 from app.core.config import settings
-
-try:
-    import chromadb
-except ImportError:
-    chromadb = None
-
-
-@dataclass
-class VectorStoreRecord:
-    id: str
-    text: str
-    embedding: list[float]
-    metadata: dict[str, str]
-
-
-def _ensure_parent_dir(path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+from app.core.database import SessionLocal
+from app.models.document import Document, DocumentChunk
 
 
 def _cosine_similarity(first: list[float], second: list[float]) -> float:
@@ -35,84 +22,114 @@ def _cosine_similarity(first: list[float], second: list[float]) -> float:
     return numerator / (first_norm * second_norm)
 
 
-def _load_json_store() -> list[dict[str, Any]]:
-    store_path = Path(settings.LOCAL_VECTOR_STORE_PATH)
-
-    if not store_path.exists():
-        return []
-
-    with store_path.open("r", encoding="utf-8") as file:
-        return json.load(file)
-
-
-def _save_json_store(records: list[dict[str, Any]]) -> None:
-    store_path = Path(settings.LOCAL_VECTOR_STORE_PATH)
-    _ensure_parent_dir(store_path)
-
-    with store_path.open("w", encoding="utf-8") as file:
-        json.dump(records, file)
-
-
-def _get_chroma_collection():
-    if chromadb is None:
+def _to_float_vector(value: Any) -> list[float] | None:
+    if not isinstance(value, list):
         return None
 
-    persist_directory = Path(settings.CHROMA_PERSIST_DIRECTORY)
-    persist_directory.mkdir(parents=True, exist_ok=True)
-    client = chromadb.PersistentClient(path=str(persist_directory))
-    return client.get_or_create_collection(
-        name=settings.RAG_VECTOR_COLLECTION,
-        metadata={"hnsw:space": "cosine"},
+    try:
+        return [float(item) for item in value]
+    except (TypeError, ValueError):
+        return None
+
+
+def _vector_literal(vector: list[float]) -> str:
+    return "[" + ",".join(f"{float(value):.12g}" for value in vector) + "]"
+
+
+def _query_records_pgvector(
+    query_embedding: list[float],
+    user_id: str,
+    top_k: int,
+) -> list[dict[str, Any]]:
+    query_embedding_literal = _vector_literal(query_embedding)
+
+    sql = text(
+        """
+        SELECT
+            dc.id::text AS id,
+            dc.content AS text,
+            dc.document_id::text AS document_id,
+            d.title AS document_title,
+            d.source_name AS source_name,
+            dc.chunk_index AS chunk_index,
+            1 - (dc.embedding <=> CAST(:query_embedding AS vector)) AS score
+        FROM document_chunks AS dc
+        JOIN documents AS d ON d.id = dc.document_id
+        WHERE dc.user_id = CAST(:user_id AS uuid)
+          AND dc.embedding IS NOT NULL
+        ORDER BY dc.embedding <=> CAST(:query_embedding AS vector)
+        LIMIT :top_k
+        """
     )
 
+    with SessionLocal() as session:
+        rows = session.execute(
+            sql,
+            {
+                "query_embedding": query_embedding_literal,
+                "user_id": user_id,
+                "top_k": max(top_k, 1),
+            },
+        ).mappings().all()
 
-def add_records(records: list[VectorStoreRecord]) -> None:
-    if not records:
-        return
-
-    try:
-        collection = _get_chroma_collection()
-    except Exception:
-        collection = None
-
-    if collection is not None:
-        collection.add(
-            ids=[record.id for record in records],
-            documents=[record.text for record in records],
-            embeddings=[record.embedding for record in records],
-            metadatas=[record.metadata for record in records],
-        )
-        return
-
-    existing_records = _load_json_store()
-    existing_by_id = {record["id"]: record for record in existing_records}
-
-    for record in records:
-        existing_by_id[record.id] = {
-            "id": record.id,
-            "text": record.text,
-            "embedding": record.embedding,
-            "metadata": record.metadata,
+    return [
+        {
+            "id": row["id"],
+            "text": row["text"],
+            "metadata": {
+                "user_id": user_id,
+                "document_id": row["document_id"],
+                "document_title": row["document_title"] or "Untitled document",
+                "source_name": row["source_name"] or "",
+                "chunk_index": str(row["chunk_index"]),
+            },
+            "score": max(0.0, min(1.0, float(row["score"] or 0.0))),
         }
+        for row in rows
+    ]
 
-    _save_json_store(list(existing_by_id.values()))
 
+def _query_records_local(
+    query_embedding: list[float],
+    user_id: str,
+    top_k: int,
+) -> list[dict[str, Any]]:
+    user_uuid = uuid.UUID(user_id)
+    statement: Select = (
+        select(DocumentChunk, Document)
+        .join(Document, Document.id == DocumentChunk.document_id)
+        .where(DocumentChunk.user_id == user_uuid)
+        .where(DocumentChunk.embedding.is_not(None))
+    )
 
-def delete_records(record_ids: list[str]) -> None:
-    if not record_ids:
-        return
+    with SessionLocal() as session:
+        rows = session.execute(statement).all()
 
-    try:
-        collection = _get_chroma_collection()
-    except Exception:
-        collection = None
+    matches: list[dict[str, Any]] = []
 
-    if collection is not None:
-        collection.delete(ids=record_ids)
-        return
+    for chunk, document in rows:
+        embedding = _to_float_vector(chunk.embedding)
+        if embedding is None:
+            continue
 
-    records = [record for record in _load_json_store() if record["id"] not in record_ids]
-    _save_json_store(records)
+        score = _cosine_similarity(query_embedding, embedding)
+        matches.append(
+            {
+                "id": str(chunk.id),
+                "text": chunk.content,
+                "metadata": {
+                    "user_id": str(chunk.user_id),
+                    "document_id": str(chunk.document_id),
+                    "document_title": document.title,
+                    "source_name": document.source_name or "",
+                    "chunk_index": str(chunk.chunk_index),
+                },
+                "score": score,
+            }
+        )
+
+    matches.sort(key=lambda item: item["score"], reverse=True)
+    return matches[: max(top_k, 1)]
 
 
 def query_records(
@@ -120,55 +137,17 @@ def query_records(
     user_id: str,
     top_k: int,
 ) -> list[dict[str, Any]]:
-    try:
-        collection = _get_chroma_collection()
-    except Exception:
-        collection = None
+    backend = settings.RAG_VECTOR_BACKEND.strip().lower()
 
-    if collection is not None:
-        result = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k,
-            where={"user_id": user_id},
-        )
-        ids = result.get("ids", [[]])[0]
-        documents = result.get("documents", [[]])[0]
-        metadatas = result.get("metadatas", [[]])[0]
-        distances = result.get("distances", [[]])[0]
-
-        return [
-            {
-                "id": record_id,
-                "text": document,
-                "metadata": metadata or {},
-                "score": max(0.0, 1.0 - float(distance or 0.0)),
-            }
-            for record_id, document, metadata, distance in zip(
-                ids,
-                documents,
-                metadatas,
-                distances,
-                strict=False,
-            )
-        ]
-
-    matches: list[dict[str, Any]] = []
-
-    for record in _load_json_store():
-        metadata = record.get("metadata", {})
-
-        if metadata.get("user_id") != user_id:
-            continue
-
-        score = _cosine_similarity(query_embedding, record.get("embedding", []))
-        matches.append(
-            {
-                "id": record["id"],
-                "text": record["text"],
-                "metadata": metadata,
-                "score": score,
-            }
+    if backend == "pgvector":
+        return _query_records_pgvector(
+            query_embedding=query_embedding,
+            user_id=user_id,
+            top_k=top_k,
         )
 
-    matches.sort(key=lambda item: item["score"], reverse=True)
-    return matches[:top_k]
+    return _query_records_local(
+        query_embedding=query_embedding,
+        user_id=user_id,
+        top_k=top_k,
+    )

@@ -1,39 +1,33 @@
+from app.agents.execution_result import AgentExecutionResult
+from app.agents.prompts import build_summary_fallback, build_summary_prompt
 from app.models.task import Task
-from app.agents.prompt_utils import build_retrieved_context_block
-from app.services.llm_service import generate_text
+from app.services.llm.schemas import LLMRequest
+from app.services.llm_service import generate
 
 
 def _build_prompt(task: Task, retrieved_context: str | None = None) -> str:
-    description = task.description or "No additional context provided."
-    context_block = build_retrieved_context_block(retrieved_context)
-
-    return (
-        "You are SummaryAgent inside Aegis, a task execution system.\n"
-        "Create a concise and clear summary based on the task input.\n"
-        "Prefer short structured output over long prose.\n\n"
-        f"Task title: {task.title}\n"
-        f"Task description: {description}\n\n"
-        f"{context_block}"
-        "Return a short summary with key points."
+    return build_summary_prompt(
+        title=task.title,
+        description=task.description or "No additional context provided.",
+        retrieved_context=retrieved_context,
     )
 
 
-def _build_fallback(task: Task) -> str:
-    description = task.description or "No additional context provided."
-
-    return (
-        f"Summary for: {task.title}\n\n"
-        "Core points:\n"
-        f"- Title: {task.title}\n"
-        f"- Context: {description}\n"
-        "- Main idea: prioritize the most relevant information first.\n"
-        "- Key takeaway: keep implementation focused on practical outcomes.\n"
-        "- Recommendation: use this summary as the baseline for next decisions."
+def _build_fallback(task: Task, retrieved_context: str | None = None) -> str:
+    return build_summary_fallback(
+        title=task.title,
+        description=task.description or "No additional context provided.",
+        retrieved_context=retrieved_context,
     )
 
 
 def run_task(task: Task, retrieved_context: str | None = None) -> str:
-    return generate_text(
-        prompt=_build_prompt(task, retrieved_context=retrieved_context),
-        fallback_text=_build_fallback(task),
+    return run_task_with_metadata(task, retrieved_context=retrieved_context).text
+
+
+def run_task_with_metadata(task: Task, retrieved_context: str | None = None) -> AgentExecutionResult:
+    response = generate(
+        request=LLMRequest(prompt=_build_prompt(task, retrieved_context=retrieved_context)),
+        fallback_text=_build_fallback(task, retrieved_context=retrieved_context),
     )
+    return AgentExecutionResult.from_llm_response(response)

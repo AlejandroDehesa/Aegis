@@ -2,8 +2,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 import uuid
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func, text
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, Uuid, func, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -16,12 +16,12 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        Uuid(as_uuid=True),
         ForeignKey("users.id"),
         index=True,
         nullable=False,
@@ -59,10 +59,10 @@ class Task(Base):
         nullable=True,
     )
     execution_trace: Mapped[list[dict[str, object]]] = mapped_column(
-        JSONB,
+        JSON().with_variant(JSONB(), "postgresql"),
         nullable=False,
         default=list,
-        server_default=text("'[]'::jsonb"),
+        server_default=text("'[]'"),
     )
     started_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),

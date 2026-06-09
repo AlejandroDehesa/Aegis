@@ -1,9 +1,13 @@
 import uuid
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.v1.auth import get_current_user
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.document import Document
 from app.models.user import User
@@ -19,6 +23,73 @@ from app.services.document_service import (
 
 
 router = APIRouter()
+DEFAULT_PAGE_LIMIT = 20
+MAX_PAGE_LIMIT = 100
+
+
+def _sanitize_filename(raw_filename: str | None) -> str | None:
+    if not raw_filename:
+        return None
+
+    normalized = raw_filename.strip().replace("\\", "/")
+    if "/" in normalized or ".." in normalized:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file name.",
+        )
+
+    sanitized = Path(normalized).name.strip()
+    if not sanitized:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file name.",
+        )
+
+    return sanitized
+
+
+def _validate_upload_file(file: UploadFile, file_bytes: bytes) -> str:
+    file_name = _sanitize_filename(file.filename)
+    if not file_name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File name is required.",
+        )
+
+    if not file_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file is empty.",
+        )
+
+    max_bytes = max(settings.DOCUMENT_MAX_UPLOAD_MB, 1) * 1024 * 1024
+    if len(file_bytes) > max_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Uploaded file exceeds the {settings.DOCUMENT_MAX_UPLOAD_MB}MB limit.",
+        )
+
+    extension = Path(file_name).suffix.lower()
+    if extension not in {ext.lower() for ext in settings.DOCUMENT_ALLOWED_EXTENSIONS}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File extension '{extension or '<none>'}' is not allowed.",
+        )
+
+    mime_type = (file.content_type or "").lower()
+    if mime_type and mime_type not in {value.lower() for value in settings.DOCUMENT_ALLOWED_MIME_TYPES}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File MIME type '{mime_type}' is not allowed.",
+        )
+
+    if extension == ".pdf":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="PDF uploads are not supported in the current runtime.",
+        )
+
+    return file_name
 
 
 def _serialize_document(document: Document) -> DocumentRead:
@@ -53,10 +124,11 @@ async def upload_document(
 
     if file is not None:
         source_type = "file"
-        source_name = file.filename
+        raw_bytes = await file.read()
+        source_name = _validate_upload_file(file, raw_bytes)
 
         try:
-            document_content = (await file.read()).decode("utf-8").strip()
+            document_content = raw_bytes.decode("utf-8").strip()
         except UnicodeDecodeError as error:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -96,12 +168,16 @@ async def upload_document(
 
 @router.get("/documents", response_model=list[DocumentRead])
 def get_documents(
+    limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
+    offset: Annotated[int, Query(ge=0)] = 0,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[DocumentRead]:
     documents = list_documents_for_user(
         db=db,
         user_id=current_user.id,
+        limit=limit,
+        offset=offset,
     )
     return [_serialize_document(document) for document in documents]
 

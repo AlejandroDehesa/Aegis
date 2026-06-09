@@ -19,9 +19,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_access_token(subject: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    )
+    expire = get_access_token_expires_at()
     payload = {
         "sub": subject,
         "exp": expire,
@@ -35,3 +33,9 @@ def decode_access_token(token: str) -> dict:
 
 def is_invalid_token_error(error: Exception) -> bool:
     return isinstance(error, InvalidTokenError)
+
+
+def get_access_token_expires_at() -> datetime:
+    return datetime.now(timezone.utc) + timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
