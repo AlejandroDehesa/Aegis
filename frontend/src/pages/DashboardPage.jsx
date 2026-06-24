@@ -64,8 +64,6 @@ export function DashboardPage() {
         </div>
       </header>
 
-      <FeedbackMessage tone="info">{t("dashboard.demoSeed")}</FeedbackMessage>
-
       <div className="stats-grid">
         <StatCard label={t("dashboard.stats.tasks")} value={summary.tasks.length} />
         <StatCard label={t("dashboard.stats.documents")} value={summary.documents.length} />
