@@ -49,7 +49,6 @@ export const TRANSLATIONS = {
     "auth.validatingSession": "Validating session...",
     "auth.heroTitle": "Traceable AI task orchestration, not just chat output.",
     "auth.heroCopy": "Sign in to create tasks, inspect execution traces, upload document context and review results from a real product workflow.",
-    "auth.heroDemoCredentials": "Optional demo account: demo@aegis.local / Demo12345!",
     "auth.tabLogin": "Login",
     "auth.tabRegister": "Register",
     "auth.email": "Email",
@@ -74,7 +73,6 @@ export const TRANSLATIONS = {
 
     "dashboard.eyebrow": "Overview",
     "dashboard.title": "Portfolio demo control center",
-    "dashboard.demoSeed": "Optional demo account: `demo@aegis.local` / `Demo12345!`",
     "dashboard.stats.tasks": "Tasks",
     "dashboard.stats.documents": "Documents",
     "dashboard.stats.agents": "Agents",
@@ -312,7 +310,6 @@ export const TRANSLATIONS = {
     "auth.validatingSession": "Validando sesion...",
     "auth.heroTitle": "Orquestacion de tareas IA con trazabilidad, no solo chat.",
     "auth.heroCopy": "Inicia sesion para crear tareas, revisar trazas de ejecucion, subir contexto documental y evaluar resultados en un flujo de producto real.",
-    "auth.heroDemoCredentials": "Cuenta demo opcional: demo@aegis.local / Demo12345!",
     "auth.tabLogin": "Entrar",
     "auth.tabRegister": "Registro",
     "auth.email": "Email",
@@ -337,7 +334,6 @@ export const TRANSLATIONS = {
 
     "dashboard.eyebrow": "Resumen",
     "dashboard.title": "Centro de control para portfolio y demo tecnica",
-    "dashboard.demoSeed": "Cuenta demo opcional: `demo@aegis.local` / `Demo12345!`",
     "dashboard.stats.tasks": "Tareas",
     "dashboard.stats.documents": "Documentos",
     "dashboard.stats.agents": "Agentes",
