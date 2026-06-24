@@ -106,7 +106,6 @@ export function AuthPage() {
         <p className="eyebrow">Aegis</p>
         <h1>{t("auth.heroTitle")}</h1>
         <p className="auth-copy">{t("auth.heroCopy")}</p>
-        <p className="auth-copy">{t("auth.heroDemoCredentials")}</p>
       </section>
 
       <section className="auth-panel">
